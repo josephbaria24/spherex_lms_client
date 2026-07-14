@@ -1,15 +1,15 @@
-// app/materials/page.tsx
-'use client'
+"use client"
 
 import { useEffect, useState } from "react"
 import { MainLayout } from "@/components/layouts/main-layout"
-import { Card } from "@/components/ui/card"
+import { GrowShell, GrowHeader } from "@/components/grow-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Download, FileText, BookOpen } from "lucide-react"
-import { useSupabase } from "@/app/provider" // ← Fixed import
+import { apiGet } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 interface Material {
   id: string
@@ -20,132 +20,184 @@ interface Material {
   file_url?: string
 }
 
+const TYPE_ACCENTS: Record<string, string> = {
+  IELTS: "grow-card-accent",
+  TOEFL: "grow-card-lime",
+  Technical: "grow-card-muted",
+}
+
+function materialCardClass(type?: string) {
+  return TYPE_ACCENTS[type ?? ""] ?? "grow-card"
+}
+
 export default function MaterialsPage() {
-  const { supabase } = useSupabase() // ← Use from provider
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     const fetchMaterials = async () => {
-      const { data, error } = await supabase
-        .from("materials")
-        .select("*")
-        .order("updated_at", { ascending: false })
-      
-      if (error) console.error("Failed to load materials:", error)
-      else setMaterials(data || [])
-      setLoading(false)
+      try {
+        const data = await apiGet<{ materials: Material[] }>("/materials")
+        setMaterials(data.materials ?? [])
+      } catch (error) {
+        console.error("Failed to load materials:", error)
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchMaterials()
-  }, [supabase]) // ← Add dependency
+  }, [])
 
-  const filteredMaterials = materials.filter(material =>
-    material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    material.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredMaterials = materials.filter(
+    (material) =>
+      material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const renderCard = (material: Material, index: number) => (
-    <Card
-      key={material.id}
-      className="p-6 transition-smooth hover:shadow-lg animate-slide-up"
-      style={{ animationDelay: `${0.1 * index}s` }}
-    >
-      <div className="space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            {material.type === "IELTS" || material.type === "TOEFL" ? (
-              <BookOpen className="h-6 w-6 text-primary" />
-            ) : (
-              <FileText className="h-6 w-6 text-primary" />
-            )}
-          </div>
-          <Badge variant="secondary">{material.type || "Other"}</Badge>
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-foreground line-clamp-1">{material.title}</h3>
-          <p className="text-sm text-muted-foreground line-clamp-2">{material.description}</p>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {material.tags?.slice(0, 3).map((tag) => (
-            <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-          ))}
-          {material.tags && material.tags.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{material.tags.length - 3} more
-            </Badge>
+  const renderCard = (material: Material) => (
+    <article key={material.id} className={cn("grow-card p-5", materialCardClass(material.type))}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/50 bg-white/40 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
+          {material.type === "IELTS" || material.type === "TOEFL" ? (
+            <BookOpen className="h-6 w-6 text-[#5c4d8a] dark:text-violet-200" />
+          ) : (
+            <FileText className="h-6 w-6 text-[#5c4d8a] dark:text-violet-200" />
           )}
         </div>
-        <a href={material.file_url} download target="_blank" rel="noopener noreferrer">
-          <Button className="w-full gap-2" variant="outline">
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-        </a>
+        <Badge
+          variant="secondary"
+          className="rounded-full border-0 bg-white/70 text-[10px] font-semibold uppercase dark:bg-white/10"
+        >
+          {material.type || "Other"}
+        </Badge>
       </div>
-    </Card>
+      <div className="mt-4 space-y-2">
+        <h3 className="line-clamp-1 text-lg font-bold text-[#1c1917] dark:text-foreground">
+          {material.title}
+        </h3>
+        <p className="line-clamp-2 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+          {material.description}
+        </p>
+      </div>
+      {material.tags && material.tags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1">
+          {material.tags.slice(0, 3).map((tag) => (
+            <span key={tag} className="grow-badge">
+              {tag}
+            </span>
+          ))}
+          {material.tags.length > 3 ? (
+            <span className="grow-badge">+{material.tags.length - 3}</span>
+          ) : null}
+        </div>
+      ) : null}
+      <a href={material.file_url} download target="_blank" rel="noopener noreferrer" className="mt-4 block">
+        <Button variant="outline" className="grow-btn-outline w-full gap-2">
+          <Download className="h-4 w-4" />
+          Download
+        </Button>
+      </a>
+    </article>
   )
+
+  const renderGrid = (items: Material[]) => {
+    if (loading) {
+      return (
+        <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Loading materials…</p>
+      )
+    }
+    if (items.length === 0) {
+      return (
+        <div className="grow-empty">
+          <FileText className="mx-auto h-10 w-10 text-[#c9bfb0] dark:text-muted-foreground" />
+          <p className="mt-3 text-sm text-[#6b5c4f] dark:text-muted-foreground">No materials found.</p>
+        </div>
+      )
+    }
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {items.map((material) => renderCard(material))}
+      </div>
+    )
+  }
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-slide-up">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">E-Learning Materials</h1>
-            <p className="text-muted-foreground mt-1">Access study materials, guides, and resources</p>
+      <GrowShell>
+        <GrowHeader
+          title="Study materials"
+          accent="your library"
+          description="Access guides, resources, and reference documents"
+        />
+
+        <div className="grow-toolbar">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search materials…"
+              className="grow-input pl-11"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
 
-        <div className="relative animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            placeholder="Search materials..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grow-card-dark p-5">
+            <p className="text-sm text-white/70">Total resources</p>
+            <p className="mt-2 text-4xl font-bold">{materials.length}</p>
+          </div>
+          <div className="grow-card-accent p-5">
+            <p className="text-sm text-[#6b5c7a] dark:text-violet-300/80">IELTS</p>
+            <p className="mt-2 text-4xl font-bold text-[#1c1917] dark:text-foreground">
+              {materials.filter((m) => m.type === "IELTS").length}
+            </p>
+          </div>
+          <div className="grow-card-lime p-5">
+            <p className="text-sm font-medium text-[#3d4f2f] dark:text-lime-200/90">Technical</p>
+            <p className="mt-2 text-4xl font-bold text-[#1c1917] dark:text-foreground">
+              {materials.filter((m) => m.type === "Technical").length}
+            </p>
+          </div>
         </div>
 
-        <Tabs defaultValue="all" className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
-          <TabsList>
-            <TabsTrigger value="all">All Materials</TabsTrigger>
-            <TabsTrigger value="IELTS">IELTS</TabsTrigger>
-            <TabsTrigger value="TOEFL">TOEFL</TabsTrigger>
-            <TabsTrigger value="Technical">Technical</TabsTrigger>
+        <Tabs defaultValue="all">
+          <TabsList className="grow-tabs-list">
+            <TabsTrigger value="all" className="grow-tab-trigger">
+              All
+            </TabsTrigger>
+            <TabsTrigger value="IELTS" className="grow-tab-trigger">
+              IELTS
+            </TabsTrigger>
+            <TabsTrigger value="TOEFL" className="grow-tab-trigger">
+              TOEFL
+            </TabsTrigger>
+            <TabsTrigger value="Technical" className="grow-tab-trigger">
+              Technical
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {loading ? (
-                <p className="text-muted-foreground col-span-full text-center">Loading materials...</p>
-              ) : filteredMaterials.length === 0 ? (
-                <p className="text-muted-foreground col-span-full text-center">No materials found</p>
-              ) : (
-                filteredMaterials.map((material, i) => renderCard(material, i))
-              )}
-            </div>
+          <TabsContent value="all" className="mt-5">
+            {renderGrid(filteredMaterials)}
           </TabsContent>
 
-          {["IELTS", "TOEFL", "Technical"].map(type => (
-            <TabsContent value={type} key={type} className="mt-6">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {materials.filter(m => m.type === type).length === 0 ? (
-                  <p className="text-muted-foreground col-span-full text-center">No {type} materials found.</p>
-                ) : (
-                  materials
-                    .filter(m => m.type === type)
-                    .filter(m =>
+          {["IELTS", "TOEFL", "Technical"].map((type) => (
+            <TabsContent value={type} key={type} className="mt-5">
+              {renderGrid(
+                materials
+                  .filter((m) => m.type === type)
+                  .filter(
+                    (m) =>
                       m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      m.description?.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map((material, i) => renderCard(material, i))
-                )}
-              </div>
+                      m.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+                  ),
+              )}
             </TabsContent>
           ))}
         </Tabs>
-      </div>
+      </GrowShell>
     </MainLayout>
   )
 }

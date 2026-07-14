@@ -56,11 +56,11 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {/* Notifications */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="relative hover:bg-accent transition-colors"
           >
             <Bell className="h-5 w-5" />
@@ -72,18 +72,18 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
 
           {/* User Profile - Desktop */}
           <div className="hidden md:flex items-center gap-3 ml-2 pl-3 border-l border-border">
-            <div className="text-right">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground flex-shrink-0">
+              <span className="text-sm font-semibold">
+                {userName?.charAt(0).toUpperCase() || "U"}
+              </span>
+            </div>
+            <div className="text-left">
               <p className="text-sm font-medium text-foreground leading-none">
                 {userName}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {userEmail}
               </p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground flex-shrink-0">
-              <span className="text-sm font-semibold">
-                {userName?.charAt(0).toUpperCase() || "U"}
-              </span>
             </div>
           </div>
 
@@ -92,7 +92,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
             variant="ghost"
             size="icon"
             onClick={handleLogout}
-            className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+            className="hover:bg-destructive/10 hover:text-destructive transition-colors ml-1"
             title="Logout"
           >
             <LogOut className="h-5 w-5" />

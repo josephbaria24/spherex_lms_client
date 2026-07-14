@@ -1,36 +1,23 @@
-//components/layouts/main-layout.tsx
 "use client"
 
 import type React from "react"
-import { useState } from "react"
 import { Sidebar } from "@/components/navigation/sidebar"
 import { MobileNav } from "@/components/navigation/mobile-nav"
-
-import { Header } from "@/components/navigation/header"
-import { MobileSidebarDrawer } from "../navigation/mobile-sidebar-drawer"
 
 interface MainLayoutProps {
   children: React.ReactNode
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      
-      {/* Mobile Sidebar Drawer */}
-      <MobileSidebarDrawer 
-        open={mobileMenuOpen} 
-        onClose={() => setMobileMenuOpen(false)} 
-      />
+    <div className="flex h-screen min-h-0 bg-background">
+      <aside className="relative z-30 shrink-0 overflow-visible">
+        <Sidebar />
+      </aside>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header onMobileMenuToggle={() => setMobileMenuOpen(true)} />
-
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-          <div className="container mx-auto p-4 md:p-6 animate-fade-in">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:py-3 md:pl-0 md:pr-3">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden md:rounded-[var(--sidebar-float-radius)] md:border md:border-border/80 md:bg-card has-[.grow-shell]:h-[calc(100vh-1.5rem)] has-[.grow-shell]:max-h-[calc(100vh-1.5rem)] dark:md:border-border/50">
+          <div className="sleek-page flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pb-24 md:p-6 md:pb-6 has-[.grow-shell]:h-full has-[.grow-shell]:overflow-hidden has-[.grow-shell]:p-0 has-[.grow-shell]:pb-24 md:has-[.grow-shell]:pb-0">
             {children}
           </div>
         </main>

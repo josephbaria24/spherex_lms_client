@@ -1,45 +1,28 @@
-// app/page.tsx
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import TutorLandingPage from '@/components/tutor-landing-page'
-import { useSupabase } from './provider'
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import TutorLandingPage from "@/components/tutor-landing-page"
+import { authMe } from "@/lib/api"
+import { resolveAppHomePath } from "@/lib/home-route"
 
 export default function Page() {
-  const { supabase } = useSupabase()
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session) {
-        router.push('/dashboard')
-      } else {
-        setLoading(false)
-      }
-    }
-
-    checkSession()
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        router.push('/dashboard')
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase, router])
+    authMe()
+      .then(async ({ user }) => {
+        const home = await resolveAppHomePath(user)
+        router.replace(home)
+      })
+      .catch(() => setLoading(false))
+  }, [router])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
       </div>
     )
   }

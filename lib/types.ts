@@ -19,6 +19,10 @@ export interface Course {
   level: "beginner" | "intermediate" | "advanced"
   enrolledCount: number
   progress?: number
+  priceCents?: number
+  requiresEnrollCode?: boolean
+  isEnrolled?: boolean
+  organizationName?: string | null
   createdAt: Date
   updatedAt: Date
 }

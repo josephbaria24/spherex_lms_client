@@ -1,83 +1,44 @@
-// app/middleware.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { NextRequest, NextResponse } from "next/server"
+import { SESSION_COOKIE } from "@/lib/api-config"
+import { canAccessAdminPanel, canAccessTeacherPanel } from "@/lib/roles"
+import { getRoleFromSessionToken } from "@/lib/session-token"
 
 export async function middleware(req: NextRequest) {
-  let res = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          req.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          res = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
-          })
-          res.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: any) {
-          req.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          res = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
-          })
-          res.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-        },
-      },
-    }
-  )
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
+  const token = req.cookies.get(SESSION_COOKIE)?.value
   const pathname = req.nextUrl.pathname
+  const role = token ? getRoleFromSessionToken(token) : null
 
-  // Protect /admin routes
-  if (pathname.startsWith('/admin') && !session) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  if (pathname.startsWith("/admin")) {
+    if (!token) return NextResponse.redirect(new URL("/login", req.url))
+    if (!canAccessAdminPanel(role)) {
+      return NextResponse.redirect(new URL("/dashboard", req.url))
+    }
   }
 
-  // Redirect authenticated users from login/home
-  if ((pathname === '/' || pathname === '/login') && session) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  if (pathname.startsWith("/teacher")) {
+    if (!token) return NextResponse.redirect(new URL("/login", req.url))
+    if (!canAccessTeacherPanel(role)) {
+      return NextResponse.redirect(new URL("/dashboard", req.url))
+    }
   }
 
-  return res
+  if (pathname.startsWith("/org")) {
+    if (!token) return NextResponse.redirect(new URL("/login", req.url))
+  }
+
+  if ((pathname === "/" || pathname === "/login") && token) {
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin", req.url))
+    }
+    if (role === "teacher") {
+      return NextResponse.redirect(new URL("/teacher", req.url))
+    }
+    return NextResponse.redirect(new URL("/dashboard", req.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: [
-    '/',
-    '/login',
-    '/admin/:path*',
-  ],
+  matcher: ["/", "/login", "/admin/:path*", "/teacher/:path*", "/org/:path*"],
 }

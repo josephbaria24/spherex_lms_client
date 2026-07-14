@@ -2,15 +2,16 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { useSupabase } from "@/app/provider" // ← Fixed
+import { apiDelete, apiGet } from "@/lib/api"
 import { UploadMaterialModal } from "@/components/admin/materials/upload-material-modal"
-import { MainLayout } from "@/components/layouts/main-layout"
+import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Plus, MoreVertical, Edit, Trash2, Download, Upload } from "lucide-react"
+import { GrowHeader } from "@/components/grow-shell"
+import { FileText, Search, Plus, MoreVertical, Edit, Trash2, Download, Upload } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface Material {
@@ -25,22 +26,21 @@ interface Material {
 }
 
 export default function AdminMaterialsPage() {
-  const { supabase } = useSupabase() // ← Use from provider
   const [materials, setMaterials] = useState<Material[]>([])
   const [searchTerm, setSearchTerm] = useState("")
 
   const fetchMaterials = async () => {
-    const { data, error } = await supabase
-      .from('materials')
-      .select('*')
-      .order('updated_at', { ascending: false })
-    
-    if (!error) setMaterials(data as Material[])
+    try {
+      const data = await apiGet<{ materials: Material[] }>("/materials")
+      setMaterials(data.materials ?? [])
+    } catch (error) {
+      console.error("Failed to load materials:", error)
+    }
   }
 
   useEffect(() => {
     fetchMaterials()
-  }, [supabase])
+  }, [])
 
   const handleDownload = async (material: Material) => {
     try {
@@ -72,13 +72,11 @@ export default function AdminMaterialsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this material?')) return
 
-    const { error } = await supabase
-      .from('materials')
-      .delete()
-      .eq('id', id)
-
-    if (!error) {
+    try {
+      await apiDelete(`/materials/${id}`)
       fetchMaterials()
+    } catch (error) {
+      console.error('Delete failed:', error)
     }
   }
 
@@ -88,23 +86,23 @@ export default function AdminMaterialsPage() {
   )
 
   return (
-    <MainLayout>
+    <GrowMainLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-slide-up">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">E-Learning Materials</h1>
-            <p className="text-muted-foreground mt-1">Manage IELTS, TOEFL, and other learning resources</p>
-          </div>
+        <GrowHeader
+          icon={FileText}
+          title="E-learning materials"
+          accent="fuel knowledge"
+          description="Manage IELTS, TOEFL, and other learning resources"
+          showDate={false}
+        >
           <UploadMaterialModal onUploaded={fetchMaterials} />
-        </div>
+        </GrowHeader>
 
-        {/* Search */}
-        <div className="relative animate-slide-up" style={{ animationDelay: "0.1s" }}>
+        <div className="grow-toolbar relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search materials..."
-            className="pl-10"
+            className="grow-input pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -236,6 +234,6 @@ export default function AdminMaterialsPage() {
           ))}
         </Tabs>
       </div>
-    </MainLayout>
+    </GrowMainLayout>
   )
 }

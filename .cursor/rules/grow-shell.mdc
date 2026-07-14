@@ -1,0 +1,68 @@
+---
+description: Grow Shell — warm bento student UI design system for SphereX LMS
+globs: app/**/*.tsx,components/**/*.tsx
+alwaysApply: false
+---
+
+# Grow Shell
+
+Official name for the student dashboard aesthetic: warm cream canvas, rounded bento cards, coral serif accents, pill controls.
+
+**Invoke in chat:** "Use Grow Shell", "Apply Grow Shell design", or "Grow Shell page"
+
+## Quick start
+
+```tsx
+import { GrowShell, GrowHeader, grow } from "@/components/grow-shell"
+import { Button } from "@/components/ui/button"
+
+export default function MyPage() {
+  return (
+    <MainLayout>
+      <GrowShell>
+        <GrowHeader title="My page" accent="keep growing" description="Optional subtitle" />
+        <div className="grow-toolbar">{/* search / filters */}</div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grow-card-coral p-5">Stat</div>
+          <div className="grow-card p-5">Stat</div>
+          <div className="grow-card-dark p-5">Stat</div>
+        </div>
+        <div className="grow-card p-5">Content</div>
+      </GrowShell>
+    </MainLayout>
+  )
+}
+```
+
+## Class reference (`grow` from `@/lib/grow-shell`)
+
+| Class | Use |
+|-------|-----|
+| `grow-shell` | Page canvas (via `<GrowShell>`) |
+| `grow-bento` | Card hover grid wrapper |
+| `grow-card` | Default white bento card |
+| `grow-card-muted` | Warm off-white card |
+| `grow-card-accent` | Lilac card |
+| `grow-card-lime` | Lime peer/social card |
+| `grow-card-dark` | Navy stat card |
+| `grow-card-coral` | Coral gradient hero stat |
+| `grow-tabs-list` + `grow-tab-trigger` | Pill tab bar |
+| `grow-toolbar` | Search/filter bar |
+| `grow-input` | Rounded inputs |
+| `grow-btn-primary` / `grow-btn-outline` | Pill buttons |
+| `grow-empty` | Dashed empty state |
+| `grow-badge` | Small uppercase pill label |
+
+## Design tokens
+
+- Canvas: `#ffffff` · Ink: `#1c1917` · Accent: `#e85d4a` (serif italic)
+- Card radius: `1.75rem` · Navy: `#1a1f2e` · Progress: `#7c6cf0`
+
+## Rules
+
+- **Student pages:** `<GrowShell>` inside `<MainLayout>` (or `<GrowMainLayout>`)
+- **Admin & teacher pages:** use `<GrowMainLayout>` from `@/components/layouts/grow-main-layout`
+- Use `<GrowHeader>` / `<PageHeader accent="…">` / `<TeacherPageHeader>` with accent for the signature title pattern
+- Prefer `grow-*` classes over ad-hoc colors; match existing pages: dashboard, courses, materials, training, settings
+- Course cards: `CourseCard` with `variant="bento"` (default)
+- Do not apply Grow Shell to immersive learn views (`/courses/.../learn`) unless asked

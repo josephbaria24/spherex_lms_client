@@ -2,7 +2,8 @@
 'use client'
 
 import { useState } from "react"
-import { useSupabase } from "@/app/provider"
+import { useAuth } from "@/app/provider"
+import { apiPatch, apiPost } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,7 +30,7 @@ interface UploadMaterialModalProps {
 }
 
 export function UploadMaterialModal({ onUploaded }: UploadMaterialModalProps) {
-  const { supabase, user } = useSupabase()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
@@ -65,26 +66,16 @@ export function UploadMaterialModal({ onUploaded }: UploadMaterialModalProps) {
 
     try {
       // 1. Create material record first to get ID
-      const { data: material, error: dbError } = await supabase
-        .from("materials")
-        .insert({
-          title: form.title,
-          description: form.description,
-          type: form.type,
-          category: form.category,
-          tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
-          file_url: "", // Will update after upload
-          uploaded_by: user.id,
-        })
-        .select()
-        .single()
+      const { material } = await apiPost<{ material: { id: string } }>("/materials", {
+        title: form.title,
+        description: form.description,
+        type: form.type,
+        category: form.category,
+        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        file_url: "",
+      })
 
-      if (dbError || !material) {
-        throw new Error("Failed to create material record")
-      }
-
-      // 2. Upload to Bunny.net
-      const fileExtension = file.name.split('.').pop()
+      const fileExtension = file.name.split(".").pop()
       const fileName = `${Date.now()}.${fileExtension}`
       const filePath = `materials/${material.id}/${fileName}`
 
@@ -92,9 +83,10 @@ export function UploadMaterialModal({ onUploaded }: UploadMaterialModalProps) {
       formData.append("file", file)
       formData.append("path", filePath)
 
-      const uploadResponse = await fetch("/api/bunny/upload", {
+      const uploadResponse = await fetch("/api/lms/bunny/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       })
 
       const uploadResult = await uploadResponse.json()
@@ -103,15 +95,7 @@ export function UploadMaterialModal({ onUploaded }: UploadMaterialModalProps) {
         throw new Error("Upload to Bunny failed")
       }
 
-      // 3. Update material with file path
-      const { error: updateError } = await supabase
-        .from("materials")
-        .update({ file_url: filePath })
-        .eq("id", material.id)
-
-      if (updateError) {
-        throw new Error("Failed to update file path")
-      }
+      await apiPatch(`/materials/${material.id}`, { file_url: filePath })
 
       // Success!
       alert("Material uploaded successfully!")
