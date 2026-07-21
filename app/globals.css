@@ -167,7 +167,7 @@
   --popover: 250 22% 12%;
   --popover-foreground: 0 0% 98%;
   --popover-border: 250 18% 22%;
-  --primary: 27 100% 94%;
+  --primary: 0 0% 98%;
   --primary-foreground: 250 25% 9%;
   --secondary: 250 18% 18%;
   --secondary-foreground: 0 0% 96%;
@@ -178,7 +178,7 @@
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
   --input: 250 18% 22%;
-  --ring: 27 100% 94%;
+  --ring: 0 0% 98%;
   --chart-1: 27 100% 94%;
   --chart-2: 290 56% 97%;
   --chart-3: 250 20% 30%;
@@ -747,7 +747,7 @@
   }
   .grow-btn-primary,
   .student-btn-primary {
-    @apply rounded-full bg-[#1a1f2e] text-white hover:bg-[#252b3d] dark:bg-primary;
+    @apply rounded-full bg-[#1a1f2e] text-white hover:bg-[#252b3d] dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90;
   }
   .grow-empty,
   .student-empty {

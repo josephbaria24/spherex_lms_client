@@ -8,6 +8,19 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   const role = token ? getRoleFromSessionToken(token) : null
 
+  const studentProtected =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/courses") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/achievements") ||
+    pathname.startsWith("/materials") ||
+    pathname.startsWith("/training") ||
+    pathname.startsWith("/change-password")
+
+  if (studentProtected && !token) {
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
+
   if (pathname.startsWith("/admin")) {
     if (!token) return NextResponse.redirect(new URL("/login", req.url))
     if (!canAccessAdminPanel(role)) {
@@ -40,5 +53,18 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/admin/:path*", "/teacher/:path*", "/org/:path*"],
+  matcher: [
+    "/",
+    "/login",
+    "/admin/:path*",
+    "/teacher/:path*",
+    "/org/:path*",
+    "/dashboard/:path*",
+    "/courses/:path*",
+    "/settings/:path*",
+    "/achievements/:path*",
+    "/materials/:path*",
+    "/training/:path*",
+    "/change-password",
+  ],
 }

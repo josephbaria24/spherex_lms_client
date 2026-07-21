@@ -10,6 +10,7 @@ import {
   Settings,
   Building2,
   Trophy,
+  CreditCard,
 } from "lucide-react"
 
 export interface NavItem {
@@ -49,6 +50,7 @@ export const adminNav: NavItem[] = [
   { label: "Admin Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Organizations", icon: Building2, href: "/admin/organizations" },
   { label: "Manage Courses", icon: BookOpen, href: "/admin/courses" },
+  { label: "Payment requests", icon: CreditCard, href: "/admin/payment-requests" },
   { label: "E-Learning Materials", icon: FileText, href: "/admin/materials" },
   { label: "Users", icon: Users, href: "/admin/users" },
   { label: "Analytics", icon: LayoutDashboard, href: "/admin/analytics" },

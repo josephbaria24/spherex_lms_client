@@ -124,5 +124,39 @@ export interface AuthUser {
   notify_email?: boolean
   notify_training?: boolean
   notify_course_updates?: boolean
+  must_change_password?: boolean
   created_at?: string
+}
+
+export async function authForgotPassword(email: string) {
+  const res = await fetch("/api/auth/forgot-password", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+  return parseResponse<{ ok: boolean; message: string }>(res)
+}
+
+export async function authResetPassword(token: string, password: string) {
+  const res = await fetch("/api/auth/reset-password", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  })
+  return parseResponse<{ ok: boolean; message: string }>(res)
+}
+
+export async function authChangePassword(body: {
+  current_password?: string
+  new_password: string
+}) {
+  const res = await fetch("/api/auth/change-password", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  return parseResponse<{ ok: boolean; message: string }>(res)
 }

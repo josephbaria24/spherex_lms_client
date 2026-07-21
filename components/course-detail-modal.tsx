@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { apiPost, ApiError } from "@/lib/api"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import { toast } from "sonner"
-import { CreditCard, KeyRound, Loader2 } from "lucide-react"
+import { KeyRound, Loader2, Mail } from "lucide-react"
 
 interface Props {
   course: Course | null
@@ -29,8 +29,13 @@ interface Props {
 
 export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled }: Props) {
   const [enrolling, setEnrolling] = useState(false)
+  const [requesting, setRequesting] = useState(false)
   const [enrollCode, setEnrollCode] = useState("")
   const [showCodeField, setShowCodeField] = useState(false)
+  const [showPayForm, setShowPayForm] = useState(false)
+  const [fullName, setFullName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
   const router = useRouter()
 
   const priceCents = course?.priceCents ?? 0
@@ -39,13 +44,12 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
   const isOrgCourse = Boolean(course?.organizationName)
   const showCodeOption = isPaid || requiresCode || isOrgCourse
 
-  async function enroll(options?: { payment_confirmed?: boolean; enroll_code?: string }) {
+  async function enroll(options?: { enroll_code?: string }) {
     if (!course) return
     setEnrolling(true)
     try {
       await apiPost("/enrollments", {
         course_id: course.id,
-        payment_confirmed: options?.payment_confirmed,
         enroll_code: options?.enroll_code?.trim() || undefined,
       })
       toast.success("Enrolled successfully")
@@ -62,14 +66,37 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
     }
   }
 
-  const handleFreeEnroll = () => void enroll()
-
-  const handlePayEnroll = () => {
-    void enroll({ payment_confirmed: true })
-    toast.message("Payment simulated", {
-      description: "Stripe integration can be connected here later.",
-    })
+  async function submitPaymentRequest(e: React.FormEvent) {
+    e.preventDefault()
+    if (!course) return
+    setRequesting(true)
+    try {
+      const res = await apiPost<{
+        payment_request: { transaction_number: string }
+        message: string
+      }>("/payment-requests", {
+        course_id: course.id,
+        full_name: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      })
+      toast.success(res.message || "Check your email for next steps", {
+        description: `Transaction ${res.payment_request.transaction_number}`,
+        duration: 8000,
+      })
+      setShowPayForm(false)
+      setFullName("")
+      setEmail("")
+      setPhone("")
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not submit payment request")
+    } finally {
+      setRequesting(false)
+    }
   }
+
+  const handleFreeEnroll = () => void enroll()
 
   const handleCodeEnroll = () => {
     if (!enrollCode.trim()) {
@@ -88,6 +115,7 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
         if (!next) {
           setEnrollCode("")
           setShowCodeField(false)
+          setShowPayForm(false)
         }
         onClose()
       }}
@@ -122,20 +150,67 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
             <Button asChild className="w-full">
               <Link href={`/courses/${course.id}/learn`}>Continue learning</Link>
             </Button>
+          ) : showPayForm && isPaid ? (
+            <form onSubmit={submitPaymentRequest} className="w-full space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Enter your details. We will email a transaction number and a link to upload your
+                payment receipt.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="pay-name">Full name</Label>
+                <Input
+                  id="pay-name"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={requesting}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pay-email">Email</Label>
+                <Input
+                  id="pay-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={requesting}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pay-phone">Phone / mobile</Label>
+                <Input
+                  id="pay-phone"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={requesting}
+                />
+              </div>
+              <Button type="submit" className="w-full gap-2" disabled={requesting}>
+                {requesting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
+                Request access — {formatCoursePrice(priceCents)}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={requesting}
+                onClick={() => setShowPayForm(false)}
+              >
+                Back
+              </Button>
+            </form>
           ) : (
             <>
               {isPaid ? (
-                <Button
-                  className="w-full gap-2"
-                  onClick={handlePayEnroll}
-                  disabled={enrolling}
-                >
-                  {enrolling ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="h-4 w-4" />
-                  )}
-                  Pay {formatCoursePrice(priceCents)} & enroll
+                <Button className="w-full gap-2" onClick={() => setShowPayForm(true)}>
+                  <Mail className="h-4 w-4" />
+                  Request access — {formatCoursePrice(priceCents)}
                 </Button>
               ) : (
                 <Button className="w-full" onClick={handleFreeEnroll} disabled={enrolling}>
@@ -161,20 +236,17 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
                       </Label>
                       <Input
                         id="enroll-code"
-                        placeholder="ENR-XXXXXXXX"
-                        className="h-10 rounded-full border-teal-200 bg-white font-mono uppercase shadow-none"
+                        className="font-mono uppercase"
                         value={enrollCode}
                         onChange={(e) => setEnrollCode(e.target.value.toUpperCase())}
                         disabled={enrolling}
                       />
                       <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full rounded-full border-teal-300"
+                        className="w-full"
                         onClick={handleCodeEnroll}
                         disabled={enrolling}
                       >
-                        {enrolling ? "Verifying…" : "Redeem code & enroll"}
+                        {enrolling ? "Enrolling…" : "Enroll with code"}
                       </Button>
                     </>
                   )}

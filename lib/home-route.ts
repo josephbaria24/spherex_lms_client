@@ -22,6 +22,8 @@ export function pickOrgAdminHomeSlug(organizations: OrgSummary[]): string | null
 
 /** Default landing path after sign-in (org admin portal takes priority over teacher). */
 export async function resolveAppHomePath(user: AuthUser): Promise<string> {
+  if (user.must_change_password) return "/change-password"
+
   if (user.role === "admin") return "/admin"
 
   try {

@@ -16,6 +16,12 @@ export async function completeAuthSession(options?: {
   }
 
   const { user } = await authMe()
+
+  if (user.must_change_password) {
+    window.location.href = "/change-password"
+    return
+  }
+
   const memberships = await apiGet<{ memberships: OrgMembership[] }>("/organizations/me")
   const teachingOrg = hasTeachingOrganization(memberships.memberships ?? [])
 

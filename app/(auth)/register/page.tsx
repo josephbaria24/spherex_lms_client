@@ -99,7 +99,7 @@ export default function RegisterPage() {
                   <Input
                     id="full-name"
                     type="text"
-                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-5 text-sm shadow-none focus-visible:ring-teal-500"
+                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-5 text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
                     placeholder="Full name"
                     autoComplete="name"
                     value={fullName}
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                   <Input
                     id="email"
                     type="email"
-                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-5 text-sm shadow-none focus-visible:ring-teal-500"
+                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-5 text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
                     placeholder="Email address"
                     autoComplete="email"
                     value={email}
@@ -139,7 +139,7 @@ export default function RegisterPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-12 text-sm shadow-none focus-visible:ring-teal-500"
+                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-12 text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
                     placeholder="Password (min. 8 characters)"
                     autoComplete="new-password"
                     value={password}
@@ -168,7 +168,7 @@ export default function RegisterPage() {
                   <Input
                     id="confirm-password"
                     type={showPassword ? "text" : "password"}
-                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-5 text-sm shadow-none focus-visible:ring-teal-500"
+                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-5 text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
                     placeholder="Confirm password"
                     autoComplete="new-password"
                     value={confirmPassword}
@@ -188,7 +188,7 @@ export default function RegisterPage() {
                   <Input
                     id="student-org-code"
                     placeholder="PETRO-STUDENT"
-                    className="h-10 rounded-full border-teal-200 bg-white font-mono uppercase shadow-none focus-visible:ring-teal-500"
+                    className="h-10 rounded-full border-teal-200 bg-white font-mono uppercase text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white"
                     value={studentOrgCode}
                     onChange={(e) => setStudentOrgCode(e.target.value.toUpperCase())}
                     disabled={loading}
@@ -204,7 +204,7 @@ export default function RegisterPage() {
                   <Input
                     id="org-code"
                     placeholder="PETRO-DEMO"
-                    className="h-10 rounded-full border-emerald-200 bg-white font-mono uppercase shadow-none focus-visible:ring-emerald-500"
+                    className="h-10 rounded-full border-emerald-200 bg-white font-mono uppercase text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-emerald-500 dark:bg-white"
                     value={orgCode}
                     onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
                     disabled={loading}
