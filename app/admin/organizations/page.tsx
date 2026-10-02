@@ -181,14 +181,15 @@ export default function AdminOrganizationsPage() {
 
   return (
     <GrowMainLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <PageHeader
+          compact
           icon={Building2}
           title="Organizations"
           accent="grow together"
           description="Create partner organizations and assign organization admins"
         >
-          <Button onClick={() => setOpen(true)} className="gap-2 rounded-full">
+          <Button onClick={() => setOpen(true)} size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             Create organization
           </Button>
@@ -213,81 +214,79 @@ export default function AdminOrganizationsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filtered.map((org) => (
-              <Card key={org.id} className="premium-card border border-border shadow-none overflow-hidden">
+              <Card key={org.id} className="premium-card gap-0 overflow-hidden border border-border py-0 shadow-none">
                 {org.brand_primary && (
-                  <div className="h-1 w-full" style={{ backgroundColor: org.brand_primary }} />
+                  <div className="h-0.5 w-full" style={{ backgroundColor: org.brand_primary }} />
                 )}
-                <CardContent className="flex flex-wrap items-start justify-between gap-4 p-4">
-                  <div className="flex min-w-0 gap-3">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-3">
                     <OrgLogo
                       logo={org.logo}
                       name={org.name}
                       brandColor={org.brand_primary}
-                      className="h-12 w-12 rounded-lg"
+                      className="h-9 w-9 rounded-md"
                       logo_padding={org.logo_padding}
                       logo_position_x={org.logo_position_x}
                       logo_position_y={org.logo_position_y}
                     />
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold">{org.name}</h3>
-                      <Badge variant={org.status === "active" ? "default" : "secondary"}>
-                        {org.status}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">/{org.slug}</p>
-                    {org.industry && (
-                      <p className="mt-1 text-sm text-muted-foreground">{org.industry}</p>
-                    )}
-                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                      <span>
-                        {org.member_count}
-                        {org.max_members != null ? ` / ${org.max_members}` : ""} members
-                      </span>
-                      <span>{org.course_count} courses</span>
-                      {org.owner_email && <span>Owner: {org.owner_email}</span>}
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      <code className="rounded-md bg-muted px-2 py-1 font-mono text-xs">
-                        {org.teacher_join_code}
-                      </code>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyCode(org.teacher_join_code)}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateCode(org.id)}
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      </Button>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-semibold">{org.name}</h3>
+                        <Badge variant={org.status === "active" ? "default" : "secondary"} className="h-5 px-1.5 text-[10px]">
+                          {org.status}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">/{org.slug}</span>
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                        {org.industry && <span>{org.industry}</span>}
+                        <span>
+                          {org.member_count}
+                          {org.max_members != null ? ` / ${org.max_members}` : ""} members
+                        </span>
+                        <span>{org.course_count} courses</span>
+                        {org.owner_email && <span>{org.owner_email}</span>}
+                      </div>
                     </div>
                   </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Button variant="outline" size="sm" className="gap-2 rounded-full" asChild>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
+                      {org.teacher_join_code}
+                    </code>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => copyCode(org.teacher_join_code)}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => regenerateCode(org.id)}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5" asChild>
                       <Link href={`/admin/organizations/${org.id}`}>
                         <Settings2 className="h-3.5 w-3.5" />
                         Setup
                       </Link>
                     </Button>
-                    <div className="flex items-center gap-2">
-                    <Label htmlFor={`status-${org.id}`} className="text-xs text-muted-foreground">
-                      Active
-                    </Label>
-                    <Switch
-                      id={`status-${org.id}`}
-                      checked={org.status === "active"}
-                      onCheckedChange={() => toggleStatus(org)}
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor={`status-${org.id}`} className="text-xs text-muted-foreground">
+                        Active
+                      </Label>
+                      <Switch
+                        id={`status-${org.id}`}
+                        checked={org.status === "active"}
+                        onCheckedChange={() => toggleStatus(org)}
+                      />
                     </div>
                   </div>
                 </CardContent>

@@ -9,6 +9,7 @@ interface PageHeaderProps {
   /** Serif italic accent — enables Grow Shell header styling */
   accent?: string
   showDate?: boolean
+  compact?: boolean
   className?: string
   children?: React.ReactNode
 }
@@ -19,6 +20,7 @@ export function PageHeader({
   icon,
   accent,
   showDate = false,
+  compact = false,
   className,
   children,
 }: PageHeaderProps) {
@@ -30,6 +32,7 @@ export function PageHeader({
         description={description}
         icon={icon}
         showDate={showDate}
+        compact={compact}
         className={className}
       >
         {children}

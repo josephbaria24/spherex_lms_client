@@ -117,8 +117,8 @@
   --app-font-heading: var(--font-poppins), "Poppins", "Inter", system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: "Geist Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  --radius: 0.75rem;
-  --sidebar-float-radius: 1.75rem;
+  --radius: 0.5rem;
+  --sidebar-float-radius: 0.75rem;
 
   --cursor-interactive: pointer;
   --cursor-disabled: not-allowed;
@@ -752,7 +752,8 @@
   }
   .grow-empty,
   .student-empty {
-    @apply rounded-[1.75rem] border border-dashed border-[#ddd6ce] bg-white/50 p-10 text-center shadow-sm dark:border-border dark:bg-card/50;
+    @apply border border-dashed border-[#ddd6ce] bg-white/50 p-10 text-center shadow-sm dark:border-border dark:bg-card/50;
+    border-radius: var(--sidebar-float-radius);
   }
   .grow-badge,
   .student-badge {
@@ -763,16 +764,19 @@
   .grow-shell .premium-card,
   .grow-shell .sleek-panel,
   .grow-shell .sleek-surface {
-    @apply rounded-[1.75rem] border border-[#ebe4da] bg-white shadow-sm dark:border-border dark:bg-card;
+    @apply border border-[#ebe4da] bg-white shadow-sm dark:border-border dark:bg-card;
+    border-radius: var(--sidebar-float-radius);
   }
   .grow-shell .sleek-toolbar {
-    @apply rounded-[1.25rem] border border-[#ebe4da] bg-white/80 p-3 shadow-sm dark:border-border dark:bg-card;
+    @apply border border-[#ebe4da] bg-white/80 p-3 shadow-sm dark:border-border dark:bg-card;
+    border-radius: var(--radius);
   }
   .grow-shell .sleek-input {
     @apply h-10 rounded-full border-[#ddd6ce] bg-white/90 text-sm shadow-sm dark:border-border dark:bg-background;
   }
   .grow-shell .sleek-table-wrap {
-    @apply rounded-[1.75rem] border border-[#ebe4da] bg-white shadow-sm dark:border-border dark:bg-card;
+    @apply border border-[#ebe4da] bg-white shadow-sm dark:border-border dark:bg-card;
+    border-radius: var(--sidebar-float-radius);
   }
   .grow-shell .module-tabs-list {
     @apply inline-flex h-auto w-fit gap-0.5 rounded-full bg-[#f3ede4] p-0.5 dark:bg-muted;
