@@ -17,9 +17,10 @@ import {
   setCachedOutline,
 } from "@/lib/learn-cache"
 import type { Lesson, LessonQuiz } from "@/lib/lesson-types"
-import { CheckCircle2, ChevronLeft, ChevronRight, Circle, Loader2, CircleDot, Lock } from "lucide-react"
+import { CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Circle, CircleHelp, Loader2, CircleDot, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { groupLessonOutline } from "@/lib/lesson-outline"
 
 import type { ScormProgressPayload } from "@/lib/scorm-api"
 
@@ -84,6 +85,7 @@ export function CourseLearnPage({
     () => !!lessonId && !getCachedLesson<LessonDetail>(courseId, lessonId),
   )
   const [lessonBlocked, setLessonBlocked] = useState<string | null>(null)
+  const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
 
   const previewMode = previewModeProp ?? outline?.preview ?? detail?.preview ?? false
 
@@ -212,6 +214,7 @@ export function CourseLearnPage({
   }
 
   const lessons = outline?.lessons ?? []
+  const { roots, childrenOf } = groupLessonOutline(lessons)
   const currentIdx = detail ? lessons.findIndex((l) => l.id === detail.lesson.id) : -1
   const prevLesson = currentIdx > 0 ? lessons[currentIdx - 1] : null
   const nextLessonCandidate =
@@ -292,8 +295,10 @@ export function CourseLearnPage({
                 )}
               </div>
               <nav className="max-h-[50vh] space-y-1 overflow-x-hidden overflow-y-auto">
-                {lessons.map((l, i) => {
+                {roots.map((l, i) => {
+                  const quizzes = childrenOf.get(l.id) ?? []
                   const isActive = detail?.lesson.id === l.id
+                  const menuOpen = quizzes.length > 0 && collapsedMenus[l.id] !== true
                   const rowClass = cn(
                     "flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left text-sm transition-all duration-200",
                     isActive
@@ -314,28 +319,24 @@ export function CourseLearnPage({
                   const label = (
                     <>
                       {icon}
-                      <span>
+                      <span className="min-w-0 flex-1">
                         <span className="text-[10px] text-[#6b5c4f] dark:text-muted-foreground">Lesson {i + 1}</span>
                         <span className="block font-medium leading-snug">{l.title}</span>
                       </span>
+                      {quizzes.length > 0 ? (
+                        <span className="shrink-0 text-[10px] text-[#6b5c4f]">
+                          {quizzes.length} Quiz{quizzes.length === 1 ? "" : "zes"}
+                        </span>
+                      ) : null}
                     </>
                   )
 
-                  if (l.locked) {
-                    return (
-                      <div
-                        key={l.id}
-                        className={rowClass}
-                        title="Complete the previous lesson to unlock"
-                      >
-                        {label}
-                      </div>
-                    )
-                  }
-
-                  return (
+                  const lessonRow = l.locked ? (
+                    <div className={rowClass} title="Complete the previous lesson to unlock">
+                      {label}
+                    </div>
+                  ) : (
                     <Link
-                      key={l.id}
                       href={lessonPath(l.id)}
                       className={rowClass}
                       onClick={(e) => {
@@ -346,6 +347,76 @@ export function CourseLearnPage({
                     >
                       {label}
                     </Link>
+                  )
+
+                  if (quizzes.length === 0) {
+                    return <div key={l.id}>{lessonRow}</div>
+                  }
+
+                  return (
+                    <div key={l.id} className="rounded-xl border border-[#312e81]/25">
+                      <div className="flex items-start">
+                        <button
+                          type="button"
+                          className="ml-2 mt-2.5 text-[#312e81]"
+                          aria-expanded={menuOpen}
+                          aria-label={menuOpen ? "Hide quizzes" : "Show quizzes"}
+                          onClick={() =>
+                            setCollapsedMenus((current) => ({ ...current, [l.id]: menuOpen }))
+                          }
+                        >
+                          <ChevronDown className={cn("h-4 w-4 transition", menuOpen ? "" : "-rotate-90")} />
+                        </button>
+                        <div className="min-w-0 flex-1">{lessonRow}</div>
+                      </div>
+                      {menuOpen ? (
+                        <div className="space-y-1 border-t border-[#312e81]/15 px-2 py-2">
+                          {quizzes.map((quiz) => {
+                            const quizActive = detail?.lesson.id === quiz.id
+                            const quizClass = cn(
+                              "flex items-center gap-2 rounded-full border border-[#312e81]/20 px-2.5 py-1.5 text-sm text-[#312e81]",
+                              quizActive && "bg-[#ebe4f8] dark:bg-violet-950/40",
+                              quiz.locked
+                                ? "cursor-not-allowed opacity-60"
+                                : "hover:bg-[#faf8f5] dark:hover:bg-muted/60",
+                            )
+                            const quizLabel = (
+                              <>
+                                <CircleHelp className="h-4 w-4 shrink-0" />
+                                <span className="min-w-0 flex-1 truncate">{quiz.quiz_title || quiz.title}</span>
+                                <span
+                                  className={cn(
+                                    "h-2.5 w-2.5 shrink-0 rounded-full border border-[#312e81]",
+                                    quiz.completed ? "bg-[#312e81]" : "bg-transparent",
+                                  )}
+                                />
+                              </>
+                            )
+                            if (quiz.locked) {
+                              return (
+                                <div key={quiz.id} className={quizClass} title="Complete the previous lesson to unlock">
+                                  {quizLabel}
+                                </div>
+                              )
+                            }
+                            return (
+                              <Link
+                                key={quiz.id}
+                                href={lessonPath(quiz.id)}
+                                className={quizClass}
+                                onClick={(e) => {
+                                  if (quizActive) return
+                                  e.preventDefault()
+                                  navigateToLesson(quiz.id)
+                                }}
+                              >
+                                {quizLabel}
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
                   )
                 })}
               </nav>
@@ -403,6 +474,7 @@ export function CourseLearnPage({
                   courseId={courseId}
                   lesson={detail.lesson}
                   quiz={detail.quiz}
+                  completed={detail.completed}
                   previewMode={previewMode}
                   scormPlayerHref={`${basePath}/${detail.lesson.id}/scorm`}
                   onLessonComplete={(progress) => {

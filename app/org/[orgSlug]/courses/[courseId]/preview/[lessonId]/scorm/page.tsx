@@ -19,6 +19,7 @@ export default function OrgPreviewScormPlayerPage({
       courseId={courseId}
       lessonId={lessonId}
       backHref={orgRoute(orgSlug, `courses/${courseId}/preview/${lessonId}`)}
+      learnBasePath={orgRoute(orgSlug, `courses/${courseId}/preview`)}
       previewMode
       fresh={fresh === "1"}
     />

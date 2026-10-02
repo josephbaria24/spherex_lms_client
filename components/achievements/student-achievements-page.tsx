@@ -1,26 +1,31 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import {
   Award,
   BookOpen,
   CheckCircle2,
   Download,
-  ExternalLink,
   Flame,
   GraduationCap,
   History,
+  Loader2,
   Medal,
   Sparkles,
   Target,
   Trophy,
+  Upload,
 } from "lucide-react"
 import { GrowHeader } from "@/components/grow-shell"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { apiGet, apiUploadFile, ApiError } from "@/lib/api"
+import { assetUrl } from "@/lib/asset-url"
 import { cn } from "@/lib/utils"
 import type { LearnAchievementsPayload } from "@/lib/learn-achievements-types"
+import { toast } from "sonner"
 
 type StudentAchievementsPageProps = {
   data: LearnAchievementsPayload
@@ -117,6 +122,70 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
   const earnedCount = milestones.filter((m) => m.earned).length
   const inProgressCourses = enrollments.filter((e) => !e.completed)
   const completedCourses = enrollments.filter((e) => e.completed)
+
+  const [photoPath, setPhotoPath] = useState<string | null>(null)
+  const [photoLoading, setPhotoLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    apiGet<{ certificate_photo_path: string | null }>("/certificates/photo")
+      .then((res) => setPhotoPath(res.certificate_photo_path))
+      .catch(() => setPhotoPath(null))
+      .finally(() => setPhotoLoading(false))
+  }, [])
+
+  async function onPhotoSelected(file: File | undefined) {
+    if (!file) return
+    setUploading(true)
+    try {
+      const res = await apiUploadFile<{ certificate_photo_path: string }>(
+        "/certificates/photo",
+        "photo",
+        file,
+      )
+      setPhotoPath(res.certificate_photo_path)
+      toast.success("2×2 photo saved — it will appear on new PDF downloads")
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not upload photo")
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
+  async function downloadPdf(certId: string, serial: string | null) {
+    setDownloadingId(certId)
+    try {
+      const res = await fetch(`/api/lms/certificates/${certId}/pdf`, {
+        credentials: "include",
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        let message = "Download failed"
+        try {
+          message = (JSON.parse(text) as { error?: string }).error ?? message
+        } catch {
+          // ignore
+        }
+        throw new Error(message)
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${serial ?? certId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Download failed")
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   return (
     <>
@@ -348,90 +417,125 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
         </TabsContent>
 
         <TabsContent value="certificates" className="space-y-4">
+          <section className="grow-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#ebe4da] bg-[#f7f3ec] dark:border-border dark:bg-muted">
+                {photoLoading ? (
+                  <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : photoPath ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={assetUrl(photoPath)}
+                    alt="Certificate 2x2 photo"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                    2×2
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-[#1c1917] dark:text-foreground">
+                  Certificate photo (2×2)
+                </h3>
+                <p className="mt-0.5 max-w-md text-xs text-[#6b5c4f] dark:text-muted-foreground">
+                  Upload a square ID-style photo. It is printed on your certificate PDF when you
+                  download it.
+                </p>
+              </div>
+            </div>
+            <div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void onPhotoSelected(e.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="grow-btn-outline gap-1.5"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {photoPath ? "Replace photo" : "Upload 2×2"}
+              </Button>
+            </div>
+          </section>
+
           {certificates.length === 0 ? (
             <div className="grow-empty">
               <Award className="mx-auto h-10 w-10 text-[#c9bfb0] dark:text-muted-foreground" />
               <p className="mt-3 text-sm text-[#6b5c4f] dark:text-muted-foreground">
-                No certificates yet. Complete a course to earn one.
+                No certificates yet. Complete a course to earn one with a serial number and PDF.
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {certificates.map((cert, index) => {
-                const isCoral = index % 2 === 0
-                return (
-                  <article
-                    key={cert.id}
-                    className={isCoral ? "grow-card-coral p-5" : "grow-card p-5"}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span
-                        className={cn(
-                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
-                          isCoral
-                            ? "bg-white/20 text-white"
-                            : "bg-[#ebe4f8] text-[#7c6cf0] dark:bg-violet-950/50",
-                        )}
-                      >
-                        <Award className="h-6 w-6" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <h3
-                          className={cn(
-                            "text-lg font-bold",
-                            isCoral
-                              ? "text-white"
-                              : "text-[#1c1917] dark:text-foreground",
-                          )}
-                        >
-                          {cert.course_title ?? "Course certificate"}
-                        </h3>
-                        <p
-                          className={cn(
-                            "mt-1 text-sm",
-                            isCoral
-                              ? "text-white/75"
-                              : "text-[#6b5c4f] dark:text-muted-foreground",
-                          )}
-                        >
-                          Issued {formatDate(cert.issued_at)}
-                        </p>
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-[#1c1917] dark:text-foreground">
+                  Hall of Fame
+                </h3>
+                <span className="grow-badge">{certificates.length} earned</span>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {certificates.map((cert, index) => (
+                  <article key={cert.id} className="grow-card overflow-hidden p-0">
+                    <div className="relative border-b border-[#ebe4da] bg-gradient-to-br from-[#fff7ee] via-[#fffdf8] to-[#f7f0e8] p-4 dark:border-border dark:from-card dark:via-card dark:to-muted/40">
+                      <div className="pointer-events-none absolute inset-0 opacity-60">
+                        <div className="absolute inset-4 rounded-xl border border-[#e9dccb] dark:border-border/70" />
                       </div>
-                    </div>
-                    {cert.certificate_url ? (
-                      <Button
-                        asChild
-                        size="sm"
-                        className={cn(
-                          "mt-4 gap-1.5",
-                          isCoral
-                            ? "bg-white/15 text-white hover:bg-white/25"
-                            : "grow-btn-outline",
-                        )}
-                        variant={isCoral ? "secondary" : "outline"}
-                      >
-                        <a href={cert.certificate_url} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-4 w-4" />
-                          View certificate
-                          <ExternalLink className="h-3.5 w-3.5 opacity-70" />
-                        </a>
-                      </Button>
-                    ) : (
-                      <p
-                        className={cn(
-                          "mt-4 text-sm",
-                          isCoral
-                            ? "text-white/70"
-                            : "text-[#6b5c4f] dark:text-muted-foreground",
-                        )}
-                      >
-                        Certificate on file — contact your instructor for a copy.
+                      <div className="relative flex items-start justify-between gap-2">
+                        <span className="rounded-full bg-[#7c6cf0] px-2 py-0.5 text-[10px] font-semibold text-white">
+                          #{index + 1}
+                        </span>
+                        <Award className="h-5 w-5 text-[#e85d4a]" />
+                      </div>
+                      <p className="relative mt-3 text-[10px] uppercase tracking-[0.18em] text-[#8a7d72] dark:text-muted-foreground">
+                        Petrosphere Certificate
                       </p>
-                    )}
+                      <h4 className="relative mt-2 line-clamp-2 text-base font-bold text-[#1c1917] dark:text-foreground">
+                        {cert.course_title ?? "Course certificate"}
+                      </h4>
+                      <p className="relative mt-2 text-xs text-[#6b5c4f] dark:text-muted-foreground">
+                        Issued {formatDate(cert.issued_at)}
+                      </p>
+                      {cert.serial_number ? (
+                        <p className="relative mt-1 font-mono text-[11px] text-[#1c1917] dark:text-foreground">
+                          {cert.serial_number}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="p-4">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="grow-btn-outline w-full gap-1.5"
+                        disabled={downloadingId === cert.id}
+                        onClick={() => void downloadPdf(cert.id, cert.serial_number)}
+                      >
+                        {downloadingId === cert.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        Download PDF
+                      </Button>
+                    </div>
                   </article>
-                )
-              })}
-            </div>
+                ))}
+              </div>
+            </section>
           )}
         </TabsContent>
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SphereXLogo } from "@/components/logo"
-import { Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -17,6 +17,9 @@ export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirm, setConfirm] = useState("")
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,6 +66,9 @@ export default function ChangePasswordPage() {
     )
   }
 
+  const inputClass =
+    "h-11 rounded-full border-slate-300 bg-white pr-12 text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#e7e7e7] p-4 text-slate-950">
       <div className="w-full max-w-md rounded-[14px] border border-black/5 bg-white p-8 shadow-lg">
@@ -81,46 +87,79 @@ export default function ChangePasswordPage() {
               <Label htmlFor="current" className="text-slate-700">
                 Current password
               </Label>
-              <Input
-                id="current"
-                type="password"
-                required
-                className="h-11 rounded-full border-slate-300 bg-white text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="current"
+                  type={showCurrent ? "text" : "password"}
+                  required
+                  className={inputClass}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-900"
+                  onClick={() => setShowCurrent((v) => !v)}
+                  aria-label={showCurrent ? "Hide current password" : "Show current password"}
+                >
+                  {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           ) : null}
           <div className="space-y-2">
             <Label htmlFor="new" className="text-slate-700">
               New password
             </Label>
-            <Input
-              id="new"
-              type="password"
-              minLength={8}
-              required
-              className="h-11 rounded-full border-slate-300 bg-white text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              disabled={loading}
-            />
+            <div className="relative">
+              <Input
+                id="new"
+                type={showNew ? "text" : "password"}
+                minLength={8}
+                required
+                className={inputClass}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={loading}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-900"
+                onClick={() => setShowNew((v) => !v)}
+                aria-label={showNew ? "Hide new password" : "Show new password"}
+              >
+                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm" className="text-slate-700">
               Confirm new password
             </Label>
-            <Input
-              id="confirm"
-              type="password"
-              minLength={8}
-              required
-              className="h-11 rounded-full border-slate-300 bg-white text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              disabled={loading}
-            />
+            <div className="relative">
+              <Input
+                id="confirm"
+                type={showConfirm ? "text" : "password"}
+                minLength={8}
+                required
+                className={inputClass}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                disabled={loading}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-900"
+                onClick={() => setShowConfirm((v) => !v)}
+                aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+              >
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <Button

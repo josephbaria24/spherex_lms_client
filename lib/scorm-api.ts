@@ -161,6 +161,11 @@ export type PersistentScormRuntime = {
   flush: () => Promise<void>
 }
 
+function isCompleteLessonStatus(status: string | undefined): boolean {
+  const s = (status ?? "").toLowerCase().trim()
+  return s === "completed" || s === "passed"
+}
+
 export function createPersistentScorm12Api({
   courseId,
   lessonId,
@@ -174,6 +179,14 @@ export function createPersistentScorm12Api({
   let commitInFlight = false
   let commitQueued = false
   let commitTimer: ReturnType<typeof setTimeout> | null = null
+  let completionNotified = false
+  const startedComplete = isCompleteLessonStatus(store["cmi.core.lesson_status"])
+
+  function notifyLessonCompleted() {
+    if (completionNotified) return
+    completionNotified = true
+    onLessonCompleted?.()
+  }
 
   async function commitToServer() {
     if (previewMode) return
@@ -188,7 +201,9 @@ export function createPersistentScorm12Api({
         { values: { ...store } },
       )
       if (res.progress) onProgressChange?.(res.progress)
-      if (res.lesson_completed) onLessonCompleted?.()
+      // Only surface completion when this session newly finishes the lesson
+      // (avoid overlay on resume of an already-completed package).
+      if (res.lesson_completed && !startedComplete) notifyLessonCompleted()
     } finally {
       commitInFlight = false
       if (commitQueued) {
@@ -240,8 +255,8 @@ export function createPersistentScorm12Api({
     LMSGetValue: (element) => readScormValue(store, element, initialized),
     LMSSetValue: (element, value) => {
       if (SCORM12_READONLY.has(element)) return "false"
+      const prevValue = store[element]
       store[element] = value
-      const status = element === "cmi.core.lesson_status" ? value.toLowerCase() : ""
       if (isPersistedCmiElement(element)) {
         const immediate =
           element === "cmi.suspend_data" ||
@@ -249,8 +264,13 @@ export function createPersistentScorm12Api({
           element === "cmi.core.exit"
         scheduleCommit(immediate)
       }
-      if (status === "completed" || status === "passed") {
-        void flush()
+      if (element === "cmi.core.lesson_status" || element === "cmi.completion_status") {
+        if (isCompleteLessonStatus(value) && !isCompleteLessonStatus(prevValue)) {
+          notifyLessonCompleted()
+        }
+        if (isCompleteLessonStatus(value)) {
+          void flush()
+        }
       }
       return "true"
     },

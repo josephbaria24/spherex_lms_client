@@ -125,6 +125,7 @@ export interface AuthUser {
   notify_training?: boolean
   notify_course_updates?: boolean
   must_change_password?: boolean
+  email_verified?: boolean
   created_at?: string
 }
 
@@ -159,4 +160,22 @@ export async function authChangePassword(body: {
     body: JSON.stringify(body),
   })
   return parseResponse<{ ok: boolean; message: string }>(res)
+}
+
+export async function authVerifyEmail(code: string) {
+  const res = await fetch("/api/auth/verify-email", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  })
+  return parseResponse<{ user: AuthUser }>(res)
+}
+
+export async function authResendVerification() {
+  const res = await fetch("/api/auth/resend-verification", {
+    method: "POST",
+    credentials: "include",
+  })
+  return parseResponse<{ ok: boolean; sent: boolean; message: string }>(res)
 }

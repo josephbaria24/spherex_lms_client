@@ -434,7 +434,7 @@
     @apply border-border/60;
   }
   .sleek-page {
-    @apply min-h-full bg-background;
+    @apply min-h-full bg-transparent;
   }
   .sleek-panel {
     @apply overflow-hidden rounded-xl border border-border/75 bg-card shadow-none;
@@ -717,7 +717,8 @@
   }
   .grow-card-coral,
   .student-card-coral {
-    @apply rounded-[1.75rem] bg-gradient-to-br from-[#ff7a45] via-[#ff6b35] to-[#e85a4a] text-white shadow-lg;
+    @apply rounded-[1.75rem] bg-gradient-to-br from-[#ff7a45] via-[#ff6b35] to-[#e85a4a] text-white shadow-lg
+      dark:from-orange-950 dark:via-rose-950 dark:to-red-950 dark:text-orange-50 dark:ring-1 dark:ring-orange-400/20 dark:shadow-none;
   }
 
   .grow-tabs-list,

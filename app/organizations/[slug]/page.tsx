@@ -51,9 +51,9 @@ export default function OrganizationDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-background">
         <LandingHeader />
-        <main className="flex min-h-[50vh] items-center justify-center gap-2 pt-24 text-slate-500">
+        <main className="flex min-h-[50vh] items-center justify-center gap-2 pt-24 text-slate-500 dark:text-slate-400">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading organization…
         </main>
@@ -63,11 +63,11 @@ export default function OrganizationDetailPage({
 
   if (notFound || !organization) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-background dark:text-foreground">
         <LandingHeader />
         <main className="mx-auto max-w-lg px-4 pt-32 text-center">
-          <h1 className="text-2xl font-bold">Organization not found</h1>
-          <Link href="/organizations" className="mt-4 inline-block text-teal-600 hover:underline">
+          <h1 className="text-2xl font-bold dark:text-white">Organization not found</h1>
+          <Link href="/organizations" className="mt-4 inline-block text-teal-600 hover:underline dark:text-teal-400">
             ← Back to organizations
           </Link>
         </main>
@@ -78,24 +78,26 @@ export default function OrganizationDetailPage({
   const live = isOrgCatalogLive(organization.status)
 
   return (
-    <div className="min-h-screen bg-white text-slate-800">
+    <div className="min-h-screen bg-white text-slate-800 dark:bg-background dark:text-foreground">
       <LandingHeader />
 
       <main className="pt-24 pb-16">
-        <section
-          className="bg-gradient-to-br from-orange-50 via-rose-50/60 to-white pb-10 pt-6"
-          style={
-            organization.brand_primary
-              ? {
-                  background: `linear-gradient(135deg, ${organization.brand_primary}18, #fff8f5 40%, white)`,
-                }
-              : undefined
-          }
-        >
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section className="relative overflow-hidden pb-10 pt-6">
+          <div
+            className="absolute inset-0 bg-gradient-to-br from-orange-50 via-rose-50/60 to-white dark:hidden"
+            style={
+              organization.brand_primary
+                ? {
+                    background: `linear-gradient(135deg, ${organization.brand_primary}18, #fff8f5 40%, white)`,
+                  }
+                : undefined
+            }
+          />
+          <div className="absolute inset-0 hidden bg-gradient-to-br from-background via-orange-950/20 to-background dark:block" />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <Link
               href="/organizations"
-              className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-600"
+              className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400"
             >
               <ArrowLeft className="h-4 w-4" />
               All organizations
@@ -109,22 +111,22 @@ export default function OrganizationDetailPage({
                 logo_padding={organization.logo_padding}
                 logo_position_x={organization.logo_position_x}
                 logo_position_y={organization.logo_position_y}
-                className="h-24 w-24 rounded-2xl border-4 border-white bg-white shadow-lg"
+                className="h-24 w-24 rounded-2xl border-4 border-white bg-white shadow-lg dark:border-card dark:bg-card"
               />
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-3xl font-extrabold text-slate-900">{organization.name}</h1>
+                  <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">{organization.name}</h1>
                   <Badge variant={live ? "default" : "secondary"}>
                     {live ? "Active on SphereX" : orgStatusLabel(organization.status)}
                   </Badge>
                 </div>
                 {organization.industry ? (
-                  <p className="mt-1 text-sm font-medium text-teal-600">{organization.industry}</p>
+                  <p className="mt-1 text-sm font-medium text-teal-600 dark:text-teal-400">{organization.industry}</p>
                 ) : null}
                 {organization.description ? (
-                  <p className="mt-4 max-w-3xl text-slate-600">{organization.description}</p>
+                  <p className="mt-4 max-w-3xl text-slate-600 dark:text-slate-300">{organization.description}</p>
                 ) : null}
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
                   {organization.member_count > 0 ? (
                     <span className="flex items-center gap-1.5">
                       <Users className="h-4 w-4" />
@@ -141,7 +143,7 @@ export default function OrganizationDetailPage({
                     href={organization.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-teal-600 hover:underline"
+                    className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-teal-600 hover:underline dark:text-teal-400"
                   >
                     Visit website <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -153,22 +155,22 @@ export default function OrganizationDetailPage({
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           {!live ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center">
-              <BookOpen className="mx-auto h-10 w-10 text-slate-300" />
-              <h2 className="mt-4 text-xl font-bold">Catalog coming soon</h2>
-              <p className="mt-2 text-slate-600">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center dark:border-border dark:bg-muted/30">
+              <BookOpen className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
+              <h2 className="mt-4 text-xl font-bold dark:text-white">Catalog coming soon</h2>
+              <p className="mt-2 text-slate-600 dark:text-slate-300">
                 {organization.name} courses will be available on SphereX as the partnership is finalized.
               </p>
             </div>
           ) : courses.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center">
-              <BookOpen className="mx-auto h-10 w-10 text-slate-300" />
-              <p className="text-slate-600">No courses published for this organization yet.</p>
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center dark:border-border dark:bg-muted/30">
+              <BookOpen className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
+              <p className="text-slate-600 dark:text-slate-300">No courses published for this organization yet.</p>
             </div>
           ) : (
             <>
-              <h2 className="text-2xl font-extrabold text-slate-900">Course catalog</h2>
-              <p className="mt-2 text-slate-600">
+              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Course catalog</h2>
+              <p className="mt-2 text-slate-600 dark:text-slate-300">
                 {courses.length} program{courses.length === 1 ? "" : "s"} from {organization.name}
               </p>
               <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -188,13 +190,13 @@ function PublicCourseCard({ course }: { course: PublicOrganizationCourse }) {
   const cover = assetUrl(course.thumbnail ?? course.image)
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="h-36 overflow-hidden bg-gradient-to-br from-teal-50 to-orange-50">
+    <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-border dark:bg-card dark:hover:shadow-black/40">
+      <div className="h-36 overflow-hidden bg-gradient-to-br from-teal-50 to-orange-50 dark:from-teal-950/40 dark:to-orange-950/30">
         {cover ? (
           <img src={cover} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <BookOpen className="h-10 w-10 text-slate-300" />
+            <BookOpen className="h-10 w-10 text-slate-300 dark:text-slate-600" />
           </div>
         )}
       </div>
@@ -204,11 +206,11 @@ function PublicCourseCard({ course }: { course: PublicOrganizationCourse }) {
             {course.category}
           </Badge>
         ) : null}
-        <h3 className="mt-2 font-bold leading-snug text-slate-900">{course.title}</h3>
+        <h3 className="mt-2 font-bold leading-snug text-slate-900 dark:text-white">{course.title}</h3>
         {course.description ? (
-          <p className="mt-2 line-clamp-2 text-xs text-slate-500">{course.description}</p>
+          <p className="mt-2 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{course.description}</p>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
           {course.lessons > 0 ? (
             <span className="flex items-center gap-1">
               <BookOpen className="h-3.5 w-3.5" />
@@ -235,7 +237,7 @@ function PublicCourseCard({ course }: { course: PublicOrganizationCourse }) {
         ) : null}
         <div className="mt-4">
           <Link href="/login">
-            <Button size="sm" variant="outline" className="w-full rounded-full">
+            <Button size="sm" variant="outline" className="w-full rounded-full dark:border-border dark:bg-transparent dark:hover:bg-muted">
               Sign in to enroll
             </Button>
           </Link>

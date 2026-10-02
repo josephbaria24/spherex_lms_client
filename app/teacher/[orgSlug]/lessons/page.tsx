@@ -13,14 +13,16 @@ export default function TeacherLessonsPage() {
   const courseIdFromUrl = searchParams.get("course_id") ?? undefined
 
   return (
-    <GrowMainLayout>
-      <div className="space-y-6">
-        <TeacherPageHeader
-          icon={ListOrdered}
-          title="Lessons"
-          accent="craft content"
-          description="Create and organize lesson content for your courses"
-        />
+    <GrowMainLayout fill>
+      <div className="flex min-h-0 flex-1 flex-col gap-6">
+        <div className="shrink-0">
+          <TeacherPageHeader
+            icon={ListOrdered}
+            title="Lessons"
+            accent="craft content"
+            description="Create and organize lesson content for your courses"
+          />
+        </div>
 
         {!selectedOrgId && !loadingOrgs ? (
           <p className="text-sm text-muted-foreground">Select an organization to manage lessons.</p>

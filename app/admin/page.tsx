@@ -7,7 +7,7 @@ import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { apiGet } from "@/lib/api"
-import { Users, BookOpen, FileText, TrendingUp, Activity, Clock, LayoutGrid } from "lucide-react"
+import { Users, BookOpen, FileText, TrendingUp, Activity, Clock, LayoutGrid, BookOpenCheck, Languages } from "lucide-react"
 
 type DashboardData = {
   stats: {
@@ -201,6 +201,18 @@ export default function AdminDashboardPage() {
                         title: "Upload Material",
                         desc: "Add e-learning resources",
                         href: "/admin/materials",
+                      },
+                      {
+                        icon: BookOpenCheck,
+                        title: "Add Reviewer",
+                        desc: "CSE, NLE & LET practice",
+                        href: "/admin/reviewers",
+                      },
+                      {
+                        icon: Languages,
+                        title: "IELTS practice",
+                        desc: "Skills, materials & results",
+                        href: "/admin/ielts",
                       },
                       {
                         icon: Users,

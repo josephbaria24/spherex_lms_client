@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -70,7 +71,7 @@ export function CreateCourseModal({ onCreated, defaultOrganizationId }: Props) {
     }
   }, [defaultOrganizationId])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
@@ -152,11 +153,16 @@ export function CreateCourseModal({ onCreated, defaultOrganizationId }: Props) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Input
+            <Textarea
               id="description"
               name="description"
+              rows={8}
               value={formData.description}
               onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.stopPropagation()
+              }}
+              className="block min-h-40 max-h-[min(24rem,50vh)] resize-y overflow-y-auto whitespace-pre-wrap leading-relaxed [field-sizing:fixed]"
             />
           </div>
           <div className="space-y-2">

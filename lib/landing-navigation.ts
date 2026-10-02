@@ -9,8 +9,10 @@ export type LandingNavLink = {
 
 export const landingNavLinks: LandingNavLink[] = [
   { label: "Home", href: "/", sectionId: "home" },
-  { label: "Our Courses", href: "/#courses", sectionId: "courses" },
+  { label: "Our Courses", href: "/courses" },
   { label: "Categories", href: "/#categories", sectionId: "categories", dropdown: "categories" },
+  { label: "Reviewers", href: "/reviewers" },
+  { label: "IELTS", href: "/ielts" },
   { label: "Organizations", href: "/organizations" },
   { label: "About", href: "/#about", sectionId: "about" },
   { label: "Contact", href: "/#contact", sectionId: "contact" },

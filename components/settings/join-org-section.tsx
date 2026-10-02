@@ -97,7 +97,11 @@ export function JoinOrgSection({ variant = "default" }: JoinOrgSectionProps) {
   )
 }
 
-export function StudentJoinBanner() {
+export function StudentJoinBanner({
+  compact = false,
+}: {
+  compact?: boolean
+}) {
   const { user } = useAuth()
   const [memberships, setMemberships] = useState<OrgMembership[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,6 +121,22 @@ export function StudentJoinBanner() {
   }
 
   if (hasTeachingOrganization(memberships)) return null
+
+  if (compact) {
+    return (
+      <aside className="grow-card-lime h-fit w-full border border-dashed border-[#a8c97a] p-4 dark:border-lime-500/30">
+        <h2 className="text-sm font-bold text-[#1c1917] dark:text-foreground">
+          Have an org code?
+        </h2>
+        <p className="mt-1 text-xs leading-relaxed text-[#4a5c3a] dark:text-muted-foreground">
+          Join to unlock free organization courses.
+        </p>
+        <div className="mt-3">
+          <JoinOrganizationForm mode="student" compact redirectTo="/courses" />
+        </div>
+      </aside>
+    )
+  }
 
   return (
     <section className="grow-card-lime border border-dashed border-[#a8c97a] p-6 dark:border-lime-500/30">

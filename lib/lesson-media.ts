@@ -35,48 +35,72 @@ function packageBasePath(url: string): string {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed
 }
 
-/** Storyline playback file — works without LMS API (new tab / preview). */
+function htmlFileName(url: string): string | null {
+  const path = url.split("?")[0] ?? ""
+  const name = path.split("/").pop() ?? ""
+  return /\.html?$/i.test(name) ? name : null
+}
+
+/** Storyline keeps story.html / index_lms.html as siblings. iSpring uses res/index.html — do not rewrite that. */
+function isStorylineSwapFile(name: string | null): boolean {
+  if (!name) return false
+  const lower = name.toLowerCase()
+  return lower === "story.html" || lower === "index_lms.html"
+}
+
+function withHtmlFile(url: string, nextFile: string): string {
+  if (/\.html?$/i.test(url.split("?")[0] ?? "")) {
+    return url.replace(/\/[^/]+\.html?(?=$|\?)/i, `/${nextFile}`)
+  }
+  const base = url.endsWith("/") ? url.slice(0, -1) : url
+  return `${base}/${nextFile}`
+}
+
+function resolveUploadedHtml(url: string, storylineFile: "story.html" | "index_lms.html"): string {
+  const name = htmlFileName(url)
+  if (name && !isStorylineSwapFile(name)) {
+    return assetUrl(url)
+  }
+  if (isStorylineSwapFile(name)) {
+    return assetUrl(withHtmlFile(url, storylineFile))
+  }
+  return assetUrl(`${packageBasePath(url)}/${storylineFile}`)
+}
+
+/** Playback file — Storyline story.html, or the package's own launch HTML (iSpring, etc.). */
 export function resolveArticulatePlaybackUrl(url: string): string {
   const trimmed = url.trim()
   if (!trimmed) return trimmed
 
   if (trimmed.startsWith("/uploads")) {
-    const base = packageBasePath(trimmed)
-    return assetUrl(`${base}/story.html`)
+    return resolveUploadedHtml(trimmed, "story.html")
   }
 
   try {
     const parsed = new URL(trimmed)
-    if (/\.html?$/i.test(parsed.pathname)) {
-      parsed.pathname = parsed.pathname.replace(/[^/]+\.html?$/i, "story.html")
-      return parsed.toString()
-    }
-    const base = parsed.pathname.endsWith("/") ? parsed.pathname : `${parsed.pathname}/`
-    parsed.pathname = `${base}story.html`
+    const name = htmlFileName(parsed.pathname)
+    if (name && !isStorylineSwapFile(name)) return parsed.toString()
+    parsed.pathname = withHtmlFile(parsed.pathname, "story.html")
     return parsed.toString()
   } catch {
     return trimmed
   }
 }
 
-/** SCORM launch file — requires parent window.API (in-app embed only). */
+/** SCORM launch file — Storyline index_lms.html, or the stored launch HTML for other packages. */
 export function resolveArticulateScormLaunchUrl(url: string): string {
   const trimmed = url.trim()
   if (!trimmed) return trimmed
 
   if (trimmed.startsWith("/uploads")) {
-    const base = packageBasePath(trimmed)
-    return assetUrl(`${base}/index_lms.html`)
+    return resolveUploadedHtml(trimmed, "index_lms.html")
   }
 
   try {
     const parsed = new URL(trimmed)
-    if (/\.html?$/i.test(parsed.pathname)) {
-      parsed.pathname = parsed.pathname.replace(/[^/]+\.html?$/i, "index_lms.html")
-      return parsed.toString()
-    }
-    const base = parsed.pathname.endsWith("/") ? parsed.pathname : `${parsed.pathname}/`
-    parsed.pathname = `${base}index_lms.html`
+    const name = htmlFileName(parsed.pathname)
+    if (name && !isStorylineSwapFile(name)) return parsed.toString()
+    parsed.pathname = withHtmlFile(parsed.pathname, "index_lms.html")
     return parsed.toString()
   } catch {
     return trimmed

@@ -23,21 +23,9 @@ const sampleUsers = [
   { label: "Admin", email: "admin@spherex.local", password: "Admin123!" },
   { label: "Org admin", email: "orgadmin@petrosphere.local", password: "OrgAdmin123!" },
   { label: "Teacher", email: "teacher@spherex.local", password: "Teacher123!" },
-  {
-    label: "New teacher",
-    email: "newteacher@spherex.local",
-    password: "Teacher123!",
-    code: "PETRO-DEMO",
-    codeType: "teacher" as const,
-  },
+  { label: "New teacher", email: "newteacher@spherex.local", password: "Teacher123!" },
   { label: "Student", email: "student@spherex.local", password: "Student123!" },
-  {
-    label: "New student",
-    email: "newstudent@spherex.local",
-    password: "Student123!",
-    code: "PETRO-STUDENT",
-    codeType: "student" as const,
-  },
+  { label: "New student", email: "newstudent@spherex.local", password: "Student123!" },
 ]
 
 export default function LoginPage() {
@@ -46,28 +34,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showOrgCode, setShowOrgCode] = useState(false)
-  const [orgCode, setOrgCode] = useState("")
-  const [showStudentOrgCode, setShowStudentOrgCode] = useState(false)
-  const [studentOrgCode, setStudentOrgCode] = useState("")
 
   function useSampleUser(sample: (typeof sampleUsers)[number]) {
     setEmail(sample.email)
     setPassword(sample.password)
-    if (sample.codeType === "teacher") {
-      setShowOrgCode(true)
-      setOrgCode(sample.code ?? "")
-      setStudentOrgCode("")
-      return
-    }
-    if (sample.codeType === "student") {
-      setShowStudentOrgCode(true)
-      setStudentOrgCode(sample.code ?? "")
-      setOrgCode("")
-      return
-    }
-    setOrgCode("")
-    setStudentOrgCode("")
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -77,10 +47,8 @@ export default function LoginPage() {
 
     try {
       await authLogin(email, password)
-      await completeAuthSession({
-        teacherOrgCode: orgCode,
-        studentOrgCode: studentOrgCode,
-      })
+      const next = new URLSearchParams(window.location.search).get("next") ?? undefined
+      await completeAuthSession({ next })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed")
       setLoading(false)
@@ -168,55 +136,6 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              {showStudentOrgCode && (
-                <div className="space-y-2 rounded-2xl border border-teal-100 bg-teal-50/70 p-3">
-                  <Label htmlFor="student-org-code" className="text-xs font-medium text-teal-800">
-                    Student organization code
-                  </Label>
-                  <Input
-                    id="student-org-code"
-                    placeholder="PETRO-STUDENT"
-                    className="h-10 rounded-full border-teal-200 bg-white font-mono uppercase text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white"
-                    value={studentOrgCode}
-                    onChange={(e) => setStudentOrgCode(e.target.value.toUpperCase())}
-                    disabled={loading}
-                  />
-                </div>
-              )}
-
-              {showOrgCode && (
-                <div className="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
-                  <Label htmlFor="org-code" className="text-xs font-medium text-emerald-800">
-                    Teacher organization code
-                  </Label>
-                  <Input
-                    id="org-code"
-                    placeholder="PETRO-DEMO"
-                    className="h-10 rounded-full border-emerald-200 bg-white font-mono uppercase text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-emerald-500 dark:bg-white"
-                    value={orgCode}
-                    onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
-                    disabled={loading}
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-3 text-xs">
-                <button
-                  type="button"
-                  className="font-medium text-teal-700 hover:underline"
-                  onClick={() => setShowStudentOrgCode((v) => !v)}
-                >
-                  {showStudentOrgCode ? "Hide student code" : "Have a student code?"}
-                </button>
-                <button
-                  type="button"
-                  className="font-medium text-teal-700 hover:underline"
-                  onClick={() => setShowOrgCode((v) => !v)}
-                >
-                  {showOrgCode ? "Hide teacher code" : "Have a teacher code?"}
-                </button>
-              </div>
-
               {error && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
                   {error}
@@ -269,12 +188,6 @@ export default function LoginPage() {
                         <span className="break-all font-mono">{sample.email}</span>
                         <span className="mx-1">/</span>
                         <span className="font-mono">{sample.password}</span>
-                        {sample.code && (
-                          <>
-                            <span className="mx-1">+</span>
-                            <span className="font-mono">{sample.code}</span>
-                          </>
-                        )}
                       </span>
                     </button>
                   ))}

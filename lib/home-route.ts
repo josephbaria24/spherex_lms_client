@@ -1,6 +1,7 @@
 import { apiGet } from "@/lib/api"
 import type { AuthUser } from "@/lib/api"
 import { orgRoute, ORG_SLUG_STORAGE_KEY } from "@/lib/org-routes"
+import { isStudent } from "@/lib/roles"
 
 type OrgSummary = { slug: string }
 
@@ -23,6 +24,7 @@ export function pickOrgAdminHomeSlug(organizations: OrgSummary[]): string | null
 /** Default landing path after sign-in (org admin portal takes priority over teacher). */
 export async function resolveAppHomePath(user: AuthUser): Promise<string> {
   if (user.must_change_password) return "/change-password"
+  if (isStudent(user.role) && user.email_verified === false) return "/verify-email"
 
   if (user.role === "admin") return "/admin"
 

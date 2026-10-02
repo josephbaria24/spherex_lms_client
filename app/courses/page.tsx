@@ -8,12 +8,13 @@ import { CourseCard } from "@/components/course-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Filter, BookOpen, GraduationCap } from "lucide-react"
+import { Search, Filter, BookOpen, GraduationCap, Compass } from "lucide-react"
 import { useAuth } from "@/app/provider"
 import { apiGet } from "@/lib/api"
 import type { Course } from "@/lib/types"
 import { CourseDetailsModal } from "@/components/course-detail-modal"
 import { StudentJoinBanner } from "@/components/settings/join-org-section"
+import { LandingHeader } from "@/components/landing/landing-header"
 
 type CourseRow = {
   id: string
@@ -38,7 +39,7 @@ type EnrollmentRow = {
 }
 
 export default function CoursesPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [allCourses, setAllCourses] = useState<Course[]>([])
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([])
   const [completedCourses, setCompletedCourses] = useState<Course[]>([])
@@ -46,6 +47,7 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState("")
+  const [catalogTab, setCatalogTab] = useState("catalog")
 
   const mapCourse = (c: CourseRow, progress = 0): Course => ({
     id: c.id,
@@ -66,12 +68,19 @@ export default function CoursesPage() {
   })
 
   const fetchCourses = async () => {
-    if (!user) return
     setLoading(true)
 
     try {
-      const [allData, enrolledData, completedData] = await Promise.all([
-        apiGet<{ courses: CourseRow[] }>("/courses"),
+      const allData = await apiGet<{ courses: CourseRow[] }>("/courses")
+
+      if (!user) {
+        setAllCourses((allData.courses ?? []).map((c) => mapCourse(c)))
+        setEnrolledCourses([])
+        setCompletedCourses([])
+        return
+      }
+
+      const [enrolledData, completedData] = await Promise.all([
         apiGet<{ enrollments: EnrollmentRow[] }>("/enrollments?completed=false&include=course"),
         apiGet<{ enrollments: EnrollmentRow[] }>("/enrollments?completed=true&include=course"),
       ])
@@ -82,10 +91,14 @@ export default function CoursesPage() {
           ...(completedData.enrollments ?? []),
         ].map((e) => e.course_id),
       )
+      const progressByCourse = new Map<string, number>([
+        ...(enrolledData.enrollments ?? []).map((e) => [e.course_id, e.progress_percent ?? 0] as const),
+        ...(completedData.enrollments ?? []).map((e) => [e.course_id, e.progress_percent ?? 100] as const),
+      ])
 
       setAllCourses(
         (allData.courses ?? []).map((c) => ({
-          ...mapCourse(c),
+          ...mapCourse(c, progressByCourse.get(c.id) ?? 0),
           isEnrolled: enrolledIds.has(c.id),
         })),
       )
@@ -109,8 +122,9 @@ export default function CoursesPage() {
   }
 
   useEffect(() => {
-    fetchCourses()
-  }, [user])
+    if (authLoading) return
+    void fetchCourses()
+  }, [user, authLoading])
 
   const filterCourses = (courses: Course[]) => {
     const q = search.trim().toLowerCase()
@@ -129,22 +143,34 @@ export default function CoursesPage() {
     [allCourses, search],
   )
 
+  const myEnrolled = useMemo(
+    () => filterCourses(enrolledCourses),
+    [enrolledCourses, search],
+  )
+
   const openCourse = (course: Course) => {
     setSelectedCourse(course)
     setModalOpen(true)
   }
 
+  const scrollToCatalog = () => {
+    setCatalogTab("catalog")
+    requestAnimationFrame(() => {
+      document.getElementById("course-catalog")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }
+
   const renderGrid = (
     courses: Course[],
-    options: { showProgress?: boolean; catalog?: boolean } = {},
+    options: { showProgress?: boolean; catalog?: boolean; emphasize?: boolean } = {},
   ) => {
-    const { showProgress = false, catalog = false } = options
+    const { showProgress = false, catalog = false, emphasize = false } = options
     if (loading) {
       return <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Loading courses…</p>
     }
     if (courses.length === 0) {
       return (
-        <div className="grow-empty">
+        <div className="grow-empty py-8">
           <BookOpen className="mx-auto h-10 w-10 text-[#c9bfb0] dark:text-muted-foreground" />
           <p className="mt-3 text-sm text-[#6b5c4f] dark:text-muted-foreground">
             {search ? "No courses match your search." : "Nothing here yet."}
@@ -153,7 +179,13 @@ export default function CoursesPage() {
       )
     }
     return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div
+        className={
+          emphasize
+            ? "grid gap-4 sm:grid-cols-2"
+            : "grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        }
+      >
         {courses.map((course) =>
           catalog ? (
             <div
@@ -161,17 +193,83 @@ export default function CoursesPage() {
               onClick={() => openCourse(course)}
               className="cursor-pointer"
             >
-              <CourseCard course={course} linkToDetails={false} />
+              <CourseCard
+                course={course}
+                showProgress={Boolean(course.isEnrolled)}
+                linkToDetails={false}
+              />
             </div>
           ) : (
-            <CourseCard
+            <div
               key={course.id}
-              course={course}
-              showProgress={showProgress}
-              linkToDetails={course.isEnrolled}
-            />
+              className={
+                emphasize
+                  ? "rounded-[1.75rem] ring-2 ring-[#7c6cf0]/35 ring-offset-2 ring-offset-white dark:ring-offset-background"
+                  : undefined
+              }
+            >
+              <CourseCard
+                course={{ ...course, isEnrolled: true }}
+                showProgress={showProgress}
+                linkToDetails={course.isEnrolled || emphasize}
+              />
+            </div>
           ),
         )}
+      </div>
+    )
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-background">
+        <p className="text-sm text-muted-foreground">Loading courses…</p>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white text-slate-800 dark:bg-background dark:text-foreground">
+        <LandingHeader />
+        <main className="pt-24 pb-16">
+          <section className="bg-gradient-to-br from-orange-50 via-rose-50/60 to-white pb-10 pt-8 dark:from-background dark:via-orange-950/20 dark:to-background">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mx-auto max-w-2xl text-center">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-4 py-1.5 text-xs font-semibold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Course catalog
+                </span>
+                <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
+                  Browse courses
+                </h1>
+                <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-slate-300">
+                  Explore published courses. Sign in to enroll, or request paid access without an
+                  account.
+                </p>
+              </div>
+              <div className="relative mx-auto mt-10 max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  placeholder="Search courses…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="rounded-full pl-9"
+                />
+              </div>
+            </div>
+          </section>
+          <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+            {renderGrid(catalogCourses, { catalog: true })}
+          </section>
+        </main>
+        <CourseDetailsModal
+          course={selectedCourse}
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onEnroll={fetchCourses}
+          isEnrolled={selectedCourse?.isEnrolled}
+        />
       </div>
     )
   }
@@ -182,7 +280,7 @@ export default function CoursesPage() {
         <GrowHeader
           title="Courses"
           accent="explore & enroll"
-          description="Browse the full catalog and enroll with payment or an admin enrollment code"
+          description="Your enrolled courses first — then browse the catalog to add more"
         >
           <Button variant="outline" className="grow-btn-outline" asChild>
             <Link href="/dashboard">
@@ -192,7 +290,63 @@ export default function CoursesPage() {
           </Button>
         </GrowHeader>
 
-        <StudentJoinBanner />
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+          <section className="min-w-0 flex-1 space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-[#1c1917] dark:text-foreground">
+                  My enrolled courses
+                </h2>
+                <p className="mt-0.5 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+                  {enrolledCourses.length > 0
+                    ? `${enrolledCourses.length} active · continue where you left off`
+                    : "Courses you’re learning appear here"}
+                </p>
+              </div>
+              {enrolledCourses.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full text-teal-700 hover:text-teal-800"
+                  onClick={scrollToCatalog}
+                >
+                  Browse catalog
+                </Button>
+              ) : null}
+            </div>
+
+            {loading ? (
+              <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Loading…</p>
+            ) : enrolledCourses.length === 0 ? (
+              <div className="grow-card-coral flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Compass className="h-5 w-5 text-white/90" />
+                    <h3 className="text-lg font-bold text-white">No courses yet</h3>
+                  </div>
+                  <p className="max-w-md text-sm text-white/85">
+                    Explore the catalog to enroll with payment or an admin enrollment code — or join
+                    your organization with a student code.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={scrollToCatalog}
+                  className="shrink-0 rounded-full bg-white text-[#1c1917] hover:bg-white/90"
+                >
+                  Explore courses
+                </Button>
+              </div>
+            ) : (
+              renderGrid(myEnrolled, { showProgress: true, emphasize: true })
+            )}
+          </section>
+
+          <div className="w-full shrink-0 empty:hidden lg:w-[260px]">
+            <StudentJoinBanner compact />
+          </div>
+        </div>
 
         <div className="grow-toolbar">
           <div className="relative flex-1">
@@ -210,51 +364,59 @@ export default function CoursesPage() {
           </Button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="grow-card-coral p-5">
-            <p className="text-sm font-medium text-white/85">Catalog</p>
-            <p className="mt-2 text-4xl font-bold">{allCourses.length}</p>
-            <p className="mt-1 text-sm text-white/75">courses available</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grow-card-coral p-4">
+            <p className="text-xs font-medium text-white/85">Catalog</p>
+            <p className="mt-1 text-3xl font-bold">{allCourses.length}</p>
           </div>
-          <div className="grow-card p-5">
-            <p className="text-sm text-muted-foreground">Enrolled</p>
-            <p className="mt-2 text-4xl font-bold text-[#1c1917] dark:text-foreground">
+          <div className="grow-card p-4">
+            <p className="text-xs text-muted-foreground">Enrolled</p>
+            <p className="mt-1 text-3xl font-bold text-[#1c1917] dark:text-foreground">
               {enrolledCourses.length}
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">active paths</p>
           </div>
-          <div className="grow-card-dark p-5">
-            <p className="text-sm text-white/70">Completed</p>
-            <p className="mt-2 text-4xl font-bold">{completedCourses.length}</p>
-            <p className="mt-1 text-sm text-white/60">courses finished</p>
+          <div className="grow-card-dark p-4">
+            <p className="text-xs text-white/70">Completed</p>
+            <p className="mt-1 text-3xl font-bold">{completedCourses.length}</p>
           </div>
         </div>
 
-        <Tabs defaultValue="catalog">
-          <TabsList className="grow-tabs-list">
-            <TabsTrigger value="catalog" className="grow-tab-trigger">
-              All courses
-            </TabsTrigger>
-            <TabsTrigger value="enrolled" className="grow-tab-trigger">
-              My enrolled
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="grow-tab-trigger">
-              Completed
-            </TabsTrigger>
-          </TabsList>
+        <section id="course-catalog" className="scroll-mt-4 space-y-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-[#1c1917] dark:text-foreground">
+              Catalog
+            </h2>
+            <p className="mt-0.5 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+              Browse all courses, completed paths, and more to enroll
+            </p>
+          </div>
 
-          <TabsContent value="catalog" className="mt-5">
-            {renderGrid(catalogCourses, { catalog: true })}
-          </TabsContent>
+          <Tabs value={catalogTab} onValueChange={setCatalogTab}>
+            <TabsList className="grow-tabs-list">
+              <TabsTrigger value="catalog" className="grow-tab-trigger">
+                All courses
+              </TabsTrigger>
+              <TabsTrigger value="enrolled" className="grow-tab-trigger">
+                My enrolled
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="grow-tab-trigger">
+                Completed
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="enrolled" className="mt-5">
-            {renderGrid(filterCourses(enrolledCourses), { showProgress: true })}
-          </TabsContent>
+            <TabsContent value="catalog" className="mt-5">
+              {renderGrid(catalogCourses, { catalog: true })}
+            </TabsContent>
 
-          <TabsContent value="completed" className="mt-5">
-            {renderGrid(filterCourses(completedCourses), { showProgress: true })}
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="enrolled" className="mt-5">
+              {renderGrid(myEnrolled, { showProgress: true, emphasize: true })}
+            </TabsContent>
+
+            <TabsContent value="completed" className="mt-5">
+              {renderGrid(filterCourses(completedCourses), { showProgress: true })}
+            </TabsContent>
+          </Tabs>
+        </section>
 
         <CourseDetailsModal
           course={selectedCourse}

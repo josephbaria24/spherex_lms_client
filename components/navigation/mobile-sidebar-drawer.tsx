@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { X, Home, BookOpen, Settings, LayoutDashboard, GraduationCap, FileText, Users, BarChart3 } from "lucide-react"
+import { X, Home, BookOpen, Settings, LayoutDashboard, GraduationCap, FileText, Users, BarChart3, BookOpenCheck, Languages } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 import { supabase } from "@/lib/supabase-client"
@@ -47,6 +47,16 @@ const adminNavItems = [
     title: "E-Learning Materials",
     href: "/admin/materials",
     icon: FileText,
+  },
+  {
+    title: "Reviewers",
+    href: "/admin/reviewers",
+    icon: BookOpenCheck,
+  },
+  {
+    title: "IELTS",
+    href: "/admin/ielts",
+    icon: Languages,
   },
   {
     title: "Users",

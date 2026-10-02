@@ -5,6 +5,8 @@ export type LearnAchievementCertificate = {
   course_id: string | null
   course_title: string | null
   certificate_url: string | null
+  serial_number: string | null
+  pdf_url: string
   issued_at: string
 }
 

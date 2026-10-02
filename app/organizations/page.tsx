@@ -54,21 +54,21 @@ export default function OrganizationsPage() {
   }, [organizations, query])
 
   return (
-    <div className="min-h-screen bg-white text-slate-800">
+    <div className="min-h-screen bg-white text-slate-800 dark:bg-background dark:text-foreground">
       <LandingHeader />
 
       <main className="pt-24 pb-16">
-        <section className="bg-gradient-to-br from-orange-50 via-rose-50/60 to-white pb-12 pt-8">
+        <section className="bg-gradient-to-br from-orange-50 via-rose-50/60 to-white pb-12 pt-8 dark:from-background dark:via-orange-950/20 dark:to-background">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-4 py-1.5 text-xs font-semibold text-teal-700">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-4 py-1.5 text-xs font-semibold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
                 <Building2 className="h-3.5 w-3.5" />
                 Partner Organizations
               </span>
-              <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+              <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
                 Organizations on SphereX
               </h1>
-              <p className="mt-4 text-base leading-relaxed text-slate-600">
+              <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-slate-300">
                 Course catalogs are managed per organization. Browse partner programs, view
                 catalogs, and sign in to enroll.
               </p>
@@ -88,18 +88,18 @@ export default function OrganizationsPage() {
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           {loading ? (
-            <div className="flex min-h-[240px] items-center justify-center gap-2 text-slate-500">
+            <div className="flex min-h-[240px] items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
               <Loader2 className="h-5 w-5 animate-spin" />
               Loading organizations…
             </div>
           ) : error ? (
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center text-red-700">
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
               {error}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center">
-              <Building2 className="mx-auto h-10 w-10 text-slate-300" />
-              <p className="mt-4 text-slate-600">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center dark:border-border dark:bg-muted/30">
+              <Building2 className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
+              <p className="mt-4 text-slate-600 dark:text-slate-300">
                 {query ? "No organizations match your search." : "No organizations published yet."}
               </p>
             </div>
@@ -113,13 +113,13 @@ export default function OrganizationsPage() {
         </section>
 
         <section className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-8 sm:p-10">
-            <h2 className="text-2xl font-extrabold text-slate-900">Bring your organization onboard</h2>
-            <p className="mt-3 text-slate-600">
+          <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-8 sm:p-10 dark:border-border dark:bg-card">
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Bring your organization onboard</h2>
+            <p className="mt-3 text-slate-600 dark:text-slate-300">
               Host your own course catalog on SphereX — self-paced, blended, exam prep, or language programs.
             </p>
             <Link href="/register" className="mt-6 inline-flex items-center gap-2">
-              <Button className="rounded-full bg-teal-600 px-8 hover:bg-teal-700">
+              <Button className="rounded-full bg-teal-600 px-8 text-white hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400">
                 Get Started
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -135,9 +135,9 @@ function OrganizationCard({ org }: { org: PublicOrganization }) {
   const live = isOrgCatalogLive(org.status)
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-border dark:bg-card dark:hover:shadow-black/40">
       <div
-        className="h-28 bg-gradient-to-br from-teal-50 to-orange-50"
+        className="h-28 bg-gradient-to-br from-teal-50 to-orange-50 dark:from-teal-950/40 dark:to-orange-950/30"
         style={
           org.brand_primary
             ? { background: `linear-gradient(135deg, ${org.brand_primary}22, ${org.brand_primary}08)` }
@@ -152,11 +152,11 @@ function OrganizationCard({ org }: { org: PublicOrganization }) {
           logo_padding={org.logo_padding}
           logo_position_x={org.logo_position_x}
           logo_position_y={org.logo_position_y}
-          className="absolute -top-10 h-20 w-20 rounded-2xl border-4 border-white bg-white shadow-md"
+          className="absolute -top-10 h-20 w-20 rounded-2xl border-4 border-white bg-white shadow-md dark:border-card dark:bg-card"
         />
         <div className="pt-14">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <h2 className="text-lg font-bold text-slate-900">{org.name}</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{org.name}</h2>
             <Badge variant={live ? "default" : "secondary"}>{orgStatusLabel(org.status)}</Badge>
           </div>
           {org.industry ? (
@@ -165,9 +165,9 @@ function OrganizationCard({ org }: { org: PublicOrganization }) {
             </Badge>
           ) : null}
           {org.description ? (
-            <p className="mt-3 line-clamp-3 text-sm text-slate-600">{org.description}</p>
+            <p className="mt-3 line-clamp-3 text-sm text-slate-600 dark:text-slate-300">{org.description}</p>
           ) : null}
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
             {org.member_count > 0 ? (
               <span className="flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" />
@@ -183,13 +183,13 @@ function OrganizationCard({ org }: { org: PublicOrganization }) {
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link href={`/organizations/${org.slug}`}>
-              <Button size="sm" className="rounded-full bg-teal-600 hover:bg-teal-700">
+              <Button size="sm" className="rounded-full bg-teal-600 text-white hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400">
                 {live ? "View catalog" : "View organization"}
               </Button>
             </Link>
             {org.website ? (
               <a href={org.website} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline" className="gap-1 rounded-full">
+                <Button size="sm" variant="outline" className="gap-1 rounded-full dark:border-border dark:bg-transparent dark:hover:bg-muted">
                   Website <ExternalLink className="h-3 w-3" />
                 </Button>
               </a>

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Clock, Users, TrendingUp } from "lucide-react"
+import { CheckCircle2, Clock, Users, TrendingUp } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import Link from "next/link"
@@ -34,6 +34,7 @@ export function CourseCard({
   variant = "bento",
 }: CourseCardProps) {
   const isBento = variant === "bento"
+  const isCompleted = showProgress && (course.progress ?? 0) >= 100
 
   const card = isBento ? (
     <article className="grow-card group cursor-pointer overflow-hidden">
@@ -51,6 +52,12 @@ export function CourseCard({
           {course.isEnrolled ? (
             <span className="rounded-full bg-[#7c6cf0] px-2.5 py-0.5 text-[10px] font-semibold text-white">
               Enrolled
+            </span>
+          ) : null}
+          {isCompleted ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-semibold text-white">
+              <CheckCircle2 className="h-3 w-3" />
+              Completed
             </span>
           ) : null}
         </div>
@@ -86,9 +93,17 @@ export function CourseCard({
           <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between text-xs text-[#6b5c4f] dark:text-muted-foreground">
               <span>Progress</span>
-              <span className="font-semibold text-[#1c1917] dark:text-foreground">
-                {course.progress}%
-              </span>
+              <div className="flex items-center gap-2">
+                {isCompleted ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Completed
+                  </span>
+                ) : null}
+                <span className="font-semibold text-[#1c1917] dark:text-foreground">
+                  {course.progress}%
+                </span>
+              </div>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-[#f3ede4] dark:bg-muted">
               <div
@@ -135,7 +150,7 @@ export function CourseCard({
         {showProgress && course.progress !== undefined ? (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-[10px]">
-              <span className="text-muted-foreground">Progress</span>
+              <span className="text-muted-foreground">{isCompleted ? "Completed" : "Progress"}</span>
               <span className="font-medium text-foreground">{course.progress}%</span>
             </div>
             <Progress value={course.progress} className="h-1.5" />

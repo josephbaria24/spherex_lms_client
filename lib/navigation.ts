@@ -11,6 +11,8 @@ import {
   Building2,
   Trophy,
   CreditCard,
+  BookOpenCheck,
+  Languages,
 } from "lucide-react"
 
 export interface NavItem {
@@ -52,6 +54,8 @@ export const adminNav: NavItem[] = [
   { label: "Manage Courses", icon: BookOpen, href: "/admin/courses" },
   { label: "Payment requests", icon: CreditCard, href: "/admin/payment-requests" },
   { label: "E-Learning Materials", icon: FileText, href: "/admin/materials" },
+  { label: "Reviewers", icon: BookOpenCheck, href: "/admin/reviewers" },
+  { label: "IELTS", icon: Languages, href: "/admin/ielts" },
   { label: "Users", icon: Users, href: "/admin/users" },
   { label: "Analytics", icon: LayoutDashboard, href: "/admin/analytics" },
 ]

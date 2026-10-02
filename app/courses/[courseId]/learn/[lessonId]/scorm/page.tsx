@@ -18,6 +18,7 @@ export default function LearnScormPlayerPage({
       courseId={courseId}
       lessonId={lessonId}
       backHref={`/courses/${courseId}/learn/${lessonId}`}
+      learnBasePath={`/courses/${courseId}/learn`}
       fresh={fresh === "1"}
     />
   )

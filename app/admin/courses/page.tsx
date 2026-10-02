@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -45,6 +46,7 @@ import { CourseCardHero } from "@/components/admin/courses/course-card-hero"
 import { CourseDurationFields } from "@/components/admin/courses/course-duration-fields"
 import { CoursePriceFields } from "@/components/admin/courses/course-price-fields"
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api"
+import { assetUrl } from "@/lib/asset-url"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import { type CourseCardTheme, DEFAULT_COURSE_CARD_THEME } from "@/lib/course-card-themes"
 import { BookOpen, ListOrdered, MoreVertical, Pencil, Search, Tag, Trash2, Users } from "lucide-react"
@@ -288,39 +290,66 @@ export default function AdminCoursesPage() {
             {filteredCourses.map((course) => (
               <Card
                 key={course.id}
-                className="premium-card flex h-full flex-col gap-0 overflow-hidden border border-border py-0 shadow-none"
+                className={`premium-card relative flex h-full flex-col gap-0 overflow-hidden border border-border py-0 shadow-none ${course.image ? "min-h-[22rem]" : ""}`}
               >
-                <CourseCardHero image={course.image} cardTheme={course.card_theme} />
-                <CardContent className="flex h-full flex-col p-4">
+                {course.image ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={assetUrl(course.image)}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[78%] bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
+                  </>
+                ) : (
+                  <CourseCardHero cardTheme={course.card_theme} />
+                )}
+                <CardContent
+                  className={`relative z-10 flex flex-col p-4 ${course.image ? "mt-auto text-white" : "h-full"}`}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex flex-wrap gap-1.5">
                         {course.organization_name ? (
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] ${course.image ? "border-white/25 bg-white/15 text-white hover:bg-white/15" : ""}`}
+                          >
                             {course.organization_name}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-[10px] text-amber-700">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${course.image ? "border-amber-200/70 bg-black/25 text-amber-100" : "text-amber-700"}`}
+                          >
                             Unassigned
                           </Badge>
                         )}
                         {course.level && (
-                          <Badge variant="outline" className="text-[10px] capitalize">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] capitalize ${course.image ? "border-white/30 bg-black/20 text-white" : ""}`}
+                          >
                             {course.level}
                           </Badge>
                         )}
                         <Badge
                           variant={(course.price_cents ?? 0) > 0 ? "default" : "secondary"}
-                          className="text-[10px]"
+                          className={`text-[10px] ${course.image ? "border-transparent bg-white text-neutral-900 hover:bg-white" : ""}`}
                         >
                           {formatCoursePrice(course.price_cents ?? 0)}
                         </Badge>
                       </div>
-                      <h3 className="font-semibold leading-tight">{course.title}</h3>
+                      <h3 className={`font-semibold leading-tight ${course.image ? "drop-shadow-sm" : ""}`}>{course.title}</h3>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 shrink-0 ${course.image ? "bg-black/35 text-white hover:bg-black/55 hover:text-white" : ""}`}
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -340,11 +369,15 @@ export default function AdminCoursesPage() {
                     </DropdownMenu>
                   </div>
 
-                  <p className="mt-2 line-clamp-2 min-h-10 text-sm text-muted-foreground">
+                  <p
+                    className={`mt-2 line-clamp-2 min-h-10 whitespace-pre-line text-sm ${course.image ? "text-white/85" : "text-muted-foreground"}`}
+                  >
                     {course.description || "\u00A0"}
                   </p>
 
-                  <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  <div
+                    className={`mt-4 flex flex-wrap gap-3 text-xs ${course.image ? "text-white/80" : "text-muted-foreground"}`}
+                  >
                     <span className="flex items-center gap-1">
                       <Users className="h-3.5 w-3.5" />
                       {course.enrolled_count ?? 0} enrolled
@@ -361,13 +394,23 @@ export default function AdminCoursesPage() {
 
                   <div className="mt-3 min-h-[26px]">
                     {course.category ? (
-                      <Badge variant="outline">{course.category}</Badge>
+                      <Badge
+                        variant="outline"
+                        className={course.image ? "border-white/30 bg-black/20 text-white" : ""}
+                      >
+                        {course.category}
+                      </Badge>
                     ) : null}
                   </div>
 
                   {course.organization_id ? (
                     <div className="mt-auto pt-4">
-                      <Button asChild variant="outline" size="sm" className="w-full">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className={`w-full ${course.image ? "border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white" : ""}`}
+                      >
                         <Link href={`/admin/courses/${course.id}/lessons`}>Manage lessons</Link>
                       </Button>
                     </div>
@@ -380,7 +423,7 @@ export default function AdminCoursesPage() {
       </div>
 
       <Dialog open={!!editCourse} onOpenChange={() => setEditCourse(null)}>
-        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Course</DialogTitle>
           </DialogHeader>
@@ -415,10 +458,15 @@ export default function AdminCoursesPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>
-              <Input
+              <Textarea
                 id="edit-description"
+                rows={8}
                 value={editForm.description}
                 onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.stopPropagation()
+                }}
+                className="block min-h-40 max-h-[min(24rem,50vh)] resize-y overflow-y-auto whitespace-pre-wrap leading-relaxed [field-sizing:fixed]"
               />
             </div>
             <div className="space-y-2">

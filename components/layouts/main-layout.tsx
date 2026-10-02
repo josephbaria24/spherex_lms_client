@@ -21,7 +21,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="flex shrink-0 items-center justify-end border-b border-border/60 px-3 py-2 md:px-4">
             <NotificationBell />
           </div>
-          <div className="sleek-page flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pb-24 md:p-6 md:pb-6 has-[.grow-shell]:h-full has-[.grow-shell]:overflow-hidden has-[.grow-shell]:p-0 has-[.grow-shell]:pb-24 md:has-[.grow-shell]:pb-0">
+          <div className="sleek-page flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pb-24 md:p-6 md:pb-6 has-[.grow-shell]:overflow-hidden has-[.grow-shell]:p-0 has-[.grow-shell]:!min-h-0 has-[.grow-shell]:pb-24 md:has-[.grow-shell]:pb-0">
             {children}
           </div>
         </main>

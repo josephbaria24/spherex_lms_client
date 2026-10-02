@@ -1,7 +1,14 @@
 /** Resolve stored logo/asset paths for display in the browser. */
 export function assetUrl(stored: string | null | undefined): string {
   if (!stored) return ""
-  if (stored.startsWith("http://") || stored.startsWith("https://")) return stored
+  if (
+    stored.startsWith("http://") ||
+    stored.startsWith("https://") ||
+    stored.startsWith("blob:") ||
+    stored.startsWith("data:")
+  ) {
+    return stored
+  }
 
   const [path, query] = stored.split("?", 2)
   if (path.startsWith("/api/lms/")) {

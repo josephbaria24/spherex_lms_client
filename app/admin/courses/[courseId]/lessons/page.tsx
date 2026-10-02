@@ -65,9 +65,10 @@ export default function AdminCourseLessonsPage({
   }
 
   return (
-    <GrowMainLayout>
-      <div className="space-y-6">
+    <GrowMainLayout fill>
+      <div className="flex min-h-0 flex-1 flex-col gap-6">
         <PageHeader
+          className="shrink-0"
           icon={ListOrdered}
           title="Course lessons"
           accent="craft content"
@@ -85,10 +86,12 @@ export default function AdminCourseLessonsPage({
           </Button>
         </PageHeader>
 
-        <CourseLessonAccessSettings
-          courseId={course.id}
-          initialRequireSequential={course.require_sequential_lessons ?? false}
-        />
+        <div className="shrink-0">
+          <CourseLessonAccessSettings
+            courseId={course.id}
+            initialRequireSequential={course.require_sequential_lessons ?? false}
+          />
+        </div>
 
         <CourseLessonsManager
           orgId={course.organization_id}

@@ -38,6 +38,7 @@ export type LessonFormState = {
   video_url: string
   articulate_url: string
   articulate_launch_mode: "story" | "scorm"
+  parent_lesson_id: string | null
   sort_order: number
   duration_minutes: number
   status: "draft" | "published"
@@ -61,6 +62,7 @@ type LessonEditorFormProps = {
   courses: { id: string; title: string }[]
   editingLessonId: string | null
   initial: LessonFormState
+  nextSortOrder?: (courseId: string) => number
   onSaved: () => void
   onCancel: () => void
 }
@@ -70,10 +72,14 @@ export function LessonEditorForm({
   courses,
   editingLessonId,
   initial,
+  nextSortOrder,
   onSaved,
   onCancel,
 }: LessonEditorFormProps) {
-  const [form, setForm] = useState(initial)
+  const [form, setForm] = useState(() => {
+    if (editingLessonId || !nextSortOrder || initial.parent_lesson_id) return initial
+    return { ...initial, sort_order: nextSortOrder(initial.course_id) }
+  })
   const [quiz, setQuiz] = useState<QuizDraft>(() => emptyQuiz())
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [scormFile, setScormFile] = useState<File | null>(null)
@@ -147,6 +153,7 @@ export function LessonEditorForm({
         sort_order: form.sort_order,
         duration_minutes: form.duration_minutes,
         status: form.status,
+        parent_lesson_id: form.parent_lesson_id || undefined,
       }
 
       let lessonId = editingLessonId
@@ -226,12 +233,18 @@ export function LessonEditorForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {!editingLessonId && (
+      {!editingLessonId && !form.parent_lesson_id && (
         <div className="space-y-2">
           <Label>Course</Label>
           <Select
             value={form.course_id}
-            onValueChange={(v) => setForm((f) => ({ ...f, course_id: v }))}
+            onValueChange={(v) =>
+              setForm((f) => ({
+                ...f,
+                course_id: v,
+                sort_order: nextSortOrder?.(v) ?? f.sort_order,
+              }))
+            }
             required
           >
             <SelectTrigger>
@@ -333,17 +346,25 @@ export function LessonEditorForm({
       {form.content_type === "articulate" && (
         <div className="space-y-3 rounded-lg border border-border p-3">
           <div className="space-y-2">
-            <Label htmlFor="articulate-url">Articulate publish URL</Label>
+            <Label htmlFor="articulate-url">
+              {form.articulate_url.startsWith("/uploads/")
+                ? "Uploaded SCORM package"
+                : "Articulate publish URL"}
+            </Label>
             <Input
               id="articulate-url"
-              type="url"
+              type="text"
+              inputMode="url"
+              autoComplete="off"
               value={form.articulate_url}
               onChange={(e) => setForm((f) => ({ ...f, articulate_url: e.target.value }))}
-              placeholder="https://petrosphere.com.ph/spherex_lms/scorm/127/story.html"
+              placeholder="https://…/story.html or leave as the uploaded /uploads/scorm/… path"
               disabled={!!scormFile}
             />
             <p className="text-xs text-muted-foreground">
-              Hostinger / CDN URL to <strong>story.html</strong>, or upload a SCORM zip below.
+              {form.articulate_url.startsWith("/uploads/")
+                ? "This lesson already has a SCORM zip on the server. You can publish without entering an https URL, or replace the package below."
+                : "Paste a Hostinger / CDN URL to story.html, or upload a SCORM zip below."}
             </p>
           </div>
           <div className="space-y-2">

@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/app/provider"
 import { apiPost, ApiError } from "@/lib/api"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import { toast } from "sonner"
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled }: Props) {
+  const { user } = useAuth()
   const [enrolling, setEnrolling] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [enrollCode, setEnrollCode] = useState("")
@@ -44,8 +46,15 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
   const isOrgCourse = Boolean(course?.organizationName)
   const showCodeOption = isPaid || requiresCode || isOrgCourse
 
+  const signedIn = Boolean(user)
+  const accountNext = `/login?next=${encodeURIComponent("/courses")}`
+
   async function enroll(options?: { enroll_code?: string }) {
     if (!course) return
+    if (!signedIn) {
+      router.push(accountNext)
+      return
+    }
     setEnrolling(true)
     try {
       await apiPost("/enrollments", {
@@ -212,13 +221,17 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
                   <Mail className="h-4 w-4" />
                   Request access — {formatCoursePrice(priceCents)}
                 </Button>
-              ) : (
+              ) : signedIn ? (
                 <Button className="w-full" onClick={handleFreeEnroll} disabled={enrolling}>
                   {enrolling ? "Enrolling…" : "Enroll for free"}
                 </Button>
+              ) : (
+                <Button className="w-full" asChild>
+                  <Link href={accountNext}>Sign in to enroll</Link>
+                </Button>
               )}
 
-              {(showCodeOption || isPaid) && (
+              {(showCodeOption || isPaid) && signedIn && (
                 <div className="w-full space-y-2 rounded-2xl border border-teal-100 bg-teal-50/60 p-3">
                   {!showCodeField ? (
                     <button

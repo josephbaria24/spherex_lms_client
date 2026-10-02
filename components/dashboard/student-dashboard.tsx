@@ -24,6 +24,7 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react"
+import { StudentOnboardingDialog } from "@/components/dashboard/student-onboarding-dialog"
 
 type StudentDashboardProps = {
   user: AuthUser
@@ -135,6 +136,7 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
 
   return (
     <div className="dashboard-bento grow-bento space-y-5">
+      <StudentOnboardingDialog user={user} enrollmentCount={enrollments.length} />
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <span className="inline-flex items-center rounded-full border border-[#e8dfd3] bg-white/70 px-3 py-1 text-xs font-medium text-[#6b5c4f] dark:border-border dark:bg-card">

@@ -6,7 +6,7 @@ export type QuizQuestion = {
   id?: string
   sort_order?: number
   prompt: string
-  question_type: "multiple_choice" | "true_false"
+  question_type: "multiple_choice" | "true_false" | "fill_blank" | "multi_select"
   options: QuizOption[]
   correct_option_id?: string
 }
@@ -30,6 +30,8 @@ export type Lesson = {
   video_url?: string | null
   articulate_url?: string | null
   articulate_launch_mode?: "story" | "scorm"
+  parent_lesson_id?: string | null
+  quiz_title?: string | null
   sort_order: number
   duration_minutes: number
   status: "draft" | "published"

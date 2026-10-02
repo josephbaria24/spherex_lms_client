@@ -100,20 +100,30 @@ function percent(part: number, total: number) {
 function CircularProgress({
   value,
   className,
+  inverse = false,
 }: {
   value: number
-  className: string
+  className?: string
+  inverse?: boolean
 }) {
   const clampedValue = Math.max(0, Math.min(100, value))
-  const background = `conic-gradient(currentColor ${clampedValue * 3.6}deg, color-mix(in srgb, currentColor 18%, transparent) 0deg)`
+  const background = `conic-gradient(currentColor ${clampedValue * 3.6}deg, color-mix(in srgb, currentColor 22%, transparent) 0deg)`
 
   return (
     <div
-      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${className}`}
+      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${
+        inverse ? "text-white" : className
+      }`}
       style={{ background }}
       aria-label={`${clampedValue}%`}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/75 text-[10px] font-semibold shadow-sm dark:bg-slate-950/70">
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-full text-[10px] font-semibold shadow-sm ${
+          inverse
+            ? "bg-white text-[#1c1917] dark:bg-background dark:text-foreground"
+            : "bg-white text-[#1c1917] dark:bg-card dark:text-foreground"
+        }`}
+      >
         {clampedValue}%
       </div>
     </div>
@@ -335,7 +345,8 @@ export function TeacherDashboard() {
                         </div>
                         <CircularProgress
                           value={stat.progress}
-                          className={isDark ? "text-white/80" : stat.progressClassName}
+                          inverse={isDark}
+                          className={isDark ? undefined : stat.progressClassName}
                         />
                       </div>
                     </article>

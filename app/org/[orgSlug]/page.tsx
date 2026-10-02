@@ -148,7 +148,11 @@ export default function OrgAdminDashboardPage() {
             </div>
 
             <Link href={orgRoute(slug, "settings")} className="inline-block">
-              <Button size="sm" variant="outline" className="rounded-full">
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full border-border bg-muted/80 shadow-sm hover:bg-muted"
+              >
                 Manage join codes in Settings
               </Button>
             </Link>

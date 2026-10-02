@@ -31,7 +31,7 @@ export function TeacherOrgSelector() {
 
   return (
     <Select value={selectedOrgId ?? undefined} onValueChange={setSelectedOrgId}>
-      <SelectTrigger className="h-9 w-[220px]">
+      <SelectTrigger className="h-9 w-[220px] border-border bg-muted/80 shadow-sm hover:bg-muted">
         <SelectValue placeholder="Select organization" />
       </SelectTrigger>
       <SelectContent>

@@ -1,16 +1,36 @@
 import { NextRequest, NextResponse } from "next/server"
 import { SESSION_COOKIE } from "@/lib/api-config"
-import { canAccessAdminPanel, canAccessTeacherPanel } from "@/lib/roles"
-import { getRoleFromSessionToken } from "@/lib/session-token"
+import { canAccessAdminPanel, canAccessTeacherPanel, isStudent } from "@/lib/roles"
+import { getSessionClaims } from "@/lib/session-token"
+
+function isCourseLearnPath(pathname: string) {
+  return /^\/courses\/[^/]+\/learn(?:\/|$)/.test(pathname)
+}
+
+function isPublicCatalogPath(pathname: string) {
+  if (pathname === "/courses") return true
+  if (pathname.startsWith("/courses/") && !isCourseLearnPath(pathname)) return true
+  return false
+}
 
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value
   const pathname = req.nextUrl.pathname
-  const role = token ? getRoleFromSessionToken(token) : null
+  const claims = token ? getSessionClaims(token) : { role: null, email_verified: null }
+  const role = claims.role
+  const unverifiedStudent = Boolean(token) && isStudent(role) && claims.email_verified === false
+
+  if (pathname === "/verify-email") {
+    if (!token) return NextResponse.redirect(new URL("/login", req.url))
+    return NextResponse.next()
+  }
+
+  if (unverifiedStudent && pathname !== "/change-password" && !isPublicCatalogPath(pathname)) {
+    return NextResponse.redirect(new URL("/verify-email", req.url))
+  }
 
   const studentProtected =
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/courses") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/achievements") ||
     pathname.startsWith("/materials") ||
@@ -19,6 +39,12 @@ export async function middleware(req: NextRequest) {
 
   if (studentProtected && !token) {
     return NextResponse.redirect(new URL("/login", req.url))
+  }
+
+  if (isCourseLearnPath(pathname) && !token) {
+    const login = new URL("/login", req.url)
+    login.searchParams.set("next", "/courses")
+    return NextResponse.redirect(login)
   }
 
   if (pathname.startsWith("/admin")) {
@@ -40,6 +66,9 @@ export async function middleware(req: NextRequest) {
   }
 
   if ((pathname === "/" || pathname === "/login") && token) {
+    if (unverifiedStudent) {
+      return NextResponse.redirect(new URL("/verify-email", req.url))
+    }
     if (role === "admin") {
       return NextResponse.redirect(new URL("/admin", req.url))
     }
@@ -56,6 +85,7 @@ export const config = {
   matcher: [
     "/",
     "/login",
+    "/verify-email",
     "/admin/:path*",
     "/teacher/:path*",
     "/org/:path*",

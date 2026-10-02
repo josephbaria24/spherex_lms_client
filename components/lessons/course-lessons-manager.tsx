@@ -29,18 +29,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ListOrdered, Plus, Trash2, Pencil, FileQuestion } from "lucide-react"
+import { ListOrdered, Plus, Trash2, Pencil, FileQuestion, ChevronDown, CircleHelp } from "lucide-react"
+import { toast } from "sonner"
 import { apiDelete, apiGet } from "@/lib/api"
 import { teacherApiPath } from "@/lib/teacher-api"
 import {
   LessonEditorForm,
   type LessonFormState,
 } from "@/components/lessons/lesson-editor-form"
-import type { Lesson, LessonContentType } from "@/lib/lesson-types"
+import { LessonPreviewDialog } from "@/components/lessons/lesson-preview-dialog"
+import type { Lesson, LessonContentType, LessonQuiz } from "@/lib/lesson-types"
+import { groupLessonOutline } from "@/lib/lesson-outline"
 
 type Course = { id: string; title: string }
 
-const emptyForm = (courseId = ""): LessonFormState => ({
+const emptyForm = (courseId = "", sortOrder = 1): LessonFormState => ({
   course_id: courseId,
   title: "",
   description: "",
@@ -49,10 +52,24 @@ const emptyForm = (courseId = ""): LessonFormState => ({
   video_url: "",
   articulate_url: "",
   articulate_launch_mode: "story",
-  sort_order: 0,
+  parent_lesson_id: null,
+  sort_order: sortOrder,
   duration_minutes: 30,
   status: "draft",
 })
+
+function nextSortOrder(lessons: Lesson[], courseId: string): number {
+  const matching = lessons.filter(
+    (lesson) => !courseId || !lesson.course_id || lesson.course_id === courseId,
+  )
+  const pool = matching.length > 0 ? matching : lessons
+  let max = 0
+  for (const lesson of pool) {
+    const n = Number(lesson.sort_order)
+    if (Number.isFinite(n) && n > max) max = n
+  }
+  return max + 1
+}
 
 const contentTypeLabel = (t?: string) => {
   const map: Record<string, string> = {
@@ -69,14 +86,14 @@ function articulateLaunchBadge(mode?: "story" | "scorm" | null) {
     return (
       <Badge
         variant="outline"
-        className="border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+        className="h-5 border-amber-500/50 bg-amber-500/10 px-1.5 text-[10px] font-normal text-amber-800 dark:text-amber-200"
       >
         SCORM LMS
       </Badge>
     )
   }
   return (
-    <Badge variant="outline" className="text-muted-foreground">
+    <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal text-muted-foreground">
       Story playback
     </Badge>
   )
@@ -98,6 +115,12 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
   const [editing, setEditing] = useState<Lesson | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm(courseId))
+  const [editorKey, setEditorKey] = useState(0)
+  const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
+  const [viewOpen, setViewOpen] = useState(false)
+  const [viewLoading, setViewLoading] = useState(false)
+  const [viewLesson, setViewLesson] = useState<Lesson | null>(null)
+  const [viewQuiz, setViewQuiz] = useState<LessonQuiz | null>(null)
 
   useEffect(() => {
     if (courseId) setFilterCourse(courseId)
@@ -132,15 +155,29 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
     load()
   }, [load])
 
-  function openCreate(contentType: LessonContentType = "text") {
-    setEditing(null)
-    const defaultCourse = courseId ?? courses[0]?.id ?? ""
-    const next = emptyForm(defaultCourse)
-    next.content_type = contentType
-    if (contentType === "quiz") {
-      next.title = "Knowledge check"
+  const getNextSortOrder = useCallback(
+    (id: string) => nextSortOrder(lessons, id),
+    [lessons],
+  )
+
+  function openCreate(contentType: LessonContentType = "text", parent?: Lesson) {
+    const courseForOrder =
+      parent?.course_id ||
+      courseId ||
+      (filterCourse !== "all" ? filterCourse : courses[0]?.id) ||
+      ""
+    const next = emptyForm(
+      courseForOrder,
+      parent ? parent.sort_order : nextSortOrder(lessons, courseForOrder),
+    )
+    next.content_type = parent ? "quiz" : contentType
+    next.parent_lesson_id = parent?.id ?? null
+    if (next.content_type === "quiz") {
+      next.title = parent ? "Course evaluation" : "Knowledge check"
       next.duration_minutes = 15
     }
+    setEditing(null)
+    setEditorKey((k) => k + 1)
     setForm(next)
     setOpen(true)
   }
@@ -151,6 +188,7 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
 
   async function openEdit(lesson: Lesson) {
     setEditing(lesson)
+    setEditorKey((k) => k + 1)
     try {
       const res = await apiGet<{ lesson: Lesson }>(teacherApiPath(orgId, `/lessons/${lesson.id}`))
       const full = res.lesson
@@ -163,6 +201,7 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
         video_url: full.video_url ?? "",
         articulate_url: full.articulate_url ?? "",
         articulate_launch_mode: full.articulate_launch_mode ?? "story",
+        parent_lesson_id: full.parent_lesson_id ?? null,
         sort_order: full.sort_order,
         duration_minutes: full.duration_minutes,
         status: full.status,
@@ -178,11 +217,31 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
         video_url: lesson.video_url ?? "",
         articulate_url: lesson.articulate_url ?? "",
         articulate_launch_mode: lesson.articulate_launch_mode ?? "story",
+        parent_lesson_id: lesson.parent_lesson_id ?? null,
         sort_order: lesson.sort_order,
         duration_minutes: lesson.duration_minutes,
         status: lesson.status,
       })
       setOpen(true)
+    }
+  }
+
+  async function openView(lesson: Lesson) {
+    setViewOpen(true)
+    setViewLoading(true)
+    setViewLesson(lesson)
+    setViewQuiz(null)
+    try {
+      const res = await apiGet<{ lesson: Lesson; quiz: LessonQuiz | null }>(
+        teacherApiPath(orgId, `/lessons/${lesson.id}`),
+      )
+      setViewLesson(res.lesson)
+      setViewQuiz(res.quiz)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not load this lesson")
+      setViewOpen(false)
+    } finally {
+      setViewLoading(false)
     }
   }
 
@@ -194,10 +253,12 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
   }
 
   const lockedToCourse = !!courseId
+  const { roots, childrenOf } = groupLessonOutline(lessons)
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         {!lockedToCourse && (
           <div className="flex flex-wrap items-center gap-3">
             <Label className="text-sm text-muted-foreground">Filter by course</Label>
@@ -249,49 +310,169 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {lessons.map((lesson) => (
-            <Card key={lesson.id} className="premium-card border border-border shadow-none">
-              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-medium">{lesson.title}</h3>
-                    <Badge variant="outline">{contentTypeLabel(lesson.content_type)}</Badge>
-                    {lesson.content_type === "quiz" && (lesson.quiz_question_count ?? 0) > 0 ? (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {lesson.quiz_question_count} question
-                        {lesson.quiz_question_count === 1 ? "" : "s"}
-                        {lesson.quiz_passing_score != null
-                          ? ` · pass ${lesson.quiz_passing_score}%`
-                          : ""}
-                      </Badge>
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border bg-muted/20">
+          <ul className="divide-y divide-border/70 pb-3">
+            {roots.map((lesson) => {
+              const quizzes = childrenOf.get(lesson.id) ?? []
+              const menuOpen = quizzes.length > 0 && collapsedMenus[lesson.id] !== true
+              return (
+              <li key={lesson.id} className="px-1.5 py-1.5">
+                <div className={quizzes.length > 0 ? "rounded-xl border border-[#312e81]/30 bg-background" : ""}>
+                  <div
+                    className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 hover:bg-muted/70"
+                    onClick={() => void openView(lesson)}
+                  >
+                    {quizzes.length > 0 ? (
+                      <button
+                        type="button"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+                        aria-expanded={menuOpen}
+                        aria-label={menuOpen ? "Hide quizzes" : "Show quizzes"}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setCollapsedMenus((current) => ({
+                            ...current,
+                            [lesson.id]: menuOpen,
+                          }))
+                        }}
+                      >
+                        <ChevronDown className={`h-3.5 w-3.5 transition ${menuOpen ? "" : "-rotate-90"}`} />
+                      </button>
+                    ) : (
+                      <span className="w-6 shrink-0 text-center text-[11px] font-semibold tabular-nums text-muted-foreground">
+                        {lesson.sort_order}
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium leading-tight">{lesson.title}</p>
+                      <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                        {!lockedToCourse && lesson.course_title ? `${lesson.course_title} · ` : ""}
+                        {lesson.duration_minutes} min
+                      </p>
+                    </div>
+                    {quizzes.length > 0 ? (
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        {quizzes.length} Quiz{quizzes.length === 1 ? "" : "zes"}
+                      </span>
                     ) : null}
-                    <Badge variant={lesson.status === "published" ? "default" : "secondary"}>
-                      {lesson.status}
-                    </Badge>
-                    {lesson.content_type === "articulate" &&
-                      articulateLaunchBadge(lesson.articulate_launch_mode ?? "story")}
+                    <div className="hidden shrink-0 items-center gap-1 md:flex">
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
+                        {contentTypeLabel(lesson.content_type)}
+                      </Badge>
+                      <Badge
+                        variant={lesson.status === "published" ? "default" : "secondary"}
+                        className="h-5 px-1.5 text-[10px] font-normal"
+                      >
+                        {lesson.status}
+                      </Badge>
+                      {lesson.content_type === "articulate"
+                        ? articulateLaunchBadge(lesson.articulate_launch_mode ?? "story")
+                        : null}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      {lesson.content_type !== "quiz" ? (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openCreate("quiz", lesson)
+                          }}
+                          aria-label={`Add quiz under ${lesson.title}`}
+                          title="Add quiz"
+                        >
+                          <FileQuestion className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void openEdit(lesson)
+                        }}
+                        aria-label={`Edit ${lesson.title}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteId(lesson.id)
+                        }}
+                        aria-label={`Delete ${lesson.title}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {lesson.course_title} · {lesson.duration_minutes} min · Order {lesson.sort_order}
-                  </p>
-                  {lesson.description && (
-                    <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{lesson.description}</p>
-                  )}
+                  {menuOpen ? (
+                    <div className="space-y-1.5 border-t border-border/70 px-3 py-2">
+                      {quizzes.map((quiz) => (
+                        <div
+                          key={quiz.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-full border border-[#312e81]/25 bg-background px-3 py-1.5 hover:bg-[#312e81]/5"
+                          onClick={() => void openView(quiz)}
+                        >
+                          <CircleHelp className="h-4 w-4 shrink-0 text-[#312e81]" />
+                          <p className="min-w-0 flex-1 truncate text-sm text-[#312e81]">
+                            {quiz.quiz_title || quiz.title}
+                          </p>
+                          <span
+                            className={`h-2.5 w-2.5 shrink-0 rounded-full border border-[#312e81] ${
+                              quiz.status === "published" ? "bg-[#312e81]" : "bg-transparent"
+                            }`}
+                            aria-hidden
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void openEdit(quiz)
+                            }}
+                            aria-label={`Edit ${quiz.title}`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteId(quiz.id)
+                            }}
+                            aria-label={`Delete ${quiz.title}`}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openEdit(lesson)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setDeleteId(lesson.id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              </li>
+              )
+            })}
+          </ul>
         </div>
       )}
+      </div>
+
+      <LessonPreviewDialog
+        open={viewOpen}
+        onOpenChange={setViewOpen}
+        loading={viewLoading}
+        lesson={viewLesson}
+        quiz={viewQuiz}
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -312,6 +493,7 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
             </DialogDescription>
           </DialogHeader>
           <LessonEditorForm
+            key={editing ? `edit-${editing.id}-${editorKey}` : `new-${editorKey}`}
             orgId={orgId}
             courses={
               lockedToCourse && courseId && courseTitle
@@ -319,6 +501,7 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
                 : courses
             }
             editingLessonId={editing?.id ?? null}
+            nextSortOrder={getNextSortOrder}
             initial={form}
             onSaved={() => {
               setOpen(false)

@@ -50,9 +50,11 @@ export default function RegisterPage() {
 
     try {
       await authRegister(email, password, fullName)
+      const next = new URLSearchParams(window.location.search).get("next") ?? undefined
       await completeAuthSession({
         teacherOrgCode: orgCode,
         studentOrgCode: studentOrgCode,
+        next,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed")
@@ -85,7 +87,8 @@ export default function RegisterPage() {
               </h1>
               <p className="mt-4 text-sm leading-6 text-slate-500">
                 Join SphereX to enroll in courses, track progress, and earn certificates. Use an
-                organization code if your school or company provided one.
+                organization code if your school or company provided one. We will email a 6-digit
+                code to confirm your address.
               </p>
             </div>
 
