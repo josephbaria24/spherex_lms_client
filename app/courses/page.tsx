@@ -15,6 +15,7 @@ import type { Course } from "@/lib/types"
 import { CourseDetailsModal } from "@/components/course-detail-modal"
 import { StudentJoinBanner } from "@/components/settings/join-org-section"
 import { LandingHeader } from "@/components/landing/landing-header"
+import { assetUrl } from "@/lib/asset-url"
 
 type CourseRow = {
   id: string
@@ -30,6 +31,8 @@ type CourseRow = {
   requires_enroll_code?: boolean
   is_enrolled?: boolean
   organization_name?: string | null
+  thumbnail?: string | null
+  image?: string | null
 }
 
 type EnrollmentRow = {
@@ -54,7 +57,7 @@ export default function CoursesPage() {
     title: c.title ?? "Untitled",
     description: c.description ?? "",
     category: c.category ?? "Uncategorized",
-    thumbnail: "",
+    thumbnail: assetUrl(c.image ?? c.thumbnail),
     duration: c.duration ?? "Unknown",
     level: (c.level as Course["level"]) ?? "beginner",
     enrolledCount: c.enrolled_count ?? 0,

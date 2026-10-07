@@ -113,6 +113,10 @@ export function LandingCourses() {
   }, [courses, search, category])
 
   const featured = filtered.slice(0, FEATURED_LIMIT)
+  const organizationNames = Array.from(
+    new Set(courses.map((course) => course.organizationName).filter((name): name is string => Boolean(name))),
+  )
+  const catalogOwner = organizationNames.length === 1 ? organizationNames[0] : "SphereX"
 
   const openCourse = (course: LandingCourse) => {
     if (course.isEnrolled) {
@@ -129,7 +133,9 @@ export function LandingCourses() {
     <section id="courses" className="bg-slate-50/80 py-16 dark:bg-muted/20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">Explore Our Courses</h2>
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
+            Explore {catalogOwner} Courses
+          </h2>
           <div className="flex gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

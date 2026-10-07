@@ -1,9 +1,9 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { LandingHeader } from "@/components/landing/landing-header"
 import {
-  Play,
   Star,
   Facebook,
   Twitter,
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { landingCategoryGroups } from "@/lib/landing-categories"
 import { LandingCourses } from "@/components/landing/landing-courses"
+import { apiGet } from "@/lib/api"
 
 const stats = [
   { value: "25+", label: "Expert Instructors" },
@@ -55,6 +56,14 @@ const faqs = [
 ]
 
 export default function TutorLandingPage() {
+  const [courseCount, setCourseCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    apiGet<{ courses: unknown[] }>("/courses")
+      .then((data) => setCourseCount(data.courses?.length ?? 0))
+      .catch(() => setCourseCount(0))
+  }, [])
+
   return (
     <div className="min-h-screen bg-white text-slate-800 dark:bg-background dark:text-foreground">
       <LandingHeader />
@@ -78,20 +87,7 @@ export default function TutorLandingPage() {
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-600 dark:text-slate-300">
               SphereX hosts self-paced e-learning, exam reviews (NLE, Civil Service), IELTS prep,
-              and organization-specific catalogs — starting with{" "}
-              <Link href="/organizations/petrosphere" className="font-medium text-teal-600 hover:underline dark:text-teal-400">
-                Petrosphere
-              </Link>{" "}
-              HSE training migrating from the{" "}
-              <a
-                href="https://elearning.petrosphere.com.ph/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-teal-600 hover:underline dark:text-teal-400"
-              >
-                Petrosphere eLearning Academy
-              </a>
-              .
+              and organization-specific catalogs for professional training and development.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link href="/register">
@@ -99,19 +95,10 @@ export default function TutorLandingPage() {
                   Get Started
                 </Button>
               </Link>
-              <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-muted">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-white dark:bg-teal-500">
-                  <Play className="h-3.5 w-3.5 fill-white" />
-                </span>
-                Watch Video
-              </button>
             </div>
           </div>
 
           <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="absolute -left-4 top-8 h-16 w-16 rounded-2xl bg-teal-500/90 shadow-lg" />
-            <div className="absolute right-8 top-4 h-10 w-10 rounded-full bg-orange-400 shadow-md" />
-            <div className="absolute bottom-12 left-8 h-8 w-8 rounded-lg bg-teal-300/80" />
             <img
               src="/hero-image.png"
               alt="Learning progress across laptop and mobile devices"
@@ -137,7 +124,13 @@ export default function TutorLandingPage() {
                 key={stat.label}
                 className="rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-sm dark:border-border dark:bg-card"
               >
-                <p className="text-4xl font-extrabold text-slate-900 dark:text-white">{stat.value}</p>
+                <p className="text-4xl font-extrabold text-slate-900 dark:text-white">
+                  {stat.label === "Courses Available"
+                    ? courseCount === null
+                      ? "—"
+                      : courseCount
+                    : stat.value}
+                </p>
                 <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">{stat.label}</p>
               </div>
             ))}
@@ -148,48 +141,52 @@ export default function TutorLandingPage() {
       <LandingCourses />
 
       {/* ── Top Categories ── */}
-      <section id="categories" className="py-16">
+      <section id="categories" className="py-10 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-3xl font-extrabold text-slate-900 dark:text-white">
+          <h2 className="text-center text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
             What SphereX Offers
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-slate-600 dark:text-slate-300">
+          <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-slate-600 dark:text-slate-300">
             Self-paced e-learning, exam reviews, IELTS, and organization-specific catalogs — courses
             depend on the partner organization.
           </p>
 
-          <div className="mt-12 space-y-10">
+          <div className="mt-6 space-y-5 sm:mt-8">
             {landingCategoryGroups.map((group) => (
               <div key={group.id}>
-                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {group.label}
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {group.items.map((cat) => {
                     const Icon = cat.icon
                     return (
                       <Link
                         key={cat.id}
                         href={cat.href}
-                        className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-teal-200 hover:shadow-md dark:border-border dark:bg-card dark:hover:border-teal-800"
+                        className={`flex min-w-0 items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 transition hover:border-teal-200 hover:bg-teal-50/40 dark:border-border dark:bg-card dark:hover:border-teal-800 dark:hover:bg-teal-950/20 ${
+                          group.items.length === 1 ? "sm:col-span-2" : ""
+                        }`}
                       >
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700 dark:bg-teal-950/70 dark:text-teal-300">
-                          <Icon className="h-6 w-6" />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-100 text-teal-700 dark:bg-teal-950/70 dark:text-teal-300">
+                          <Icon className="h-4 w-4" />
                         </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-bold text-slate-900 dark:text-white">{cat.name}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{cat.name}</p>
                             {cat.badge && (
-                              <Badge variant="secondary" className="text-[10px]">
+                              <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px] leading-none">
                                 {cat.badge}
                               </Badge>
                             )}
                           </div>
-                          <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{cat.description}</p>
-                          {cat.count != null && (
-                            <p className="mt-1 text-xs text-teal-600 dark:text-teal-400">{cat.count}+ courses</p>
-                          )}
+                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">{cat.description}</p>
                         </div>
+                        {cat.count != null && (
+                          <span className="shrink-0 text-[11px] font-medium text-teal-600 dark:text-teal-400">
+                            {cat.count}+
+                          </span>
+                        )}
                       </Link>
                     )
                   })}
@@ -256,17 +253,6 @@ export default function TutorLandingPage() {
               is intuitive, the content is top-notch, and tracking progress across departments has
               never been easier.&rdquo;
             </blockquote>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <img
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop"
-                alt="Reviewer"
-                className="h-12 w-12 rounded-full object-cover"
-              />
-              <div className="text-left">
-                <p className="font-bold text-slate-900 dark:text-white">Carlos Mendoza</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">HSE Manager, Energy Sector</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>

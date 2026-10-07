@@ -40,11 +40,25 @@ export function CourseCard({
     <article className="grow-card group cursor-pointer overflow-hidden">
       <div
         className={cn(
-          "relative h-36 overflow-hidden bg-gradient-to-br",
-          heroGradient(course.id),
+          "relative h-44 overflow-hidden bg-gradient-to-br",
+          !course.thumbnail && heroGradient(course.id),
         )}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent dark:from-card dark:via-card/40" />
+        {course.thumbnail ? (
+          <img
+            src={course.thumbnail}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
+        <div
+          className={cn(
+            "absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent",
+            course.thumbnail
+              ? "h-24 from-white via-white/80 dark:from-card dark:via-card/80"
+              : "h-full from-white via-white/20 dark:from-card dark:via-card/40",
+          )}
+        />
         <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
           <span className="grow-badge bg-white/90 text-[#1c1917] dark:bg-card">
             {formatCoursePrice(course.priceCents ?? 0)}
@@ -117,8 +131,15 @@ export function CourseCard({
     </article>
   ) : (
     <article className="premium-card premium-row group cursor-pointer overflow-hidden rounded-xl border border-border shadow-none">
-      <div className="relative h-32 overflow-hidden border-b border-border/60 bg-gradient-to-br from-emerald-500/10 to-sky-500/10">
-        <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+      <div className="relative h-40 overflow-hidden border-b border-border/60 bg-gradient-to-br from-emerald-500/10 to-sky-500/10">
+        {course.thumbnail ? (
+          <img
+            src={course.thumbnail}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
+        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3">
           <Badge variant="secondary" className="mb-2 text-[10px]">
             {course.category}
