@@ -11,6 +11,7 @@ import {
   resolveArticulateScormLaunchUrl,
 } from "@/lib/lesson-media"
 import type { Lesson } from "@/lib/lesson-types"
+import { packageFrameLooksComplete } from "@/lib/package-completion"
 import {
   buildScormSessionCmi,
   createPersistentScorm12Api,
@@ -52,6 +53,7 @@ export function ScormPlayerPage({
   const [goingNext, setGoingNext] = useState(false)
   const apiRef = useRef<Scorm12Api | null>(null)
   const flushRef = useRef<(() => Promise<void>) | null>(null)
+  const markCompletedRef = useRef<(() => Promise<void>) | null>(null)
   const uninstallRef = useRef<(() => void) | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const exitingRef = useRef(false)
@@ -109,7 +111,7 @@ export function ScormPlayerPage({
           setResumeNote("Resuming from your last saved position.")
         }
 
-        const { api, flush } = createPersistentScorm12Api({
+        const { api, flush, markCompleted } = createPersistentScorm12Api({
           courseId,
           lessonId,
           previewMode: isPreview,
@@ -122,6 +124,7 @@ export function ScormPlayerPage({
         })
         apiRef.current = api
         flushRef.current = flush
+        markCompletedRef.current = markCompleted
         uninstallRef.current = installScorm12Api(api)
 
         if (!cancelled) {
@@ -167,9 +170,35 @@ export function ScormPlayerPage({
       uninstallRef.current?.()
       apiRef.current = null
       flushRef.current = null
+      markCompletedRef.current = null
       uninstallRef.current = null
     }
   }, [courseId, fresh, lessonId, previewMode])
+
+  useEffect(() => {
+    if (!launchUrl || previewMode) return
+    let stopped = false
+
+    let saving = false
+    const timer = window.setInterval(() => {
+      const frame = iframeRef.current?.contentWindow
+      if (stopped || saving || !frame || !packageFrameLooksComplete(frame)) return
+      saving = true
+      void markCompletedRef.current?.()
+        .then(() => {
+          stopped = true
+          window.clearInterval(timer)
+        })
+        .catch(() => {
+          saving = false
+        })
+    }, 700)
+
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+    }
+  }, [launchUrl, previewMode])
 
   useStorylineIframeFill(iframeRef, Boolean(launchUrl))
 

@@ -159,6 +159,7 @@ type PersistentScormOptions = {
 export type PersistentScormRuntime = {
   api: Scorm12Api
   flush: () => Promise<void>
+  markCompleted: () => Promise<void>
 }
 
 function isCompleteLessonStatus(status: string | undefined): boolean {
@@ -243,6 +244,16 @@ export function createPersistentScorm12Api({
     }
   }
 
+  async function markCompleted() {
+    if (previewMode) return
+    if (!isCompleteLessonStatus(store["cmi.core.lesson_status"])) {
+      store["cmi.core.lesson_status"] = "completed"
+      store["cmi.completion_status"] = "completed"
+    }
+    await flush()
+    notifyLessonCompleted()
+  }
+
   const api: Scorm12Api = {
     LMSInitialize: () => {
       initialized = true
@@ -265,11 +276,11 @@ export function createPersistentScorm12Api({
         scheduleCommit(immediate)
       }
       if (element === "cmi.core.lesson_status" || element === "cmi.completion_status") {
-        if (isCompleteLessonStatus(value) && !isCompleteLessonStatus(prevValue)) {
-          notifyLessonCompleted()
-        }
         if (isCompleteLessonStatus(value)) {
-          void flush()
+          const newlyComplete = !isCompleteLessonStatus(prevValue)
+          void flush().then(() => {
+            if (newlyComplete) notifyLessonCompleted()
+          })
         }
       }
       return "true"
@@ -283,7 +294,7 @@ export function createPersistentScorm12Api({
     LMSGetDiagnostic: () => "",
   }
 
-  return { api, flush }
+  return { api, flush, markCompleted }
 }
 
 /** Ask Storyline's SCORM driver (inside the iframe) to suspend and flush bookmark data. */
