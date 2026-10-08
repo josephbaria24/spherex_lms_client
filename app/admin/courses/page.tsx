@@ -79,6 +79,7 @@ export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchReady, setSearchReady] = useState(false)
   const [selectedOrg, setSelectedOrg] = useState("all")
   const [editCourse, setEditCourse] = useState<Course | null>(null)
   const [deleteCourseId, setDeleteCourseId] = useState<string | null>(null)
@@ -226,9 +227,16 @@ export default function AdminCoursesPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              name="course-search"
+              type="search"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              readOnly={!searchReady}
               placeholder="Search courses or organizations…"
               className="pl-10"
               value={searchQuery}
+              onFocus={() => setSearchReady(true)}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
@@ -593,11 +601,15 @@ export default function AdminCoursesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
+            <div className="pointer-events-none absolute h-0 overflow-hidden opacity-0" aria-hidden>
+              <input tabIndex={-1} type="text" name="username" autoComplete="username" defaultValue="" />
+            </div>
             <Label htmlFor="delete-course-password">Your password</Label>
             <Input
               id="delete-course-password"
+              name="confirm-delete-password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="off"
               value={deletePassword}
               onChange={(e) => setDeletePassword(e.target.value)}
               placeholder="Enter your password"

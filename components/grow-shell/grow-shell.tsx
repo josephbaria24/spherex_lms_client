@@ -5,6 +5,7 @@ import { grow } from "@/lib/grow-shell"
 type GrowShellProps = {
   children: React.ReactNode
   className?: string
+  contentClassName?: string
   /** When true, wraps children in grow-bento spacing (default: true) */
   bento?: boolean
   /** Fill the panel and let a child region scroll, instead of scrolling the whole page */
@@ -12,7 +13,7 @@ type GrowShellProps = {
 }
 
 /** Grow Shell page canvas — white background with optional bento grid spacing */
-export function GrowShell({ children, className, bento = true, fill = false }: GrowShellProps) {
+export function GrowShell({ children, className, contentClassName, bento = true, fill = false }: GrowShellProps) {
   return (
     <div
       className={cn(
@@ -23,7 +24,7 @@ export function GrowShell({ children, className, bento = true, fill = false }: G
       )}
     >
       {bento ? (
-        <div className={cn(grow.bento, fill ? "flex min-h-0 flex-1 flex-col gap-5" : "space-y-5")}>
+        <div className={cn(grow.bento, fill ? "flex min-h-0 flex-1 flex-col gap-5" : "space-y-5", contentClassName)}>
           {children}
         </div>
       ) : (

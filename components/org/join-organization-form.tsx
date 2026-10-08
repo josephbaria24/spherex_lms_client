@@ -16,6 +16,7 @@ type JoinOrganizationFormProps = {
   onSuccess?: (orgName: string) => void
   redirectTo?: string
   compact?: boolean
+  dense?: boolean
 }
 
 export function JoinOrganizationForm({
@@ -23,6 +24,7 @@ export function JoinOrganizationForm({
   onSuccess,
   redirectTo,
   compact = false,
+  dense = false,
 }: JoinOrganizationFormProps) {
   const [code, setCode] = useState("")
   const [loading, setLoading] = useState(false)
@@ -68,6 +70,36 @@ export function JoinOrganizationForm({
       : "Enter the teacher code from your organization admin"
 
   const placeholder = isStudent ? "e.g. PETRO-STUDENT" : "e.g. PETRO-DEMO"
+
+  if (dense) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-1">
+        <div className="flex items-center gap-1.5">
+          <Input
+            id={`org-join-code-${mode}`}
+            aria-label={label}
+            placeholder="Org code"
+            className="h-8 bg-background font-mono text-xs uppercase tracking-wider"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            disabled={loading}
+            required
+            minLength={4}
+          />
+          <Button
+            type="submit"
+            size="sm"
+            className="h-8 shrink-0 rounded-md px-2.5 text-xs"
+            disabled={loading || !code.trim()}
+          >
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Join"}
+          </Button>
+        </div>
+        {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
+        {success ? <p className="text-[11px] text-emerald-700">{success}</p> : null}
+      </form>
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit} className={compact ? "space-y-3" : "space-y-4"}>

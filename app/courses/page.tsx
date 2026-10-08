@@ -8,7 +8,7 @@ import { CourseCard } from "@/components/course-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Filter, BookOpen, GraduationCap, Compass } from "lucide-react"
+import { Search, Filter, BookOpen, GraduationCap } from "lucide-react"
 import { useAuth } from "@/app/provider"
 import { apiGet } from "@/lib/api"
 import type { Course } from "@/lib/types"
@@ -16,6 +16,7 @@ import { CourseDetailsModal } from "@/components/course-detail-modal"
 import { StudentJoinBanner } from "@/components/settings/join-org-section"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { assetUrl } from "@/lib/asset-url"
+import { cn } from "@/lib/utils"
 
 type CourseRow = {
   id: string
@@ -50,7 +51,7 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const [catalogTab, setCatalogTab] = useState("catalog")
+  const [catalogTab, setCatalogTab] = useState("enrolled")
 
   const mapCourse = (c: CourseRow, progress = 0): Course => ({
     id: c.id,
@@ -185,8 +186,8 @@ export default function CoursesPage() {
       <div
         className={
           emphasize
-            ? "grid gap-4 sm:grid-cols-2"
-            : "grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            ? "grid gap-3 sm:grid-cols-2 sm:gap-4"
+            : "grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3"
         }
       >
         {courses.map((course) =>
@@ -279,11 +280,12 @@ export default function CoursesPage() {
 
   return (
     <MainLayout>
-      <GrowShell>
+      <GrowShell className="max-md:p-3 max-md:pb-4" contentClassName="max-md:space-y-3">
         <GrowHeader
           title="Courses"
           accent="explore & enroll"
           description="Your enrolled courses first — then browse the catalog to add more"
+          denseOnMobile
         >
           <Button variant="outline" className="grow-btn-outline" asChild>
             <Link href="/dashboard">
@@ -293,14 +295,19 @@ export default function CoursesPage() {
           </Button>
         </GrowHeader>
 
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-          <section className="min-w-0 flex-1 space-y-4">
-            <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-5">
+          <section className="min-w-0 flex-1 space-y-2 md:space-y-4">
+            <div
+              className={cn(
+                "flex flex-wrap items-end justify-between gap-2",
+                enrolledCourses.length === 0 && "hidden md:flex",
+              )}
+            >
               <div>
-                <h2 className="text-xl font-bold tracking-tight text-[#1c1917] dark:text-foreground">
+                <h2 className="text-base font-bold tracking-tight text-[#1c1917] md:text-xl dark:text-foreground">
                   My enrolled courses
                 </h2>
-                <p className="mt-0.5 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+                <p className="mt-0.5 hidden text-sm text-[#6b5c4f] md:block dark:text-muted-foreground">
                   {enrolledCourses.length > 0
                     ? `${enrolledCourses.length} active · continue where you left off`
                     : "Courses you’re learning appear here"}
@@ -322,25 +329,16 @@ export default function CoursesPage() {
             {loading ? (
               <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Loading…</p>
             ) : enrolledCourses.length === 0 ? (
-              <div className="grow-card-coral flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Compass className="h-5 w-5 text-white/90" />
-                    <h3 className="text-lg font-bold text-white">No courses yet</h3>
-                  </div>
-                  <p className="max-w-md text-sm text-white/85">
-                    Explore the catalog to enroll with payment or an admin enrollment code — or join
-                    your organization with a student code.
-                  </p>
-                </div>
-                <Button
+              <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">
+                No courses yet.{" "}
+                <button
                   type="button"
                   onClick={scrollToCatalog}
-                  className="shrink-0 rounded-full bg-white text-[#1c1917] hover:bg-white/90"
+                  className="font-medium text-[#1c1917] underline underline-offset-2 dark:text-foreground"
                 >
-                  Explore courses
-                </Button>
-              </div>
+                  Explore the catalog
+                </button>
+              </p>
             ) : (
               renderGrid(myEnrolled, { showProgress: true, emphasize: true })
             )}
@@ -351,7 +349,7 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="grow-toolbar">
+        <div className="grow-toolbar max-md:gap-0 max-md:border-0 max-md:bg-transparent max-md:p-0 max-md:shadow-none">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -361,61 +359,81 @@ export default function CoursesPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="grow-btn-outline gap-2">
+          <Button variant="outline" className="grow-btn-outline hidden gap-2 md:inline-flex">
             <Filter className="h-4 w-4" />
             Filters
           </Button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="grow-card-coral p-4">
-            <p className="text-xs font-medium text-white/85">Catalog</p>
-            <p className="mt-1 text-3xl font-bold">{allCourses.length}</p>
+        <div className="grid grid-cols-3 gap-2 md:gap-3">
+          <div className="grow-card-coral rounded-lg! px-2.5 py-2 md:rounded-xl! md:p-4">
+            <p className="text-[10px] font-medium text-white/85 md:text-xs">Catalog</p>
+            <p className="text-lg font-bold leading-tight md:mt-1 md:text-3xl">{allCourses.length}</p>
           </div>
-          <div className="grow-card p-4">
-            <p className="text-xs text-muted-foreground">Enrolled</p>
-            <p className="mt-1 text-3xl font-bold text-[#1c1917] dark:text-foreground">
+          <div className="grow-card rounded-lg! px-2.5 py-2 md:rounded-xl! md:p-4">
+            <p className="text-[10px] text-muted-foreground md:text-xs">Enrolled</p>
+            <p className="text-lg font-bold leading-tight text-[#1c1917] md:mt-1 md:text-3xl dark:text-foreground">
               {enrolledCourses.length}
             </p>
           </div>
-          <div className="grow-card-dark p-4">
-            <p className="text-xs text-white/70">Completed</p>
-            <p className="mt-1 text-3xl font-bold">{completedCourses.length}</p>
+          <div className="grow-card-dark rounded-lg! px-2.5 py-2 md:rounded-xl! md:p-4">
+            <p className="text-[10px] text-white/70 md:text-xs">Completed</p>
+            <p className="text-lg font-bold leading-tight md:mt-1 md:text-3xl">{completedCourses.length}</p>
           </div>
         </div>
 
-        <section id="course-catalog" className="scroll-mt-4 space-y-4">
+        <section id="course-catalog" className="scroll-mt-4 space-y-2 md:space-y-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-[#1c1917] dark:text-foreground">
+            <h2 className="text-base font-bold tracking-tight text-[#1c1917] md:text-xl dark:text-foreground">
               Catalog
             </h2>
-            <p className="mt-0.5 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+            <p className="mt-0.5 hidden text-sm text-[#6b5c4f] md:block dark:text-muted-foreground">
               Browse all courses, completed paths, and more to enroll
             </p>
           </div>
 
           <Tabs value={catalogTab} onValueChange={setCatalogTab}>
-            <TabsList className="grow-tabs-list">
-              <TabsTrigger value="catalog" className="grow-tab-trigger">
-                All courses
+            <TabsList className="grow-tabs-list max-md:w-full">
+              <TabsTrigger value="enrolled" className="grow-tab-trigger max-md:flex-1 max-md:px-2">
+                <span className="md:hidden">Enrolled</span>
+                <span className="hidden md:inline">My enrolled</span>
               </TabsTrigger>
-              <TabsTrigger value="enrolled" className="grow-tab-trigger">
-                My enrolled
+              <TabsTrigger value="catalog" className="grow-tab-trigger max-md:flex-1 max-md:px-2">
+                <span className="md:hidden">All</span>
+                <span className="hidden md:inline">All courses</span>
               </TabsTrigger>
-              <TabsTrigger value="completed" className="grow-tab-trigger">
+              <TabsTrigger value="completed" className="grow-tab-trigger max-md:flex-1 max-md:px-2">
                 Completed
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="catalog" className="mt-5">
+            <TabsContent value="catalog" className="mt-3 md:mt-5">
               {renderGrid(catalogCourses, { catalog: true })}
             </TabsContent>
 
-            <TabsContent value="enrolled" className="mt-5">
-              {renderGrid(myEnrolled, { showProgress: true, emphasize: true })}
+            <TabsContent value="enrolled" className="mt-3 md:mt-5">
+              {!loading && myEnrolled.length === 0 && !search.trim() ? (
+                <div className="flex flex-col items-center px-4 py-8 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f3ede4] dark:bg-muted">
+                    <BookOpen className="h-8 w-8 text-[#c9bfb0] dark:text-muted-foreground" />
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-[#1c1917] dark:text-foreground">
+                    No enrolled courses yet
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={scrollToCatalog}
+                    className="mt-4 rounded-full bg-[#1a1f2e] text-white hover:bg-[#252b3d]"
+                  >
+                    Explore courses
+                  </Button>
+                </div>
+              ) : (
+                renderGrid(myEnrolled, { showProgress: true, emphasize: true })
+              )}
             </TabsContent>
 
-            <TabsContent value="completed" className="mt-5">
+            <TabsContent value="completed" className="mt-3 md:mt-5">
               {renderGrid(filterCourses(completedCourses), { showProgress: true })}
             </TabsContent>
           </Tabs>

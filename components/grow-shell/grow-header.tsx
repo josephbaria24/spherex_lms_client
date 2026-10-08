@@ -11,6 +11,8 @@ type GrowHeaderProps = {
   showDate?: boolean
   icon?: LucideIcon
   compact?: boolean
+  /** Hide the date, accent, description, and actions below the md breakpoint */
+  denseOnMobile?: boolean
   className?: string
   children?: React.ReactNode
 }
@@ -23,6 +25,7 @@ export function GrowHeader({
   showDate = true,
   icon: Icon,
   compact = false,
+  denseOnMobile = false,
   className,
   children,
 }: GrowHeaderProps) {
@@ -30,7 +33,7 @@ export function GrowHeader({
     <header
       className={cn(
         "flex flex-col sm:flex-row sm:items-end sm:justify-between",
-        compact ? "gap-3" : "gap-4",
+        denseOnMobile ? "gap-2 md:gap-4" : compact ? "gap-3" : "gap-4",
         className,
       )}
     >
@@ -45,9 +48,14 @@ export function GrowHeader({
             <Icon className={cn(compact ? "h-5 w-5" : "h-6 w-6", "text-[#5c4d8a] dark:text-violet-200")} />
           </div>
         ) : null}
-        <div className={cn("min-w-0", compact ? "space-y-0.5" : "space-y-2")}>
+        <div className={cn("min-w-0", compact || denseOnMobile ? "space-y-0.5 md:space-y-2" : "space-y-2")}>
           {showDate ? (
-            <span className="inline-flex items-center rounded-full border border-[#e8dfd3] bg-white/70 px-3 py-1 text-xs font-medium text-[#6b5c4f] dark:border-border dark:bg-card">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border border-[#e8dfd3] bg-white/70 px-3 py-1 text-xs font-medium text-[#6b5c4f] dark:border-border dark:bg-card",
+                denseOnMobile && "hidden md:inline-flex",
+              )}
+            >
               {new Date().toLocaleDateString(undefined, {
                 weekday: "long",
                 month: "short",
@@ -58,12 +66,12 @@ export function GrowHeader({
           <h1
             className={cn(
               "font-bold tracking-tight text-[#1c1917] dark:text-foreground",
-              compact ? "text-2xl" : "text-3xl sm:text-4xl",
+              denseOnMobile ? "text-xl md:text-3xl lg:text-4xl" : compact ? "text-2xl" : "text-3xl sm:text-4xl",
             )}
           >
             {title}
             {accent ? (
-              <>
+              <span className={cn(denseOnMobile && "hidden md:inline")}>
                 {" — "}
                 <span
                   className="font-serif italic"
@@ -71,18 +79,23 @@ export function GrowHeader({
                 >
                   {accent}
                 </span>
-              </>
+              </span>
             ) : null}
           </h1>
           {description ? (
-            <p className="max-w-2xl text-sm text-[#6b5c4f] dark:text-muted-foreground">
+            <p
+              className={cn(
+                "max-w-2xl text-sm text-[#6b5c4f] dark:text-muted-foreground",
+                denseOnMobile && "hidden md:block",
+              )}
+            >
               {description}
             </p>
           ) : null}
         </div>
       </div>
       {children ? (
-        <div className="flex flex-wrap gap-2">{children}</div>
+        <div className={cn("flex flex-wrap gap-2", denseOnMobile && "hidden md:flex")}>{children}</div>
       ) : null}
     </header>
   )

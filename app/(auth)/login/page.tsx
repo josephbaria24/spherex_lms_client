@@ -19,26 +19,12 @@ import {
   Mail,
 } from "lucide-react"
 
-const sampleUsers = [
-  { label: "Admin", email: "admin@spherex.local", password: "Admin123!" },
-  { label: "Org admin", email: "orgadmin@petrosphere.local", password: "OrgAdmin123!" },
-  { label: "Teacher", email: "teacher@spherex.local", password: "Teacher123!" },
-  { label: "New teacher", email: "newteacher@spherex.local", password: "Teacher123!" },
-  { label: "Student", email: "student@spherex.local", password: "Student123!" },
-  { label: "New student", email: "newstudent@spherex.local", password: "Student123!" },
-]
-
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  function useSampleUser(sample: (typeof sampleUsers)[number]) {
-    setEmail(sample.email)
-    setPassword(sample.password)
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -167,33 +153,6 @@ export default function LoginPage() {
                 </Link>
               </p>
             </form>
-
-            {process.env.NODE_ENV !== "production" && (
-              <div className="mt-8 max-w-md">
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-slate-200" />
-                  <p className="text-xs font-medium text-slate-500">sample users</p>
-                  <div className="h-px flex-1 bg-slate-200" />
-                </div>
-                <div className="mt-4 grid gap-2">
-                  {sampleUsers.map((sample) => (
-                    <button
-                      key={sample.label}
-                      type="button"
-                      onClick={() => useSampleUser(sample)}
-                      className="grid gap-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-teal-300 hover:bg-teal-50/40 sm:grid-cols-[6.5rem_1fr]"
-                    >
-                      <span className="text-xs font-semibold text-slate-950">{sample.label}</span>
-                      <span className="min-w-0 text-xs text-slate-500">
-                        <span className="break-all font-mono">{sample.email}</span>
-                        <span className="mx-1">/</span>
-                        <span className="font-mono">{sample.password}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </section>
 
           <AuthMarketingPanel title="Organize learning, track progress, and manage every organization in SphereX LMS" />

@@ -40,7 +40,7 @@ export function CourseCard({
     <article className="grow-card group cursor-pointer overflow-hidden">
       <div
         className={cn(
-          "relative h-44 overflow-hidden bg-gradient-to-br",
+          "relative h-28 overflow-hidden bg-gradient-to-br sm:h-44",
           !course.thumbnail && heroGradient(course.id),
         )}
       >
@@ -75,25 +75,25 @@ export function CourseCard({
             </span>
           ) : null}
         </div>
-        <div className="absolute bottom-4 left-4 right-4">
-          <span className="grow-badge mb-2">{course.category}</span>
-          <h3 className="line-clamp-2 text-lg font-bold tracking-tight text-[#1c1917] transition-colors group-hover:text-[#e85d4a] dark:text-foreground">
+        <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
+          <span className="grow-badge mb-1 sm:mb-2">{course.category}</span>
+          <h3 className="line-clamp-2 text-base font-bold tracking-tight text-[#1c1917] transition-colors group-hover:text-[#e85d4a] sm:text-lg dark:text-foreground">
             {course.title}
           </h3>
         </div>
       </div>
 
-      <div className="space-y-3 p-5">
-        <p className="line-clamp-2 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+      <div className="space-y-2 p-3 sm:space-y-3 sm:p-5">
+        <p className="line-clamp-2 hidden text-sm text-[#6b5c4f] sm:block dark:text-muted-foreground">
           {course.description}
         </p>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs text-[#8a7d72] dark:text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#8a7d72] sm:gap-3 sm:text-xs dark:text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
             <span>{course.duration}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="hidden items-center gap-1 sm:flex">
             <Users className="h-3.5 w-3.5" />
             <span>{course.enrolledCount} enrolled</span>
           </div>

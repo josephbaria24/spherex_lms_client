@@ -124,15 +124,10 @@ export function StudentJoinBanner({
 
   if (compact) {
     return (
-      <aside className="grow-card-lime h-fit w-full border border-dashed border-[#a8c97a] p-4 dark:border-lime-500/30">
-        <h2 className="text-sm font-bold text-[#1c1917] dark:text-foreground">
-          Have an org code?
-        </h2>
-        <p className="mt-1 text-xs leading-relaxed text-[#4a5c3a] dark:text-muted-foreground">
-          Join to unlock free organization courses.
-        </p>
-        <div className="mt-3">
-          <JoinOrganizationForm mode="student" compact redirectTo="/courses" />
+      <aside className="h-fit w-full rounded-lg border border-border/70 bg-accent p-2 text-accent-foreground">
+        <h2 className="text-xs font-semibold">Have an org code?</h2>
+        <div className="mt-1.5">
+          <JoinOrganizationForm mode="student" compact dense redirectTo="/courses" />
         </div>
       </aside>
     )

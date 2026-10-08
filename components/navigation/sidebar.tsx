@@ -62,6 +62,8 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [showCollapsedContent, setShowCollapsedContent] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileRendered, setMobileRendered] = useState(false)
+  const [mobileVisible, setMobileVisible] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const hasHydratedRef = useRef(false)
   const navScrollRef = useRef<HTMLElement | null>(null)
@@ -167,6 +169,34 @@ export function Sidebar() {
   useEffect(() => {
     setThemeMounted(true)
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    let innerFrame = 0
+
+    if (mobileOpen) {
+      setMobileRendered(true)
+      const outerFrame = requestAnimationFrame(() => {
+        innerFrame = requestAnimationFrame(() => {
+          if (!cancelled) setMobileVisible(true)
+        })
+      })
+      return () => {
+        cancelled = true
+        cancelAnimationFrame(outerFrame)
+        cancelAnimationFrame(innerFrame)
+      }
+    }
+
+    setMobileVisible(false)
+    const timer = window.setTimeout(() => {
+      if (!cancelled) setMobileRendered(false)
+    }, 400)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [mobileOpen])
 
   const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark")
 
@@ -285,7 +315,7 @@ export function Sidebar() {
   )
 
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className={cn("floating-sidebar-panel flex h-full w-full min-w-0 flex-col overflow-hidden", mobile && "w-64")}>
+    <div className="floating-sidebar-panel flex h-full w-full min-w-0 flex-col overflow-hidden">
       <div
         className={cn(
           "relative flex shrink-0 items-center transition-[padding] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]",
@@ -416,16 +446,40 @@ export function Sidebar() {
       </div>
 
       <div className="fixed left-0 top-0 z-50 p-3 md:hidden">
-        <Button variant="outline" size="icon" className="h-9 w-9 bg-background" onClick={() => setMobileOpen(true)}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 bg-background"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-sidebar"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMobileOpen((open) => !open)}
+        >
           <Menu className="h-4 w-4" />
         </Button>
       </div>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <div className="relative m-3 h-[calc(100%-1.5rem)] w-64 max-w-[85vw]">
-            <SidebarContent mobile />
+      {mobileRendered && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            className={cn(
+              "absolute inset-0 bg-black/50 transition-opacity duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              mobileVisible ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+            onClick={() => setMobileOpen(false)}
+          />
+          <div
+            id="mobile-sidebar"
+            className={cn(
+              "relative m-3 h-[calc(100%-1.5rem)] origin-top-left overflow-hidden transition-[width] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              mobileVisible ? "w-[min(16rem,85vw)]" : "w-0",
+            )}
+          >
+            <div className="h-full w-[min(16rem,85vw)]">
+              <SidebarContent mobile />
+            </div>
           </div>
         </div>
       )}

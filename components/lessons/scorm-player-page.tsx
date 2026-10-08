@@ -303,8 +303,8 @@ export function ScormPlayerPage({
       />
 
       {lessonFinished ? (
-        <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-black via-black/90 to-transparent px-4 pb-8 pt-16">
-          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-slate-950/95 p-5 text-center shadow-2xl backdrop-blur">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-slate-950/95 p-6 text-center shadow-2xl backdrop-blur">
             <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
               <CheckCircle2 className="h-6 w-6" />
             </div>
@@ -314,28 +314,28 @@ export function ScormPlayerPage({
                 ? "Continue to the next lesson, or return to the course."
                 : "You've finished the last lesson in this course."}
             </p>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <div className="mt-5 flex flex-col gap-2">
               {nextLesson ? (
                 <Button
                   type="button"
                   size="lg"
-                  className="gap-2 rounded-full bg-emerald-500 hover:bg-emerald-600"
+                  className="h-auto min-h-11 w-full gap-2 whitespace-normal rounded-full bg-emerald-500 px-5 py-3 text-center hover:bg-emerald-600"
                   disabled={goingNext}
                   onClick={() => void goToNextLesson()}
                 >
                   {goingNext ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
                   ) : (
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4 shrink-0" />
                   )}
-                  Next: {nextLesson.title}
+                  <span className="min-w-0">Next: {nextLesson.title}</span>
                 </Button>
               ) : null}
               <Button
                 type="button"
                 size="lg"
                 variant="outline"
-                className="rounded-full border-white/25 bg-white/10 text-white hover:bg-white/20"
+                className="w-full rounded-full border-white/25 bg-white/10 text-white hover:bg-white/20"
                 disabled={goingNext}
                 onClick={() => void exitPlayer()}
               >

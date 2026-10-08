@@ -44,9 +44,15 @@ type PaymentRequest = {
   email_exists?: boolean
 }
 
+function statusLabel(status: string): string {
+  if (status === "pending_payment") return "Requested"
+  if (status === "receipt_uploaded") return "Receipt uploaded"
+  return status.replace(/_/g, " ")
+}
+
 export default function AdminPaymentRequestsPage() {
   const [items, setItems] = useState<PaymentRequest[]>([])
-  const [status, setStatus] = useState("receipt_uploaded")
+  const [status, setStatus] = useState("open")
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<PaymentRequest | null>(null)
   const [rejectNote, setRejectNote] = useState("")
@@ -133,8 +139,9 @@ export default function AdminPaymentRequestsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="open">Requested</SelectItem>
+              <SelectItem value="pending_payment">Waiting for receipt</SelectItem>
               <SelectItem value="receipt_uploaded">Receipt uploaded</SelectItem>
-              <SelectItem value="pending_payment">Pending payment</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
               <SelectItem value="all">All</SelectItem>
@@ -156,6 +163,7 @@ export default function AdminPaymentRequestsPage() {
                   <th className="px-4 py-3">Account</th>
                   <th className="px-4 py-3">Course</th>
                   <th className="px-4 py-3">Amount</th>
+                  <th className="px-4 py-3">Requested</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -182,8 +190,11 @@ export default function AdminPaymentRequestsPage() {
                     </td>
                     <td className="px-4 py-3">{item.course_title}</td>
                     <td className="px-4 py-3">{formatCoursePrice(item.amount_cents)}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {new Date(item.created_at).toLocaleString()}
+                    </td>
                     <td className="px-4 py-3">
-                      <Badge variant="secondary">{item.status.replace(/_/g, " ")}</Badge>
+                      <Badge variant="secondary">{statusLabel(item.status)}</Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button size="sm" variant="outline" onClick={() => setSelected(item)}>

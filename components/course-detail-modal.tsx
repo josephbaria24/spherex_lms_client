@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Course } from "@/lib/types"
@@ -17,8 +17,9 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/app/provider"
 import { apiPost, ApiError } from "@/lib/api"
 import { formatCoursePrice } from "@/lib/course-pricing"
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { KeyRound, Loader2, Mail } from "lucide-react"
+import { Building2, Clock, KeyRound, Loader2, Mail, Signal } from "lucide-react"
 
 interface Props {
   course: Course | null
@@ -38,7 +39,20 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
+  const [descriptionOpen, setDescriptionOpen] = useState(false)
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false)
+  const descriptionRef = useRef<HTMLParagraphElement>(null)
   const router = useRouter()
+
+  useLayoutEffect(() => {
+    setDescriptionOpen(false)
+  }, [course?.id])
+
+  useLayoutEffect(() => {
+    const el = descriptionRef.current
+    if (!el || descriptionOpen) return
+    setDescriptionOverflows(el.scrollHeight > el.clientHeight + 1)
+  }, [course?.description, descriptionOpen, open])
 
   const priceCents = course?.priceCents ?? 0
   const requiresCode = course?.requiresEnrollCode ?? false
@@ -125,36 +139,90 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
           setEnrollCode("")
           setShowCodeField(false)
           setShowPayForm(false)
+          setDescriptionOpen(false)
         }
         onClose()
       }}
     >
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{course.title}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2 text-sm">
-          {course.organizationName ? (
-            <p>
-              <strong>Organization:</strong> {course.organizationName}
-            </p>
-          ) : null}
-          <p>
-            <strong>Category:</strong> {course.category}
-          </p>
-          <p>
-            <strong>Level:</strong> {course.level}
-          </p>
-          <p>
-            <strong>Duration:</strong> {course.duration}
-          </p>
-          <p>
-            <strong>Price:</strong> {formatCoursePrice(priceCents)}
-          </p>
-          <p className="whitespace-pre-line text-muted-foreground">{course.description}</p>
+      <DialogContent className="max-h-[min(92dvh,760px)] max-w-lg gap-0 overflow-y-auto p-0 [&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:right-5 [&_[data-slot=dialog-close]]:z-10 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-black/55 [&_[data-slot=dialog-close]]:p-1.5 [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:opacity-100 [&_[data-slot=dialog-close]]:hover:bg-black/70">
+        <div className="p-3 pb-0">
+          <div className="relative h-44 overflow-hidden rounded-2xl sm:h-52">
+            {course.thumbnail ? (
+              <img
+                src={course.thumbnail}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#7c6cf0] via-[#5b4db8] to-[#1a1f2e]" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1a1f2e]/80 via-[#1a1f2e]/20 to-transparent" />
+            <div className="absolute bottom-3 left-3 right-12 flex flex-wrap items-center gap-1.5">
+              <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1c1917]">
+                {course.category}
+              </span>
+              <span className="rounded-full bg-[#e85d4a] px-2.5 py-0.5 text-[10px] font-semibold text-white">
+                {formatCoursePrice(priceCents)}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <DialogFooter className="flex-col gap-3 sm:flex-col">
+        <div className="space-y-4 px-4 py-4">
+          <DialogHeader className="gap-1 text-left">
+            <DialogTitle className="text-xl font-bold tracking-tight">{course.title}</DialogTitle>
+            {course.organizationName ? (
+              <p className="flex items-center gap-1.5 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5 shrink-0 text-[#7c6cf0]" />
+                {course.organizationName}
+              </p>
+            ) : null}
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-[#ebe4f8] px-3 py-2 dark:bg-violet-950/40">
+              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[#5c4d8a] dark:text-violet-200">
+                <Signal className="h-3 w-3" />
+                Level
+              </p>
+              <p className="mt-0.5 text-sm font-semibold capitalize text-[#1c1917] dark:text-foreground">
+                {course.level}
+              </p>
+            </div>
+            <div className="rounded-xl bg-[#e7f6f3] px-3 py-2 dark:bg-teal-950/40">
+              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-teal-800 dark:text-teal-200">
+                <Clock className="h-3 w-3" />
+                Duration
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-[#1c1917] dark:text-foreground">
+                {course.duration}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-[#faf8f5] p-3 dark:bg-muted/40">
+            <p
+              ref={descriptionRef}
+              className={cn(
+                "whitespace-pre-line text-sm leading-relaxed text-[#5c5368] dark:text-muted-foreground",
+                !descriptionOpen && "max-h-24 overflow-hidden",
+              )}
+            >
+              {course.description}
+            </p>
+            {descriptionOverflows || descriptionOpen ? (
+              <button
+                type="button"
+                className="mt-2 text-xs font-semibold text-[#7c6cf0] hover:underline"
+                onClick={() => setDescriptionOpen((open) => !open)}
+              >
+                {descriptionOpen ? "Show less" : "Show more"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <DialogFooter className="flex-col gap-3 border-t border-border/60 px-4 py-4 sm:flex-col">
           {isEnrolled ? (
             <Button asChild className="w-full">
               <Link href={`/courses/${course.id}/learn`}>Continue learning</Link>

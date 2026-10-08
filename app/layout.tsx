@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import localFont from "next/font/local"
 import "./globals.css"
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants"
@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "./provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
+import { PwaInstallPrompt } from "@/components/pwa/install-prompt"
 
 const poppins = localFont({
   src: [
@@ -36,6 +37,26 @@ const poppins = localFont({
 export const metadata: Metadata = {
   title: APP_NAME,
   description: APP_DESCRIPTION,
+  applicationName: APP_NAME,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_NAME,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/pwa/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/pwa/apple-touch-icon.png", sizes: "180x180" }],
+  },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1a1f2e",
 }
 
 export default function RootLayout({
@@ -48,6 +69,7 @@ export default function RootLayout({
       <body
         className={`${poppins.className} ${poppins.variable} antialiased`}
       >
+        <PwaInstallPrompt />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TooltipProvider>
             <Providers>{children}</Providers>

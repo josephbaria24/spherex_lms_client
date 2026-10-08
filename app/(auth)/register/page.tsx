@@ -28,10 +28,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showOrgCode, setShowOrgCode] = useState(false)
-  const [orgCode, setOrgCode] = useState("")
-  const [showStudentOrgCode, setShowStudentOrgCode] = useState(false)
-  const [studentOrgCode, setStudentOrgCode] = useState("")
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,11 +47,7 @@ export default function RegisterPage() {
     try {
       await authRegister(email, password, fullName)
       const next = new URLSearchParams(window.location.search).get("next") ?? undefined
-      await completeAuthSession({
-        teacherOrgCode: orgCode,
-        studentOrgCode: studentOrgCode,
-        next,
-      })
+      await completeAuthSession({ next })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed")
       setLoading(false)
@@ -86,9 +78,8 @@ export default function RegisterPage() {
                 Create your account
               </h1>
               <p className="mt-4 text-sm leading-6 text-slate-500">
-                Join SphereX to enroll in courses, track progress, and earn certificates. Use an
-                organization code if your school or company provided one. We will email a 6-digit
-                code to confirm your address.
+                Join SphereX to enroll in courses, track progress, and earn certificates. We will
+                email a 6-digit code to confirm your address.
               </p>
             </div>
 
@@ -181,55 +172,6 @@ export default function RegisterPage() {
                     minLength={8}
                   />
                 </div>
-              </div>
-
-              {showStudentOrgCode && (
-                <div className="space-y-2 rounded-2xl border border-teal-100 bg-teal-50/70 p-3">
-                  <Label htmlFor="student-org-code" className="text-xs font-medium text-teal-800">
-                    Student organization code
-                  </Label>
-                  <Input
-                    id="student-org-code"
-                    placeholder="PETRO-STUDENT"
-                    className="h-10 rounded-full border-teal-200 bg-white font-mono uppercase text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white"
-                    value={studentOrgCode}
-                    onChange={(e) => setStudentOrgCode(e.target.value.toUpperCase())}
-                    disabled={loading}
-                  />
-                </div>
-              )}
-
-              {showOrgCode && (
-                <div className="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
-                  <Label htmlFor="org-code" className="text-xs font-medium text-emerald-800">
-                    Teacher organization code
-                  </Label>
-                  <Input
-                    id="org-code"
-                    placeholder="PETRO-DEMO"
-                    className="h-10 rounded-full border-emerald-200 bg-white font-mono uppercase text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-emerald-500 dark:bg-white"
-                    value={orgCode}
-                    onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
-                    disabled={loading}
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-3 text-xs">
-                <button
-                  type="button"
-                  className="font-medium text-teal-700 hover:underline"
-                  onClick={() => setShowStudentOrgCode((v) => !v)}
-                >
-                  {showStudentOrgCode ? "Hide student code" : "Have a student code?"}
-                </button>
-                <button
-                  type="button"
-                  className="font-medium text-teal-700 hover:underline"
-                  onClick={() => setShowOrgCode((v) => !v)}
-                >
-                  {showOrgCode ? "Hide teacher code" : "Have a teacher code?"}
-                </button>
               </div>
 
               {error && (

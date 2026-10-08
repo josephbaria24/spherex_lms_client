@@ -42,8 +42,8 @@ function chunkSlides<T>(items: T[], size: number): T[][] {
 
 function CoursePromoCard({ course }: { course: CatalogCourse }) {
   return (
-    <article className="flex h-full min-h-[220px] flex-col overflow-hidden rounded-[1.25rem] border border-white/50 bg-white shadow-sm dark:border-white/10 dark:bg-card">
-      <div className="relative h-24 shrink-0">
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-white/50 bg-white shadow-sm dark:border-white/10 dark:bg-card lg:min-h-[220px] lg:rounded-[1.25rem]">
+      <div className="relative h-16 shrink-0 lg:h-24">
         <CourseCardHero
           image={course.image}
           cardTheme={course.card_theme}
@@ -58,7 +58,7 @@ function CoursePromoCard({ course }: { course: CatalogCourse }) {
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col p-2.5 lg:p-4">
         <div className="flex flex-wrap items-center gap-1.5">
           {course.category ? (
             <span className="rounded-full bg-[#f3ede4] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#6b5c4f] dark:bg-muted dark:text-muted-foreground">
@@ -75,10 +75,10 @@ function CoursePromoCard({ course }: { course: CatalogCourse }) {
           </span>
         </div>
 
-        <h3 className="mt-2 line-clamp-2 text-base font-bold leading-snug text-[#1c1917] dark:text-foreground">
+        <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-snug text-[#1c1917] lg:mt-2 lg:text-base dark:text-foreground">
           {course.title}
         </h3>
-        <p className="mt-1 line-clamp-2 flex-1 text-xs text-[#5c5368] dark:text-muted-foreground">
+        <p className="mt-1 hidden flex-1 text-xs text-[#5c5368] lg:line-clamp-2 dark:text-muted-foreground">
           {course.description?.trim() ||
             "Start learning with structured lessons from expert organizations."}
         </p>
@@ -89,7 +89,7 @@ function CoursePromoCard({ course }: { course: CatalogCourse }) {
         <Button
           asChild
           size="sm"
-          className="mt-3 w-full rounded-full bg-[#1a1f2e] text-white hover:bg-[#252b3d] dark:bg-violet-600 dark:hover:bg-violet-500"
+          className="mt-2 h-8 w-full rounded-full bg-[#1a1f2e] px-2 text-xs text-white hover:bg-[#252b3d] lg:mt-3 lg:h-9 lg:text-sm dark:bg-violet-600 dark:hover:bg-violet-500"
         >
           <Link href={course.is_enrolled ? `/courses/${course.id}/learn` : "/courses"}>
             {course.is_enrolled ? "Continue" : "View course"}
@@ -106,8 +106,17 @@ export function DashboardCourseCarousel() {
   const [loading, setLoading] = useState(true)
   const [api, setApi] = useState<CarouselApi>()
   const [activeIndex, setActiveIndex] = useState(0)
+  const [cardsPerPage, setCardsPerPage] = useState(2)
 
-  const slides = useMemo(() => chunkSlides(courses, 2), [courses])
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)")
+    const apply = () => setCardsPerPage(media.matches ? 3 : 2)
+    apply()
+    media.addEventListener("change", apply)
+    return () => media.removeEventListener("change", apply)
+  }, [])
+
+  const slides = useMemo(() => chunkSlides(courses, cardsPerPage), [courses, cardsPerPage])
 
   useEffect(() => {
     let cancelled = false
@@ -226,8 +235,8 @@ export function DashboardCourseCarousel() {
             <CarouselItem key={slideIndex} className="pl-2">
               <div
                 className={cn(
-                  "grid min-h-[220px] gap-2",
-                  slideCourses.length > 1 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1",
+                  "grid grid-cols-2 gap-2",
+                  cardsPerPage === 3 && "lg:grid-cols-3",
                 )}
               >
                 {slideCourses.map((course) => (

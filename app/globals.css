@@ -805,3 +805,13 @@
     width: max-content;
   }
 }
+
+@media (max-width: 767px) {
+  body:has(.pwa-install-banner) {
+    padding-top: var(--pwa-banner-h, 2.75rem);
+  }
+
+  body:has(.pwa-install-banner) .h-screen {
+    height: calc(100dvh - var(--pwa-banner-h, 2.75rem));
+  }
+}
