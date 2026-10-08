@@ -119,10 +119,7 @@ export default function OrgAdminDashboardPage() {
               <Card className="premium-card border border-border shadow-none">
                 <CardContent className="p-4">
                   <p className="text-xs font-medium text-muted-foreground">Teacher join code</p>
-                  <p
-                    className="mt-1 font-mono text-lg font-bold tracking-wider"
-                    style={{ color: "var(--org-primary, #0d9488)" }}
-                  >
+                  <p className="mt-1 font-mono text-lg font-bold tracking-wider text-foreground">
                     {data.organization.teacher_join_code}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -134,10 +131,7 @@ export default function OrgAdminDashboardPage() {
               <Card className="premium-card border border-border shadow-none">
                 <CardContent className="p-4">
                   <p className="text-xs font-medium text-muted-foreground">Student join code</p>
-                  <p
-                    className="mt-1 font-mono text-lg font-bold tracking-wider"
-                    style={{ color: "var(--org-primary, #0d9488)" }}
-                  >
+                  <p className="mt-1 font-mono text-lg font-bold tracking-wider text-foreground">
                     {data.organization.student_join_code ?? "—"}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -169,7 +163,7 @@ export default function OrgAdminDashboardPage() {
                             <p className="text-xs text-muted-foreground">{stat.label}</p>
                             <p className="mt-1 text-2xl font-bold">{stat.value}</p>
                           </div>
-                          <Icon className="h-5 w-5" style={{ color: "var(--org-primary, #0d9488)" }} />
+                          <Icon className="h-5 w-5 text-foreground" />
                         </div>
                       </CardContent>
                     </Card>

@@ -8,6 +8,10 @@ type SphereXLogoProps = {
   imageClassName?: string
   priority?: boolean
   alt?: string
+  /** Swap marks so the logo stays visible on a primary-colored surface. */
+  onPrimary?: boolean
+  /** Always use the white mark. For bars that stay dark in both themes. */
+  light?: boolean
 }
 
 /** Theme-aware SphereX mark — spx.png in light mode, spxwhite.png in dark mode. */
@@ -16,11 +20,16 @@ export function SphereXLogo({
   imageClassName,
   priority = false,
   alt = APP_NAME,
+  onPrimary = false,
+  light = false,
 }: SphereXLogoProps) {
+  const lightSrc = light || onPrimary ? SPHEREX_LOGO_DARK : SPHEREX_LOGO_LIGHT
+  const darkSrc = light ? SPHEREX_LOGO_DARK : onPrimary ? SPHEREX_LOGO_LIGHT : SPHEREX_LOGO_DARK
+
   return (
     <span className="inline-flex shrink-0 items-center">
       <Image
-        src={SPHEREX_LOGO_LIGHT}
+        src={lightSrc}
         alt={alt}
         width={96}
         height={32}
@@ -28,7 +37,7 @@ export function SphereXLogo({
         priority={priority}
       />
       <Image
-        src={SPHEREX_LOGO_DARK}
+        src={darkSrc}
         alt={alt}
         width={96}
         height={32}

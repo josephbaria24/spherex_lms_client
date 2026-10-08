@@ -31,7 +31,12 @@ type CourseOutline = {
     description?: string
     require_sequential_lessons?: boolean
   }
-  lessons: (Lesson & { completed?: boolean; started?: boolean; locked?: boolean })[]
+  lessons: (Lesson & {
+    completed?: boolean
+    started?: boolean
+    locked?: boolean
+    progress?: number
+  })[]
   progress: number
   preview?: boolean
 }
@@ -41,6 +46,15 @@ type LessonDetail = {
   quiz: LessonQuiz | null
   completed: boolean
   preview?: boolean
+}
+
+function lessonPercent(lesson: { completed?: boolean; started?: boolean; progress?: number }) {
+  if (typeof lesson.progress === "number" && Number.isFinite(lesson.progress)) {
+    return Math.min(100, Math.max(0, Math.round(lesson.progress)))
+  }
+  if (lesson.completed) return 100
+  if (lesson.started) return 50
+  return 0
 }
 
 function applyClientLessonLocks<T extends { completed?: boolean }>(
@@ -86,6 +100,7 @@ export function CourseLearnPage({
   )
   const [lessonBlocked, setLessonBlocked] = useState<string | null>(null)
   const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
+  const [showPlayer, setShowPlayer] = useState(false)
 
   const previewMode = previewModeProp ?? outline?.preview ?? detail?.preview ?? false
 
@@ -206,7 +221,15 @@ export function CourseLearnPage({
     }
   }, [lessonId, outline, basePath, router])
 
+  function focusPlayer() {
+    setShowPlayer(true)
+    requestAnimationFrame(() => {
+      document.querySelector(".grow-shell")?.scrollTo({ top: 0 })
+    })
+  }
+
   function navigateToLesson(id: string) {
+    focusPlayer()
     if (detail?.lesson.id === id) return
     startTransition(() => {
       router.push(lessonPath(id))
@@ -266,22 +289,29 @@ export function CourseLearnPage({
             saved.
           </div>
         )}
-        <div className={cn("flex flex-col gap-5 lg:flex-row", isNavigating && "opacity-[0.98]")}>
-          <aside className="w-full shrink-0 lg:w-72">
-            <div className={cn(grow.card, "sticky top-4 space-y-4 p-5 transition-shadow duration-300")}>
+        <div className={cn("flex flex-col gap-3 lg:flex-row lg:gap-5", isNavigating && "opacity-[0.98]")}>
+          <aside className={cn("w-full shrink-0 lg:w-72", showPlayer && "max-lg:hidden")}>
+            <div className={cn(grow.card, "sticky top-4 space-y-2.5 p-3 transition-shadow duration-300 lg:space-y-4 lg:p-5")}>
               <div>
-                <Link
-                  href={backHref}
-                  className="text-xs text-[#6b5c4f] transition-colors hover:text-[#1c1917] dark:hover:text-foreground"
-                >
-                  ← {backLabel}
-                </Link>
-                <h1 className="mt-1 text-lg font-semibold leading-tight text-[#1c1917] dark:text-foreground">
+                <div className="flex items-center justify-between gap-2">
+                  <Link
+                    href={backHref}
+                    className="text-xs text-[#6b5c4f] transition-colors hover:text-[#1c1917] dark:hover:text-foreground"
+                  >
+                    ← {backLabel}
+                  </Link>
+                  {!previewMode && (
+                    <span className="text-xs font-medium text-[#1c1917] lg:hidden dark:text-foreground">
+                      {outline.progress}%
+                    </span>
+                  )}
+                </div>
+                <h1 className="mt-1 line-clamp-2 text-base font-semibold leading-tight text-[#1c1917] lg:text-lg dark:text-foreground">
                   {outline.course.title}
                 </h1>
                 {!previewMode && (
-                  <div className="mt-3 space-y-1">
-                    <div className="flex justify-between text-xs">
+                  <div className="mt-2 space-y-1 lg:mt-3">
+                    <div className="hidden justify-between text-xs lg:flex">
                       <span className="text-[#6b5c4f] dark:text-muted-foreground">Progress</span>
                       <span className="font-medium text-[#1c1917] transition-all duration-500 dark:text-foreground">
                         {outline.progress}%
@@ -289,18 +319,18 @@ export function CourseLearnPage({
                     </div>
                     <Progress
                       value={outline.progress}
-                      className="h-1.5 transition-all duration-500 [&_[data-slot=progress-indicator]]:bg-[#7c6cf0]"
+                      className="h-1 transition-all duration-500 lg:h-1.5 [&_[data-slot=progress-indicator]]:bg-[#7c6cf0]"
                     />
                   </div>
                 )}
               </div>
-              <nav className="max-h-[50vh] space-y-1 overflow-x-hidden overflow-y-auto">
+              <nav className="max-h-[calc(100dvh-13.5rem)] space-y-0.5 overflow-x-hidden overflow-y-auto lg:max-h-[50vh] lg:space-y-1">
                 {roots.map((l, i) => {
                   const quizzes = childrenOf.get(l.id) ?? []
                   const isActive = detail?.lesson.id === l.id
                   const menuOpen = quizzes.length > 0 && collapsedMenus[l.id] !== true
                   const rowClass = cn(
-                    "flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left text-sm transition-all duration-200",
+                    "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-all duration-200 lg:items-start lg:rounded-xl lg:px-2.5 lg:py-2",
                     isActive
                       ? "bg-[#ebe4f8] text-[#1c1917] shadow-sm dark:bg-violet-950/40 dark:text-foreground"
                       : l.locked
@@ -308,26 +338,46 @@ export function CourseLearnPage({
                         : "hover:bg-[#faf8f5] dark:hover:bg-muted/60",
                   )
                   const icon = l.locked ? (
-                    <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#6b5c4f]" />
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f] lg:mt-0.5 lg:h-4 lg:w-4" />
                   ) : l.completed ? (
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#e85d4a]" />
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 lg:mt-0.5 lg:h-4 lg:w-4 dark:text-emerald-400" />
                   ) : l.started ? (
-                    <CircleDot className="mt-0.5 h-4 w-4 shrink-0 text-[#7c6cf0]" />
+                    <CircleDot className="h-3.5 w-3.5 shrink-0 text-[#7c6cf0] lg:mt-0.5 lg:h-4 lg:w-4" />
                   ) : (
-                    <Circle className="mt-0.5 h-4 w-4 shrink-0 text-[#6b5c4f]" />
+                    <Circle className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f] lg:mt-0.5 lg:h-4 lg:w-4" />
                   )
                   const label = (
                     <>
                       {icon}
                       <span className="min-w-0 flex-1">
-                        <span className="text-[10px] text-[#6b5c4f] dark:text-muted-foreground">Lesson {i + 1}</span>
-                        <span className="block font-medium leading-snug">{l.title}</span>
+                        <span className="hidden text-[10px] text-[#6b5c4f] dark:text-muted-foreground lg:block">
+                          Lesson {i + 1}
+                        </span>
+                        <span className="block truncate font-medium leading-snug lg:overflow-visible lg:whitespace-normal">
+                          <span className="mr-1.5 text-[10px] font-semibold text-[#6b5c4f] lg:hidden dark:text-muted-foreground">
+                            {i + 1}
+                          </span>
+                          {l.title}
+                        </span>
                       </span>
                       {quizzes.length > 0 ? (
                         <span className="shrink-0 text-[10px] text-[#6b5c4f]">
-                          {quizzes.length} Quiz{quizzes.length === 1 ? "" : "zes"}
+                          <span className="lg:hidden">{quizzes.length}</span>
+                          <span className="hidden lg:inline">
+                            {quizzes.length} Quiz{quizzes.length === 1 ? "" : "zes"}
+                          </span>
                         </span>
                       ) : null}
+                      <span
+                        className={cn(
+                          "shrink-0 text-[10px] font-semibold tabular-nums lg:text-xs",
+                          lessonPercent(l) >= 100
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-[#6b5c4f] dark:text-muted-foreground",
+                        )}
+                      >
+                        {lessonPercent(l)}%
+                      </span>
                     </>
                   )
 
@@ -340,7 +390,7 @@ export function CourseLearnPage({
                       href={lessonPath(l.id)}
                       className={rowClass}
                       onClick={(e) => {
-                        if (isActive) return
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
                         e.preventDefault()
                         navigateToLesson(l.id)
                       }}
@@ -354,11 +404,11 @@ export function CourseLearnPage({
                   }
 
                   return (
-                    <div key={l.id} className="rounded-xl border border-[#312e81]/25">
+                    <div key={l.id} className="rounded-lg border border-[#312e81]/25 lg:rounded-xl">
                       <div className="flex items-start">
                         <button
                           type="button"
-                          className="ml-2 mt-2.5 text-[#312e81]"
+                          className="ml-1.5 mt-2 text-[#312e81] lg:ml-2 lg:mt-2.5"
                           aria-expanded={menuOpen}
                           aria-label={menuOpen ? "Hide quizzes" : "Show quizzes"}
                           onClick={() =>
@@ -405,7 +455,7 @@ export function CourseLearnPage({
                                 href={lessonPath(quiz.id)}
                                 className={quizClass}
                                 onClick={(e) => {
-                                  if (quizActive) return
+                                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
                                   e.preventDefault()
                                   navigateToLesson(quiz.id)
                                 }}
@@ -423,7 +473,18 @@ export function CourseLearnPage({
             </div>
           </aside>
 
-          <main className={cn(grow.card, "min-w-0 flex-1 p-5 md:p-6")}>
+          <main className={cn(grow.card, "min-w-0 flex-1 p-4 md:p-6", !showPlayer && "max-lg:hidden")}>
+            <button
+              type="button"
+              className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-[#6b5c4f] lg:hidden"
+              onClick={() => {
+                setShowPlayer(false)
+                document.querySelector(".grow-shell")?.scrollTo({ top: 0 })
+              }}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Lessons
+            </button>
             {lessonBlocked ? (
               <div
                 key="blocked"
@@ -454,13 +515,13 @@ export function CourseLearnPage({
             {showLessonContent ? (
               <div
                 key={detail.lesson.id}
-                className="animate-in fade-in slide-in-from-right-3 space-y-6 duration-300"
+                className="animate-in fade-in slide-in-from-right-3 space-y-4 duration-300 lg:space-y-6"
               >
                 <div>
                   <span className="grow-badge text-[#6b5c4f]">
                     Lesson {currentIdx + 1} of {lessons.length}
                   </span>
-                  <h2 className="mt-2 text-2xl font-bold text-[#1c1917] dark:text-foreground">
+                  <h2 className="mt-2 text-xl font-bold text-[#1c1917] lg:text-2xl dark:text-foreground">
                     {detail.lesson.title}
                   </h2>
                   {detail.lesson.description && (
@@ -486,7 +547,7 @@ export function CourseLearnPage({
                       if (!o) return o
                       const updatedLessons = o.lessons.map((l) =>
                         l.id === detail.lesson.id
-                          ? { ...l, completed: true, started: false }
+                          ? { ...l, completed: true, started: false, progress: 100 }
                           : l,
                       )
                       const next = {
@@ -511,7 +572,11 @@ export function CourseLearnPage({
                         ...o,
                         lessons: o.lessons.map((l) =>
                           l.id === detail.lesson.id && !l.completed
-                            ? { ...l, started: true }
+                            ? {
+                                ...l,
+                                started: true,
+                                progress: Math.max(lessonPercent(l), 50),
+                              }
                             : l,
                         ),
                       }

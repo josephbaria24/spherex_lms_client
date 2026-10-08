@@ -18,7 +18,7 @@ export function GrowShell({ children, className, contentClassName, bento = true,
     <div
       className={cn(
         grow.shell,
-        "flex h-full min-h-0 w-full flex-col rounded-t-none rounded-b-[var(--sidebar-float-radius)] bg-white p-4 pb-6 md:p-5 dark:bg-background",
+        "flex h-full min-h-full w-full flex-1 flex-col rounded-t-none rounded-b-[var(--sidebar-float-radius)] bg-white p-4 pb-24 md:p-5 md:pb-6 dark:bg-background",
         fill ? "overflow-hidden" : "overflow-y-auto",
         className,
       )}

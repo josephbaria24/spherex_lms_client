@@ -10,6 +10,7 @@ export type LearnDashboardEnrollment = {
     id: string
     title: string
     duration: string | null
+    image?: string | null
   }
 }
 

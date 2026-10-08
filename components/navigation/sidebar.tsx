@@ -445,11 +445,11 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="fixed left-0 top-0 z-50 p-3 md:hidden">
+      <div className="fixed left-0 top-0 z-50 flex h-[3.25rem] w-16 items-center justify-center sm:w-24 md:hidden">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-9 w-9 bg-background"
+          className="h-9 w-9 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground dark:bg-background dark:text-foreground dark:hover:bg-background dark:hover:text-foreground"
           aria-expanded={mobileOpen}
           aria-controls="mobile-sidebar"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -473,7 +473,7 @@ export function Sidebar() {
           <div
             id="mobile-sidebar"
             className={cn(
-              "relative m-3 h-[calc(100%-1.5rem)] origin-top-left overflow-hidden transition-[width] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "relative m-3 h-[calc(100%-5.75rem)] origin-top-left overflow-hidden transition-[width] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
               mobileVisible ? "w-[min(16rem,85vw)]" : "w-0",
             )}
           >

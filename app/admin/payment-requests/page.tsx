@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import Link from "next/link"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
@@ -9,22 +8,26 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { apiGet, apiPost, ApiError } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
 import { formatCoursePrice } from "@/lib/course-pricing"
+import { cn } from "@/lib/utils"
 import { CreditCard, Check, X, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 import { toast } from "sonner"
 
@@ -44,6 +47,15 @@ type PaymentRequest = {
   email_exists?: boolean
 }
 
+const STATUS_FILTERS = [
+  { value: "open", label: "Requested" },
+  { value: "pending_payment", label: "Waiting for receipt" },
+  { value: "receipt_uploaded", label: "Receipt uploaded" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "all", label: "All" },
+] as const
+
 function statusLabel(status: string): string {
   if (status === "pending_payment") return "Requested"
   if (status === "receipt_uploaded") return "Receipt uploaded"
@@ -57,6 +69,7 @@ export default function AdminPaymentRequestsPage() {
   const [selected, setSelected] = useState<PaymentRequest | null>(null)
   const [rejectNote, setRejectNote] = useState("")
   const [acting, setActing] = useState(false)
+  const [confirmGrant, setConfirmGrant] = useState(false)
   const [receiptFullscreen, setReceiptFullscreen] = useState(false)
   const [receiptZoom, setReceiptZoom] = useState(1)
 
@@ -92,13 +105,17 @@ export default function AdminPaymentRequestsPage() {
     void load()
   }, [load])
 
-  async function approve(id: string) {
+  async function approve(id: string, withoutReceipt = false) {
     setActing(true)
     try {
-      await apiPost(`/payment-requests/${id}/approve`)
+      await apiPost(
+        `/payment-requests/${id}/approve`,
+        withoutReceipt ? { without_receipt: true } : undefined,
+      )
       toast.success("Approved — learner notified by email")
       setSelected(null)
       setReceiptFullscreen(false)
+      setConfirmGrant(false)
       await load()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Approve failed")
@@ -133,21 +150,29 @@ export default function AdminPaymentRequestsPage() {
           title="Payment requests"
           accent="manual enrollments"
           description="Review receipts and grant course access"
-        >
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="open">Requested</SelectItem>
-              <SelectItem value="pending_payment">Waiting for receipt</SelectItem>
-              <SelectItem value="receipt_uploaded">Receipt uploaded</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="all">All</SelectItem>
-            </SelectContent>
-          </Select>
-        </PageHeader>
+        />
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {STATUS_FILTERS.map((filter) => {
+            const active = status === filter.value
+            return (
+              <button
+                key={filter.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setStatus(filter.value)}
+                className={cn(
+                  "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                  active
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {filter.label}
+              </button>
+            )
+          })}
+        </div>
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
@@ -301,14 +326,49 @@ export default function AdminPaymentRequestsPage() {
                   Approve & enroll
                 </Button>
               </>
+            ) : selected?.status === "pending_payment" ? (
+              <>
+                <Button variant="outline" disabled={acting} onClick={() => setSelected(null)}>
+                  Close
+                </Button>
+                <Button disabled={acting} onClick={() => setConfirmGrant(true)}>
+                  <Check className="mr-1 h-4 w-4" />
+                  Grant access
+                </Button>
+              </>
             ) : (
-              <Button asChild variant="outline">
-                <Link href="/admin/payment-requests">Close</Link>
+              <Button variant="outline" onClick={() => setSelected(null)}>
+                Close
               </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmGrant} onOpenChange={setConfirmGrant}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Grant this course without a receipt?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selected
+                ? `${selected.full_name} has not uploaded a payment receipt for ${selected.course_title}. Confirming will enroll them and send the access email.`
+                : "No receipt has been uploaded. Confirming will still enroll the learner."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={acting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={acting || !selected}
+              onClick={(event) => {
+                event.preventDefault()
+                if (selected) void approve(selected.id, true)
+              }}
+            >
+              Grant access
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog
         open={receiptFullscreen}

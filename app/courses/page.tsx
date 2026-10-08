@@ -1,14 +1,13 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { GrowShell, GrowHeader } from "@/components/grow-shell"
 import { CourseCard } from "@/components/course-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Filter, BookOpen, GraduationCap } from "lucide-react"
+import { Search, Filter, BookOpen } from "lucide-react"
 import { useAuth } from "@/app/provider"
 import { apiGet } from "@/lib/api"
 import type { Course } from "@/lib/types"
@@ -280,23 +279,21 @@ export default function CoursesPage() {
 
   return (
     <MainLayout>
-      <GrowShell className="max-md:p-3 max-md:pb-4" contentClassName="max-md:space-y-3">
-        <GrowHeader
-          title="Courses"
-          accent="explore & enroll"
-          description="Your enrolled courses first — then browse the catalog to add more"
-          denseOnMobile
-        >
-          <Button variant="outline" className="grow-btn-outline" asChild>
-            <Link href="/dashboard">
-              <GraduationCap className="mr-1.5 h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
-        </GrowHeader>
+      <GrowShell className="max-md:p-3 max-md:pb-24" contentClassName="max-md:space-y-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <GrowHeader
+            className="min-w-0 flex-1"
+            title="Courses"
+            accent="explore & enroll"
+            description="Your enrolled courses first — then browse the catalog to add more"
+            denseOnMobile
+          />
+          <div className="w-full shrink-0 empty:hidden md:w-[260px]">
+            <StudentJoinBanner compact />
+          </div>
+        </div>
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-5">
-          <section className="min-w-0 flex-1 space-y-2 md:space-y-4">
+        <section className="min-w-0 space-y-2 md:space-y-4">
             <div
               className={cn(
                 "flex flex-wrap items-end justify-between gap-2",
@@ -313,17 +310,6 @@ export default function CoursesPage() {
                     : "Courses you’re learning appear here"}
                 </p>
               </div>
-              {enrolledCourses.length > 0 ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full text-teal-700 hover:text-teal-800"
-                  onClick={scrollToCatalog}
-                >
-                  Browse catalog
-                </Button>
-              ) : null}
             </div>
 
             {loading ? (
@@ -342,12 +328,7 @@ export default function CoursesPage() {
             ) : (
               renderGrid(myEnrolled, { showProgress: true, emphasize: true })
             )}
-          </section>
-
-          <div className="w-full shrink-0 empty:hidden lg:w-[260px]">
-            <StudentJoinBanner compact />
-          </div>
-        </div>
+        </section>
 
         <div className="grow-toolbar max-md:gap-0 max-md:border-0 max-md:bg-transparent max-md:p-0 max-md:shadow-none">
           <div className="relative flex-1">

@@ -165,7 +165,7 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
           {resumeCourse ? (
             <Button
               asChild
-              className="rounded-full bg-[#1a1f2e] text-white hover:bg-[#252b3d] dark:bg-primary"
+              className="rounded-full bg-[#1a1f2e] text-white hover:bg-[#252b3d] dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
             >
               <Link href={`/courses/${resumeCourse.course_id}/learn`}>
                 <Play className="mr-1.5 h-4 w-4 fill-current" />

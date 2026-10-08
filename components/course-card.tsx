@@ -77,29 +77,29 @@ export function CourseCard({
         </div>
         <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
           <span className="grow-badge mb-1 sm:mb-2">{course.category}</span>
-          <h3 className="line-clamp-2 text-base font-bold tracking-tight text-[#1c1917] transition-colors group-hover:text-[#e85d4a] sm:text-lg dark:text-foreground">
+          <h3 className="line-clamp-2 h-10 text-base font-bold leading-5 tracking-tight text-[#1c1917] transition-colors group-hover:text-[#e85d4a] sm:h-12 sm:text-lg sm:leading-6 dark:text-foreground">
             {course.title}
           </h3>
         </div>
       </div>
 
       <div className="space-y-2 p-3 sm:space-y-3 sm:p-5">
-        <p className="line-clamp-2 hidden text-sm text-[#6b5c4f] sm:block dark:text-muted-foreground">
+        <p className="line-clamp-2 h-10 text-sm leading-5 text-[#6b5c4f] dark:text-muted-foreground">
           {course.description}
         </p>
 
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#8a7d72] sm:gap-3 sm:text-xs dark:text-muted-foreground">
+        <div className="flex h-5 items-center gap-2 overflow-hidden whitespace-nowrap text-[11px] text-[#8a7d72] sm:gap-3 sm:text-xs dark:text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
-            <span>{course.duration}</span>
+            <span className="truncate">{course.duration}</span>
           </div>
-          <div className="hidden items-center gap-1 sm:flex">
-            <Users className="h-3.5 w-3.5" />
-            <span>{course.enrolledCount} enrolled</span>
+          <div className="hidden min-w-0 items-center gap-1 sm:flex">
+            <Users className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{course.enrolledCount} enrolled</span>
           </div>
-          <div className="flex items-center gap-1 capitalize">
-            <TrendingUp className="h-3.5 w-3.5" />
-            <span>{course.level}</span>
+          <div className="flex min-w-0 items-center gap-1 capitalize">
+            <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{course.level}</span>
           </div>
         </div>
 

@@ -195,45 +195,47 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
         description="Track milestones, certificates, and your full learning history"
       >
         <Button variant="outline" className="grow-btn-outline" asChild>
-          <Link href="/courses">
-            <BookOpen className="mr-1.5 h-4 w-4" />
-            My courses
+          <Link href="/achievements/certificates">
+            <Award className="mr-1.5 h-4 w-4" />
+            My certificates and courses
           </Link>
         </Button>
       </GrowHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="grow-card-coral p-5">
-          <p className="text-sm font-medium text-white/85">Learning streak</p>
-          <p className="mt-2 flex items-center gap-2 text-4xl font-bold">
-            <Flame className="h-8 w-8 text-white/90" />
-            {summary.streak_days}
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+        <div className="grow-card-coral rounded-lg! px-3 py-2.5 shadow-none">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-medium text-white/85">Learning streak</p>
+            <Flame className="h-3.5 w-3.5 shrink-0 text-white/90" />
+          </div>
+          <p className="mt-1 text-xl font-bold leading-none">{summary.streak_days}</p>
+          <p className="mt-1 text-[11px] text-white/75">
+            day{summary.streak_days === 1 ? "" : "s"} active
           </p>
-          <p className="mt-1 text-sm text-white/75">day{summary.streak_days === 1 ? "" : "s"} active</p>
         </div>
-        <div className="grow-card p-5">
-          <p className="text-sm text-muted-foreground">Lessons completed</p>
-          <p className="mt-2 text-4xl font-bold text-[#1c1917] dark:text-foreground">
+        <div className="grow-card rounded-lg! px-3 py-2.5 shadow-none">
+          <p className="text-[11px] text-muted-foreground">Lessons completed</p>
+          <p className="mt-1 text-xl font-bold leading-none text-[#1c1917] dark:text-foreground">
             {summary.lessons_completed}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-[11px] text-muted-foreground">
             {summary.knowledge_growth_percent >= 0 ? "+" : ""}
             {summary.knowledge_growth_percent}% vs last week
           </p>
         </div>
-        <div className="grow-card-accent p-5">
-          <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Certificates</p>
-          <p className="mt-2 text-4xl font-bold text-[#1c1917] dark:text-foreground">
+        <div className="grow-card-accent rounded-lg! px-3 py-2.5 shadow-none">
+          <p className="text-[11px] text-[#6b5c4f] dark:text-muted-foreground">Certificates</p>
+          <p className="mt-1 text-xl font-bold leading-none text-[#1c1917] dark:text-foreground">
             {summary.certificates}
           </p>
-          <p className="mt-1 text-sm text-[#6b5c4f] dark:text-muted-foreground">credentials earned</p>
-        </div>
-        <div className="grow-card-dark p-5">
-          <p className="text-sm text-white/70">Courses finished</p>
-          <p className="mt-2 text-4xl font-bold">{summary.courses_completed}</p>
-          <p className="mt-1 text-sm text-white/60">
-            of {summary.courses_enrolled} enrolled
+          <p className="mt-1 text-[11px] text-[#6b5c4f] dark:text-muted-foreground">
+            credentials earned
           </p>
+        </div>
+        <div className="grow-card-dark rounded-lg! px-3 py-2.5 shadow-none">
+          <p className="text-[11px] text-white/70">Courses finished</p>
+          <p className="mt-1 text-xl font-bold leading-none">{summary.courses_completed}</p>
+          <p className="mt-1 text-[11px] text-white/60">of {summary.courses_enrolled} enrolled</p>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   Sheet,
   SheetContent,
@@ -38,6 +38,7 @@ import {
   RotateCcw,
   Trash2,
   Users,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -86,12 +87,16 @@ type UserActivityPayload = {
     completed: boolean
     completed_at: string | null
     updated_at: string
+    lesson_number: number | null
+    lessons_total: number | null
   }>
   scorm_records: Array<{
     lesson_title: string
     course_title: string
     lesson_status: string
     suspend_data: string | null
+    lesson_number: number | null
+    lessons_total: number | null
     interactions: Array<{
       id: string | null
       description: string | null
@@ -159,11 +164,48 @@ function truncate(value: string | null | undefined, max = 220) {
 }
 
 function looksReadableScormResponse(value: string | null | undefined) {
-  if (!value) return false
+  return Boolean(value?.trim())
+}
+
+function humanizeIspringId(token: string) {
+  let text = token.trim().replace(/^\d+_/, "")
+  text = text.replace(/__([A-Za-z0-9]+)_(?=$|_)/g, " ($1)")
+  text = text.replace(/__/g, ", ")
+  text = text.replace(/_/g, " ")
+  return text.replace(/\s+/g, " ").replace(/\s+,/g, ",").trim()
+}
+
+function answerLines(value: string | null | undefined) {
+  if (!value?.trim()) return ["No choice saved"]
   const trimmed = value.trim()
-  if (trimmed.length < 2) return false
-  const alphaMatches = trimmed.match(/[A-Za-z]/g) ?? []
-  return alphaMatches.length >= Math.max(3, Math.floor(trimmed.length * 0.18))
+  if (/^(t|true)$/i.test(trimmed)) return ["True"]
+  if (/^(f|false)$/i.test(trimmed)) return ["False"]
+  if (trimmed.includes("\n")) {
+    return trimmed.split("\n").map((line) => line.trim()).filter(Boolean)
+  }
+  if (trimmed.includes("[.]")) {
+    const pairs = trimmed.includes("[,]") ? trimmed.split("[,]") : trimmed.split(/,\s+(?=\d+_)/)
+    return pairs
+      .map((pair) => {
+        const [left, right] = pair.split("[.]")
+        const source = humanizeIspringId(left ?? "")
+        const target = right ? humanizeIspringId(right) : ""
+        return target ? `${source} → ${target}` : source
+      })
+      .filter(Boolean)
+  }
+  if (/^\d+_/.test(trimmed)) return [humanizeIspringId(trimmed)]
+  if (trimmed === trimmed.toLowerCase()) {
+    return [`${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}`]
+  }
+  return [trimmed]
+}
+
+function resultLabel(value: string | null | undefined) {
+  if (!value) return null
+  if (value === "correct") return "Correct"
+  if (value === "incorrect") return "Incorrect"
+  return value
 }
 
 function getScormResponseRecords(data: UserActivityPayload | null) {
@@ -245,7 +287,7 @@ export function UserActivitySheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="flex w-full flex-col overflow-hidden px-[21px] py-[5px] sm:max-w-xl">
+        <SheetContent className="flex w-full flex-col overflow-hidden px-[21px] py-[5px] sm:max-w-2xl">
           <SheetHeader className="shrink-0">
             <SheetTitle>{displayName}</SheetTitle>
             <SheetDescription>
@@ -359,7 +401,7 @@ export function UserActivitySheet({
               ) : null}
               </div>
 
-              <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <Tabs defaultValue="activity" className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <TabsList className="grid w-full shrink-0 grid-cols-3">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="learning">Learning</TabsTrigger>
@@ -503,20 +545,12 @@ export function UserActivitySheet({
                           </p>
 
                           {row.readableInteractions.length > 0 ? (
-                            <div className="mt-2 space-y-1.5">
-                              {row.readableInteractions.slice(0, 5).map((interaction, idx) => (
-                                <div key={`${row.lesson_title}-interaction-${idx}`} className="rounded bg-muted/20 p-2">
-                                  <p className="text-xs font-medium text-foreground">
-                                    {interaction.description ??
-                                      interaction.id ??
-                                      `Interaction ${idx + 1}`}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {truncate(interaction.student_response) ?? "No response captured"}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
+                            <AnswerList
+                              interactions={row.readableInteractions}
+                              lessonTitle={row.lesson_title}
+                              lessonCount={lessonCountLabel(row.lesson_number, row.lessons_total)}
+                              titleKey={`${row.lesson_title}-response-${i}`}
+                            />
                           ) : (
                             <div className="mt-2 rounded border border-dashed border-border/70 bg-muted/10 px-3 py-2">
                               <p className="text-xs font-medium text-foreground">
@@ -557,27 +591,7 @@ export function UserActivitySheet({
                 </TabsContent>
 
                 <TabsContent value="activity" className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
-                  {data.recent_timeline.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No recorded activity yet.</p>
-                  ) : (
-                    <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                      {data.recent_timeline.map((item, i) => (
-                        <li
-                          key={`${item.kind}-${item.occurred_at}-${i}`}
-                          className="rounded-lg border border-border px-3 py-2"
-                        >
-                          <p className="text-sm font-medium">{item.label}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {item.detail}
-                            {item.course_title ? ` · ${item.course_title}` : ""}
-                          </p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">
-                            {formatWhen(item.occurred_at)}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <ActivityByLesson data={data} />
                 </TabsContent>
               </Tabs>
             </div>
@@ -674,6 +688,368 @@ function Section({
         {title}
       </div>
       <div className="space-y-1">{children}</div>
+    </div>
+  )
+}
+
+function lessonCountLabel(lessonNumber: number | null | undefined, lessonsTotal: number | null | undefined) {
+  if (!lessonNumber || !lessonsTotal) return null
+  return `Lesson ${lessonNumber}/${lessonsTotal}`
+}
+
+type LessonSection = {
+  key: string
+  courseTitle: string
+  lessonTitle: string
+  lessonCount: string | null
+  lessonNumber: number | null
+  answers: UserActivityPayload["scorm_records"][number]["interactions"]
+  occurredAt: string | null
+}
+
+type CourseSection = {
+  courseTitle: string
+  enrolledAt: string | null
+  completedAt: string | null
+  lessons: LessonSection[]
+}
+
+function readableAnswers(interactions: LessonSection["answers"]) {
+  return interactions.filter(
+    (interaction) =>
+      looksReadableScormResponse(interaction.student_response) ||
+      looksReadableScormResponse(interaction.description),
+  )
+}
+
+function groupActivityByLesson(data: UserActivityPayload) {
+  const courses = new Map<string, CourseSection>()
+  const lessons = new Map<string, LessonSection>()
+
+  function courseSection(title: string) {
+    const name = title || "Other"
+    const existing = courses.get(name)
+    if (existing) return existing
+    const created: CourseSection = {
+      courseTitle: name,
+      enrolledAt: null,
+      completedAt: null,
+      lessons: [],
+    }
+    courses.set(name, created)
+    return created
+  }
+
+  function lessonSection(courseTitle: string, lessonTitle: string) {
+    const key = `${courseTitle}::${lessonTitle}`
+    const existing = lessons.get(key)
+    if (existing) return existing
+    const created: LessonSection = {
+      key,
+      courseTitle,
+      lessonTitle,
+      lessonCount: null,
+      lessonNumber: null,
+      answers: [],
+      occurredAt: null,
+    }
+    lessons.set(key, created)
+    courseSection(courseTitle).lessons.push(created)
+    return created
+  }
+
+  for (const row of data.scorm_records) {
+    const section = lessonSection(row.course_title, row.lesson_title)
+    section.lessonCount = lessonCountLabel(row.lesson_number, row.lessons_total)
+    section.lessonNumber = row.lesson_number
+    section.occurredAt = row.updated_at
+    section.answers = readableAnswers(row.interactions)
+  }
+
+  for (const row of data.lesson_progress) {
+    const section = lessonSection(row.course_title, row.lesson_title)
+    if (!section.lessonCount) {
+      section.lessonCount = lessonCountLabel(row.lesson_number, row.lessons_total)
+      section.lessonNumber = row.lesson_number
+    }
+    if (!section.occurredAt) section.occurredAt = row.completed_at ?? row.updated_at
+  }
+
+  for (const item of data.recent_timeline) {
+    if (!item.course_title) continue
+    if (item.kind === "enrollment") courseSection(item.course_title).enrolledAt = item.occurred_at
+    if (item.kind === "course_completed") courseSection(item.course_title).completedAt = item.occurred_at
+    if (item.kind === "scorm_activity" || item.kind === "lesson_completed") {
+      lessonSection(item.course_title, item.label)
+    }
+  }
+
+  const courseList = [...courses.values()]
+  for (const course of courseList) {
+    course.lessons.sort((a, b) => (a.lessonNumber ?? 999) - (b.lessonNumber ?? 999))
+  }
+  return courseList
+}
+
+function quizSummary(answers: LessonSection["answers"]) {
+  const graded = answers.filter(
+    (interaction) => interaction.result === "correct" || interaction.result === "incorrect",
+  )
+  const correctCount = graded.filter((interaction) => interaction.result === "correct").length
+  if (graded.length === 0) return null
+  return {
+    correctCount,
+    total: graded.length,
+    passed: correctCount === graded.length,
+  }
+}
+
+function ActivityByLesson({ data }: { data: UserActivityPayload }) {
+  const courses = groupActivityByLesson(data)
+  const [openCourses, setOpenCourses] = useState<Record<string, boolean>>({})
+  const [openLessons, setOpenLessons] = useState<Record<string, boolean>>({})
+
+  if (courses.length === 0) {
+    return <p className="text-sm text-muted-foreground">No recorded activity yet.</p>
+  }
+
+  return (
+    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      {courses.map((course) => {
+        const courseOpen = openCourses[course.courseTitle] ?? true
+        return (
+          <section key={course.courseTitle} className="rounded-lg border border-border">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-3 text-left"
+              aria-expanded={courseOpen}
+              onClick={() =>
+                setOpenCourses((current) => ({
+                  ...current,
+                  [course.courseTitle]: !courseOpen,
+                }))
+              }
+            >
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${courseOpen ? "" : "-rotate-90"}`}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{course.courseTitle}</p>
+                <p className="text-xs text-muted-foreground">
+                  {course.lessons.length} {course.lessons.length === 1 ? "lesson" : "lessons"}
+                  {course.enrolledAt ? ` · enrolled ${formatWhen(course.enrolledAt)}` : ""}
+                  {course.completedAt ? " · course completed" : ""}
+                </p>
+              </div>
+            </button>
+            {courseOpen ? (
+              <div className="space-y-2 border-t border-border px-3 py-3">
+                {course.lessons.map((lesson) => {
+                  const lessonOpen = openLessons[lesson.key] ?? false
+                  const summary = quizSummary(lesson.answers)
+                  return (
+                    <div key={lesson.key} className="rounded-lg border border-border/70">
+                      <button
+                        type="button"
+                        className="flex w-full items-start gap-2 px-3 py-2.5 text-left"
+                        aria-expanded={lessonOpen}
+                        onClick={() =>
+                          setOpenLessons((current) => ({
+                            ...current,
+                            [lesson.key]: !lessonOpen,
+                          }))
+                        }
+                      >
+                        <ChevronDown
+                          className={`mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${lessonOpen ? "" : "-rotate-90"}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {lesson.lessonCount ? (
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold">
+                                {lesson.lessonCount}
+                              </span>
+                            ) : null}
+                            {summary ? (
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                  summary.passed
+                                    ? "bg-emerald-500/15 text-emerald-500"
+                                    : "bg-destructive/15 text-destructive"
+                                }`}
+                              >
+                                {summary.passed ? "Passed" : "Failed"} {summary.correctCount}/{summary.total}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm font-medium leading-snug">{lesson.lessonTitle}</p>
+                          {lesson.occurredAt ? (
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">
+                              {formatWhen(lesson.occurredAt)}
+                            </p>
+                          ) : null}
+                        </div>
+                      </button>
+                      {lessonOpen ? (
+                        <div className="border-t border-border/70 px-3 pb-3">
+                          {lesson.answers.length > 0 ? (
+                            <AnswerList
+                              interactions={lesson.answers}
+                              lessonTitle={lesson.lessonTitle}
+                              lessonCount={lesson.lessonCount}
+                              showLessonTag={false}
+                              titleKey={lesson.key}
+                            />
+                          ) : (
+                            <p className="pt-3 text-xs text-muted-foreground">
+                              No quiz choices were saved for this lesson.
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
+function AnswerList({
+  interactions,
+  lessonTitle,
+  lessonCount,
+  showLessonTag = true,
+  titleKey,
+}: {
+  interactions: UserActivityPayload["scorm_records"][number]["interactions"]
+  lessonTitle: string
+  lessonCount: string | null
+  showLessonTag?: boolean
+  titleKey: string
+}) {
+  const shown = interactions.slice(0, 30)
+  const graded = shown.filter(
+    (interaction) => interaction.result === "correct" || interaction.result === "incorrect",
+  )
+  const correctCount = graded.filter((interaction) => interaction.result === "correct").length
+  const passed = graded.length > 0 && correctCount === graded.length
+
+  return (
+    <div className="mt-3 space-y-3">
+      {graded.length > 0 ? (
+        <div
+          className={`flex items-center gap-4 rounded-xl px-4 py-3 ${
+            passed ? "bg-emerald-500/15" : "bg-destructive/15"
+          }`}
+        >
+          <p className="text-4xl font-bold leading-none tabular-nums">
+            {correctCount}
+            <span className="text-xl font-semibold text-muted-foreground">/{graded.length}</span>
+          </p>
+          <div>
+            <p className={`text-lg font-semibold ${passed ? "text-emerald-500" : "text-destructive"}`}>
+              {passed ? "Passed" : "Failed"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {correctCount} of {graded.length} correct
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {shown.map((interaction, idx) => (
+        <QuizAnswerCard
+          key={`${titleKey}-interaction-${idx}`}
+          interaction={interaction}
+          index={idx}
+          lessonTitle={lessonCount ? `${lessonCount} · ${lessonTitle}` : `Lesson · ${lessonTitle}`}
+          showLessonTag={showLessonTag}
+          titleKey={titleKey}
+        />
+      ))}
+    </div>
+  )
+}
+
+function QuizAnswerCard({
+  interaction,
+  index,
+  lessonTitle,
+  showLessonTag = true,
+  titleKey,
+}: {
+  interaction: UserActivityPayload["scorm_records"][number]["interactions"][number]
+  index: number
+  lessonTitle: string
+  showLessonTag?: boolean
+  titleKey: string
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const verdict = resultLabel(interaction.result)
+  const correct = verdict === "Correct"
+  const incorrect = verdict === "Incorrect"
+  const lines = answerLines(interaction.student_response)
+
+  useLayoutEffect(() => {
+    const body = bodyRef.current
+    if (!body || expanded) return
+    setOverflows(body.scrollHeight > body.clientHeight + 1)
+  }, [expanded, interaction.description, interaction.student_response, interaction.result])
+
+  return (
+    <div
+      className={`flex flex-col rounded-lg border border-border/70 border-l-4 bg-muted/15 px-3 py-2 ${
+        expanded ? "" : "h-24"
+      } ${correct ? "border-l-emerald-500" : incorrect ? "border-l-destructive" : "border-l-border"}`}
+    >
+      <div ref={bodyRef} className={expanded ? "" : "min-h-0 flex-1 overflow-hidden"}>
+        {showLessonTag ? (
+          <p className="truncate text-[11px] font-medium text-muted-foreground">{lessonTitle}</p>
+        ) : null}
+        <div className={`flex items-start justify-between gap-3 ${showLessonTag ? "mt-1" : ""}`}>
+          <p className="text-sm font-semibold leading-snug text-foreground">
+            {index + 1}. {interaction.description ?? interaction.id ?? "Question"}
+          </p>
+          {verdict ? (
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                correct
+                  ? "bg-emerald-500/15 text-emerald-500"
+                  : incorrect
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {verdict}
+            </span>
+          ) : null}
+        </div>
+        <ul className="mt-2 space-y-1">
+          {lines.map((line, lineIndex) => (
+            <li key={`${titleKey}-${index}-${lineIndex}`} className="text-sm leading-snug text-foreground/80">
+              {line}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="mt-1 h-6 shrink-0">
+        {overflows || expanded ? (
+          <button
+            type="button"
+            className="text-sm font-medium text-foreground underline-offset-2 hover:underline"
+            onClick={() => setExpanded((open) => !open)}
+          >
+            {expanded ? "See less" : "See more"}
+          </button>
+        ) : null}
+      </div>
     </div>
   )
 }

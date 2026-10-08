@@ -87,6 +87,25 @@ export function resolveArticulatePlaybackUrl(url: string): string {
   }
 }
 
+/** iSpring Tin Can packages report quiz choices only when the launch URL names a record store. */
+export function withIspringQuizCapture(launchUrl: string, courseId: string, lessonId: string): string {
+  const trimmed = launchUrl.trim()
+  if (!/\/res\/index\.html(?:$|\?)/i.test(trimmed)) return trimmed
+
+  const url = new URL(trimmed, "http://spherex.local")
+  const origin = typeof window === "undefined" ? "" : window.location.origin
+  if (!origin) return trimmed
+
+  url.searchParams.set("endpoint", `${origin}/api/lms/learn/courses/${courseId}/lessons/${lessonId}/xapi/`)
+  url.searchParams.set(
+    "actor",
+    JSON.stringify({ name: "Learner", mbox: "mailto:learner@spherex.local" }),
+  )
+  url.searchParams.set("auth", `Basic ${btoa("spherex:xapi")}`)
+  url.searchParams.set("activity_id", `urn:spherex:lesson:${lessonId}`)
+  return `${url.pathname}${url.search}`
+}
+
 /** SCORM launch file — Storyline index_lms.html, or the stored launch HTML for other packages. */
 export function resolveArticulateScormLaunchUrl(url: string): string {
   const trimmed = url.trim()

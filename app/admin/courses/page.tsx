@@ -411,8 +411,16 @@ export default function AdminCoursesPage() {
                     ) : null}
                   </div>
 
-                  {course.organization_id ? (
-                    <div className="mt-auto pt-4">
+                  <div className="mt-auto flex flex-col gap-2 pt-4">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className={`w-full ${course.image ? "border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white" : ""}`}
+                    >
+                      <Link href={`/admin/courses/${course.id}/certificate`}>Manage certificate</Link>
+                    </Button>
+                    {course.organization_id ? (
                       <Button
                         asChild
                         variant="outline"
@@ -421,8 +429,8 @@ export default function AdminCoursesPage() {
                       >
                         <Link href={`/admin/courses/${course.id}/lessons`}>Manage lessons</Link>
                       </Button>
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
             ))}

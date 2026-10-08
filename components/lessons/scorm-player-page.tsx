@@ -5,10 +5,12 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { apiGet } from "@/lib/api"
 import {
   isScormTrackableUrl,
   resolveArticulateScormLaunchUrl,
+  withIspringQuizCapture,
 } from "@/lib/lesson-media"
 import type { Lesson } from "@/lib/lesson-types"
 import { packageFrameLooksComplete } from "@/lib/package-completion"
@@ -21,7 +23,43 @@ import {
   suspendScormContentFrame,
   type Scorm12Api,
 } from "@/lib/scorm-api"
-import { useStorylineIframeFill } from "@/lib/storyline-iframe-fill"
+import { notifyStorylineResize, useStorylineIframeFill } from "@/lib/storyline-iframe-fill"
+
+type RotateMode = "off" | "native" | "css"
+
+function RotateScreenIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="2" y="8" width="13" height="8" rx="1.5" />
+      <path d="M16.5 6.2A6.2 6.2 0 0 1 21.5 12" />
+      <path d="m16.2 3.8.4 3.2 3-.8" />
+    </svg>
+  )
+}
+
+async function unlockScreenOrientation() {
+  try {
+    screen.orientation?.unlock()
+  } catch {
+    /* not locked */
+  }
+  if (document.fullscreenElement) {
+    try {
+      await document.exitFullscreen()
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 type OutlineLesson = Lesson & { completed?: boolean; locked?: boolean }
 
@@ -51,6 +89,7 @@ export function ScormPlayerPage({
   const [lessonFinished, setLessonFinished] = useState(false)
   const [nextLesson, setNextLesson] = useState<{ id: string; title: string } | null>(null)
   const [goingNext, setGoingNext] = useState(false)
+  const [rotateMode, setRotateMode] = useState<RotateMode>("off")
   const apiRef = useRef<Scorm12Api | null>(null)
   const flushRef = useRef<(() => Promise<void>) | null>(null)
   const markCompletedRef = useRef<(() => Promise<void>) | null>(null)
@@ -128,7 +167,9 @@ export function ScormPlayerPage({
         uninstallRef.current = installScorm12Api(api)
 
         if (!cancelled) {
-          setLaunchUrl(scormLaunch)
+          setLaunchUrl(
+            isPreview ? scormLaunch : withIspringQuizCapture(scormLaunch, courseId, lessonId),
+          )
         }
       } catch (err) {
         if (!cancelled) {
@@ -203,6 +244,15 @@ export function ScormPlayerPage({
   useStorylineIframeFill(iframeRef, Boolean(launchUrl))
 
   useEffect(() => {
+    const timers = [80, 400].map((ms) =>
+      window.setTimeout(() => notifyStorylineResize(iframeRef.current), ms),
+    )
+    return () => {
+      for (const id of timers) window.clearTimeout(id)
+    }
+  }, [rotateMode])
+
+  useEffect(() => {
     function onBeforeUnload() {
       apiRef.current?.LMSCommit("")
     }
@@ -215,13 +265,7 @@ export function ScormPlayerPage({
     exitingRef.current = true
     setGoingNext(true)
 
-    if (document.fullscreenElement) {
-      try {
-        await document.exitFullscreen()
-      } catch {
-        // ignore
-      }
-    }
+    await unlockScreenOrientation()
 
     suspendScormContentFrame(iframeRef.current)
     // Storyline debounces SetDataChunk ~500ms after the last slide change.
@@ -233,6 +277,30 @@ export function ScormPlayerPage({
 
   async function exitPlayer() {
     await leavePlayer(backHref)
+  }
+
+  async function toggleRotate() {
+    if (rotateMode !== "off") {
+      if (rotateMode === "native") await unlockScreenOrientation()
+      setRotateMode("off")
+      return
+    }
+
+    const lock = screen.orientation?.lock?.bind(screen.orientation)
+    if (lock) {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen()
+        }
+        await lock("landscape")
+        setRotateMode("native")
+        return
+      } catch {
+        await unlockScreenOrientation()
+      }
+    }
+
+    setRotateMode("css")
   }
 
   async function goToNextLesson() {
@@ -263,8 +331,24 @@ export function ScormPlayerPage({
     )
   }
 
+  const rotated = rotateMode === "css"
+
   return (
-    <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col bg-black">
+    <div
+      className={cn(
+        "fixed z-50 flex flex-col overflow-hidden bg-black",
+        rotated ? "left-1/2 top-1/2" : "inset-0 h-dvh w-dvw",
+      )}
+      style={
+        rotated
+          ? {
+              width: "100dvh",
+              height: "100dvw",
+              transform: "translate(-50%, -50%) rotate(90deg)",
+            }
+          : undefined
+      }
+    >
       <div className="absolute left-3 top-3 z-10 flex max-w-[70%] flex-col gap-1">
         <div className="flex items-center gap-2">
           <Button
@@ -282,17 +366,35 @@ export function ScormPlayerPage({
         </div>
         {resumeNote ? <p className="text-[10px] text-white/50">{resumeNote}</p> : null}
       </div>
-      <Button
-        type="button"
-        variant="secondary"
-        size="icon"
-        className="absolute right-3 top-3 z-10 bg-black/60 text-white hover:bg-black/80"
-        onClick={() => void exitPlayer()}
-        aria-label="Exit SCORM player"
-        disabled={goingNext}
-      >
-        <X className="h-4 w-4" />
-      </Button>
+      <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className={cn(
+            "bg-black/60 text-white hover:bg-black/80",
+            rotateMode === "off" ? "lg:hidden" : "bg-white text-black hover:bg-white/90",
+          )}
+          onClick={() => void toggleRotate()}
+          aria-label={rotateMode === "off" ? "Rotate screen" : "Return to portrait"}
+          aria-pressed={rotateMode !== "off"}
+          title={rotateMode === "off" ? "Rotate screen" : "Return to portrait"}
+          disabled={goingNext}
+        >
+          <RotateScreenIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="bg-black/60 text-white hover:bg-black/80"
+          onClick={() => void exitPlayer()}
+          aria-label="Exit SCORM player"
+          disabled={goingNext}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
       <iframe
         ref={iframeRef}
         src={launchUrl}
@@ -318,24 +420,24 @@ export function ScormPlayerPage({
               {nextLesson ? (
                 <Button
                   type="button"
-                  size="lg"
-                  className="h-auto min-h-11 w-full gap-2 whitespace-normal rounded-full bg-emerald-500 px-5 py-3 text-center hover:bg-emerald-600"
+                  size="sm"
+                  className="h-9 w-full justify-between gap-2 rounded-full bg-emerald-500 px-3.5 text-xs hover:bg-emerald-600 sm:h-10 sm:px-4 sm:text-sm"
                   disabled={goingNext}
                   onClick={() => void goToNextLesson()}
                 >
+                  <span className="min-w-0 flex-1 truncate text-left">Next: {nextLesson.title}</span>
                   {goingNext ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    <Loader2 className="size-3.5 shrink-0 animate-spin sm:size-4" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 shrink-0" />
+                    <ChevronRight className="size-3.5 shrink-0 sm:size-4" />
                   )}
-                  <span className="min-w-0">Next: {nextLesson.title}</span>
                 </Button>
               ) : null}
               <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="w-full rounded-full border-white/25 bg-white/10 text-white hover:bg-white/20"
+                className="h-9 w-full rounded-full border-white/25 bg-white/10 text-xs text-white hover:bg-white/20 sm:h-10 sm:text-sm"
                 disabled={goingNext}
                 onClick={() => void exitPlayer()}
               >
