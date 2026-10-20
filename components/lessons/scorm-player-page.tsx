@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, X } from "lucide-react"
+import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { apiGet } from "@/lib/api"
@@ -20,6 +20,7 @@ import {
   hasScormBookmark,
   installScorm12Api,
   loadScormCmi,
+  resetScormProgress,
   suspendScormContentFrame,
   type Scorm12Api,
 } from "@/lib/scorm-api"
@@ -87,6 +88,7 @@ export function ScormPlayerPage({
   const [resumeNote, setResumeNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lessonFinished, setLessonFinished] = useState(false)
+  const [lessonFailed, setLessonFailed] = useState(false)
   const [nextLesson, setNextLesson] = useState<{ id: string; title: string } | null>(null)
   const [goingNext, setGoingNext] = useState(false)
   const [rotateMode, setRotateMode] = useState<RotateMode>("off")
@@ -150,6 +152,9 @@ export function ScormPlayerPage({
           setResumeNote("Resuming from your last saved position.")
         }
 
+        const initialStatus = (initialCmi["cmi.core.lesson_status"] ?? "").toLowerCase().trim()
+        if (!fresh && initialStatus === "failed") setLessonFailed(true)
+
         const { api, flush, markCompleted } = createPersistentScorm12Api({
           courseId,
           lessonId,
@@ -157,8 +162,13 @@ export function ScormPlayerPage({
           initialCmi,
           onLessonCompleted: () => {
             if (cancelled) return
+            setLessonFailed(false)
             setLessonFinished(true)
             void loadNextLesson()
+          },
+          onLessonFailed: () => {
+            if (cancelled) return
+            setLessonFailed(true)
           },
         })
         apiRef.current = api
@@ -303,6 +313,18 @@ export function ScormPlayerPage({
     setRotateMode("css")
   }
 
+  async function retakeLesson() {
+    if (goingNext || previewMode) return
+    setGoingNext(true)
+    await unlockScreenOrientation()
+    try {
+      await resetScormProgress(courseId, lessonId)
+    } catch {
+      /* relaunch anyway so the learner can start a new attempt */
+    }
+    window.location.assign(`${resolvedLearnBase}/${lessonId}/scorm?fresh=1`)
+  }
+
   async function goToNextLesson() {
     if (!nextLesson) {
       await exitPlayer()
@@ -363,6 +385,18 @@ export function ScormPlayerPage({
             Back
           </Button>
           <span className="hidden truncate text-xs text-white/70 sm:inline">{lessonTitle}</span>
+          {lessonFailed && !lessonFinished ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-1.5 rounded-full bg-emerald-500 px-3 text-xs text-white hover:bg-emerald-600"
+              onClick={() => void retakeLesson()}
+              disabled={goingNext}
+            >
+              {goingNext ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              Retake
+            </Button>
+          ) : null}
         </div>
         {resumeNote ? <p className="text-[10px] text-white/50">{resumeNote}</p> : null}
       </div>

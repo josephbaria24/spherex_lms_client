@@ -90,8 +90,15 @@ export function QuizTaker({ courseId, lessonId, quiz, onPassed, previewMode }: Q
           {result.correct} of {result.total} correct · Pass mark {result.passing_score}%
         </p>
         {!result.passed && (
-          <Button className="mt-4" variant="outline" onClick={() => setResult(null)}>
-            Try again
+          <Button
+            className="mt-4"
+            variant="outline"
+            onClick={() => {
+              setAnswers({})
+              setResult(null)
+            }}
+          >
+            Retake
           </Button>
         )}
       </div>

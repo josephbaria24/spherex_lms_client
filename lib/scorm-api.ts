@@ -153,6 +153,7 @@ type PersistentScormOptions = {
   previewMode?: boolean
   initialCmi?: Record<string, string>
   onLessonCompleted?: () => void
+  onLessonFailed?: () => void
   onProgressChange?: (progress: ScormProgressPayload) => void
 }
 
@@ -167,12 +168,17 @@ function isCompleteLessonStatus(status: string | undefined): boolean {
   return s === "completed" || s === "passed"
 }
 
+function isFailedLessonStatus(status: string | undefined): boolean {
+  return (status ?? "").toLowerCase().trim() === "failed"
+}
+
 export function createPersistentScorm12Api({
   courseId,
   lessonId,
   previewMode,
   initialCmi,
   onLessonCompleted,
+  onLessonFailed,
   onProgressChange,
 }: PersistentScormOptions): PersistentScormRuntime {
   const store: Record<string, string> = { ...SCORM_DEFAULT_CMI, ...initialCmi }
@@ -181,12 +187,19 @@ export function createPersistentScorm12Api({
   let commitQueued = false
   let commitTimer: ReturnType<typeof setTimeout> | null = null
   let completionNotified = false
+  let failureNotified = false
   const startedComplete = isCompleteLessonStatus(store["cmi.core.lesson_status"])
 
   function notifyLessonCompleted() {
     if (completionNotified) return
     completionNotified = true
     onLessonCompleted?.()
+  }
+
+  function notifyLessonFailed() {
+    if (failureNotified || completionNotified) return
+    failureNotified = true
+    onLessonFailed?.()
   }
 
   async function commitToServer() {
@@ -275,12 +288,18 @@ export function createPersistentScorm12Api({
           element === "cmi.core.exit"
         scheduleCommit(immediate)
       }
-      if (element === "cmi.core.lesson_status" || element === "cmi.completion_status") {
+      if (
+        element === "cmi.core.lesson_status" ||
+        element === "cmi.completion_status" ||
+        element === "cmi.success_status"
+      ) {
         if (isCompleteLessonStatus(value)) {
           const newlyComplete = !isCompleteLessonStatus(prevValue)
           void flush().then(() => {
             if (newlyComplete) notifyLessonCompleted()
           })
+        } else if (isFailedLessonStatus(value) && !isFailedLessonStatus(prevValue)) {
+          void flush().then(() => notifyLessonFailed())
         }
       }
       return "true"

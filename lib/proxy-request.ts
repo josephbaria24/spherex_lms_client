@@ -36,6 +36,11 @@ export async function proxyToBackend(req: NextRequest, backendPath: string) {
 
   const upstreamType = upstream.headers.get("content-type") ?? ""
 
+  // 204/205/304 must not include a body. xAPI statement and state saves use 204.
+  if (upstream.status === 204 || upstream.status === 205 || upstream.status === 304) {
+    return new NextResponse(null, { status: upstream.status })
+  }
+
   if (isTextResponse(upstreamType)) {
     const responseText = await upstream.text()
     return new NextResponse(responseText, {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, Circle, Loader2, Maximize2, Play, RotateCcw, X } from "lucide-react"
+import { CheckCircle2, Circle, Loader2, Maximize2, Play, RotateCcw, X, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
@@ -23,14 +23,15 @@ type ArticulateLessonEmbedProps = {
   scormPlayerHref?: string
 }
 
-type ScormStatus = "not-started" | "in-progress" | "completed" | "untracked" | "preview"
+type ScormStatus = "not-started" | "in-progress" | "completed" | "failed" | "untracked" | "preview"
 
 function deriveScormStatus(cmi?: Record<string, string>): ScormStatus {
-  const status = (cmi?.["cmi.core.lesson_status"] ?? cmi?.["cmi.completion_status"] ?? "")
+  const status = (cmi?.["cmi.core.lesson_status"] ?? cmi?.["cmi.completion_status"] ?? cmi?.["cmi.success_status"] ?? "")
     .toLowerCase()
     .trim()
   if (!status || status === "not attempted" || status === "unknown") return "not-started"
   if (status === "completed" || status === "passed") return "completed"
+  if (status === "failed") return "failed"
   return "in-progress"
 }
 
@@ -38,6 +39,8 @@ function scormStatusLabel(status: ScormStatus): string {
   switch (status) {
     case "completed":
       return "Completed"
+    case "failed":
+      return "Not passed"
     case "in-progress":
       return "In progress"
     case "not-started":
@@ -52,6 +55,8 @@ function scormStatusLabel(status: ScormStatus): string {
 function lessonProgressValue(status: ScormStatus): number {
   switch (status) {
     case "completed":
+      return 100
+    case "failed":
       return 100
     case "in-progress":
       return 45
@@ -77,6 +82,8 @@ function LessonProgressIndicator({
       <div className="flex items-center gap-2">
         {status === "completed" ? (
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+        ) : status === "failed" ? (
+          <XCircle className="h-4 w-4 shrink-0 text-rose-500" aria-hidden />
         ) : status === "in-progress" ? (
           <span
             className="relative flex h-4 w-4 shrink-0 items-center justify-center"
@@ -99,6 +106,7 @@ function LessonProgressIndicator({
           className={cn(
             "h-1.5",
             status === "completed" && "[&_[data-slot=progress-indicator]]:bg-emerald-600",
+            status === "failed" && "[&_[data-slot=progress-indicator]]:bg-rose-500",
             status === "in-progress" && "[&_[data-slot=progress-indicator]]:bg-amber-500",
           )}
           aria-label={`Lesson progress: ${label}`}
@@ -332,7 +340,21 @@ export function ArticulateLessonEmbed({
         <div className="relative flex flex-col items-center gap-4 px-6 text-center">
           <p className="text-lg font-semibold">{title}</p>
 
-          {hasResumableSession ? (
+          {scormStatus === "failed" ? (
+            <div className="space-y-2">
+              <p className="text-sm text-rose-200">You did not pass this lesson.</p>
+              <Button
+                type="button"
+                size="lg"
+                className="gap-2 rounded-full bg-emerald-500 px-6 hover:bg-emerald-600"
+                onClick={() => void handleStartOver()}
+                disabled={resetting}
+              >
+                <RotateCcw className="h-4 w-4" />
+                {resetting ? "Resetting…" : "Retake"}
+              </Button>
+            </div>
+          ) : hasResumableSession ? (
             <div className="flex flex-col items-center gap-3 sm:flex-row">
               <Button
                 type="button"
@@ -387,7 +409,7 @@ export function ArticulateLessonEmbed({
             </button>
           )}
 
-          {hasResumableSession && useScormPlayer && (
+          {hasResumableSession && useScormPlayer && scormStatus !== "failed" && (
             <p className="max-w-md text-xs text-white/60">
               {hasBookmark
                 ? "You'll resume from where you left off."
