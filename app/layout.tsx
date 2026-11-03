@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   applicationName: APP_NAME,
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: APP_NAME,
   },
   icons: {

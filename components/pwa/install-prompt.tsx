@@ -115,8 +115,9 @@ export function PwaInstallPrompt() {
     <div
       ref={bannerRef}
       className="pwa-install-banner fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[#1a1f2e] text-white"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
-      <div className="flex items-center gap-2 px-3 py-2 pl-14 md:pl-3">
+      <div className="flex items-center gap-2 px-3 py-2">
         <p className="min-w-0 flex-1 text-sm leading-tight">
           Install PetroCademia on this phone
         </p>
@@ -138,7 +139,7 @@ export function PwaInstallPrompt() {
         </button>
       </div>
       {showIosSteps ? (
-        <p className="flex items-center gap-1.5 px-3 pb-2 pl-14 text-xs text-white/80 md:pl-3">
+        <p className="flex items-center gap-1.5 px-3 pb-2 text-xs text-white/80">
           <Share className="h-3.5 w-3.5 shrink-0" />
           Tap Share, then Add to Home Screen.
         </p>

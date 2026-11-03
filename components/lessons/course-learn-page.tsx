@@ -292,8 +292,194 @@ export function CourseLearnPage({
         )}
         <div className={cn("flex flex-col gap-3 lg:flex-row lg:gap-5", isNavigating && "opacity-[0.98]")}>
           <aside className={cn("w-full shrink-0 lg:w-72", showPlayer && "max-lg:hidden")}>
-            <div className={cn(grow.card, "sticky top-4 space-y-2.5 p-3 transition-shadow duration-300 lg:space-y-4 lg:p-5")}>
-              <div>
+            <div className={cn(grow.card, "space-y-3 p-3 transition-shadow duration-300 lg:sticky lg:top-4 lg:space-y-4 lg:p-5")}>
+              <div className="lg:hidden">
+                <Link
+                  href={backHref}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[#6b5c4f] hover:text-[#1c1917] dark:hover:text-foreground"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  {backLabel}
+                </Link>
+                <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#FF4B1A]">
+                  Lessons
+                </p>
+                <h1 className="mt-1 text-lg font-bold leading-snug text-[#1c1917] dark:text-foreground">
+                  {outline.course.title}
+                </h1>
+                <p className="mt-1.5 text-sm leading-5 text-[#6b5c4f] dark:text-muted-foreground">
+                  {outline.course.require_sequential_lessons
+                    ? "Start at lesson 1. The next one unlocks when you finish the one before it."
+                    : "Tap a lesson to open it. You can go through them in any order."}
+                </p>
+                {!previewMode && (
+                  <div className="mt-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-[#1c1917] dark:text-foreground">
+                        {lessons.filter((item) => item.completed).length} of {lessons.length} finished
+                      </span>
+                      <span className="tabular-nums text-[#6b5c4f] dark:text-muted-foreground">
+                        {outline.progress}%
+                      </span>
+                    </div>
+                    <Progress
+                      value={outline.progress}
+                      className="h-1.5 [&_[data-slot=progress-indicator]]:bg-[#FF4B1A]"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <nav className="space-y-2 lg:hidden">
+                {roots.map((l, i) => {
+                  const quizzes = childrenOf.get(l.id) ?? []
+                  const isActive = detail?.lesson.id === l.id
+                  const status = l.locked
+                    ? "Not available yet"
+                    : l.completed
+                      ? "Done"
+                      : l.started
+                        ? "In progress"
+                        : "Not started"
+                  const statusHint = l.locked
+                    ? "Finish the previous lesson before you can open this"
+                    : l.completed
+                      ? "You can review this anytime"
+                      : l.started
+                        ? "Continue where you left off"
+                        : "Tap to start"
+                  const canOpen = !l.locked
+                  const cardClass = cn(
+                    "flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition",
+                    isActive
+                      ? "border-[#FF4B1A]/40 bg-[#FFF4EF] dark:border-[#FF4B1A]/40 dark:bg-[#FF4B1A]/10"
+                      : l.locked
+                        ? "cursor-not-allowed border-amber-200/80 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-950/20"
+                        : "border-[#ebe4da] bg-white active:bg-[#faf8f5] dark:border-border dark:bg-card dark:active:bg-muted/40",
+                  )
+                  const body = (
+                    <>
+                      <span
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                          isActive
+                            ? "bg-[#FF4B1A] text-white"
+                            : l.completed
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                              : "bg-[#f3ede4] text-[#1c1917] dark:bg-muted dark:text-foreground",
+                        )}
+                      >
+                        {!canOpen ? <Lock className="h-4 w-4" /> : i + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[15px] font-semibold leading-snug text-[#1c1917] dark:text-foreground">
+                          {l.title}
+                        </span>
+                        <span className="mt-1 block text-xs font-medium text-[#1c1917] dark:text-foreground">
+                          {status}
+                          {!previewMode && !l.locked ? (
+                            <span className="font-normal text-[#6b5c4f] dark:text-muted-foreground">
+                              {" "}
+                              · {lessonPercent(l)}%
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-5 text-[#6b5c4f] dark:text-muted-foreground">
+                          {statusHint}
+                        </span>
+                      </span>
+                      {canOpen ? (
+                        <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-[#6b5c4f]" />
+                      ) : (
+                        <Lock className="mt-2 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+                      )}
+                    </>
+                  )
+
+                  return (
+                    <div
+                      key={l.id}
+                      className="overflow-hidden rounded-2xl border border-[#ebe4da] dark:border-border"
+                    >
+                      {!canOpen ? (
+                        <div className={cn(cardClass, "rounded-none border-0")} title="Complete the previous lesson to unlock">
+                          {body}
+                        </div>
+                      ) : (
+                        <Link
+                          href={lessonPath(l.id)}
+                          className={cn(cardClass, "rounded-none border-0")}
+                          onClick={(e) => {
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                            e.preventDefault()
+                            navigateToLesson(l.id)
+                          }}
+                        >
+                          {body}
+                        </Link>
+                      )}
+                      {quizzes.length > 0 ? (
+                        <div className="space-y-1.5 border-t border-[#ebe4da] bg-[#faf8f5] px-3 py-2.5 dark:border-border dark:bg-muted/20">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6b5c4f] dark:text-muted-foreground">
+                            Quizzes in this lesson
+                          </p>
+                          {quizzes.map((quiz) => {
+                            const quizActive = detail?.lesson.id === quiz.id
+                            const quizOpen = !quiz.locked
+                            const quizClass = cn(
+                              "flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm",
+                              quizActive
+                                ? "bg-[#FFF4EF] text-[#FF4B1A] dark:bg-[#FF4B1A]/10"
+                                : !quizOpen
+                                  ? "cursor-not-allowed text-amber-800 dark:text-amber-200"
+                                  : "text-[#1c1917] dark:text-foreground",
+                            )
+                            const quizLabel = (
+                              <>
+                                <CircleHelp className="h-4 w-4 shrink-0 text-[#FF4B1A]" />
+                                <span className="min-w-0 flex-1 leading-snug">
+                                  <span className="block">{quiz.quiz_title || quiz.title}</span>
+                                  {quiz.locked ? (
+                                    <span className="mt-0.5 block text-[11px] font-medium text-amber-800 dark:text-amber-200">
+                                      Finish the previous lesson before this quiz
+                                    </span>
+                                  ) : null}
+                                </span>
+                                <span className="shrink-0 text-[11px] font-medium text-[#6b5c4f]">
+                                  {quiz.locked ? "Not available yet" : quiz.completed ? "Done" : "Quiz"}
+                                </span>
+                              </>
+                            )
+                            if (!quizOpen) {
+                              return (
+                                <div key={quiz.id} className={quizClass}>
+                                  {quizLabel}
+                                </div>
+                              )
+                            }
+                            return (
+                              <Link
+                                key={quiz.id}
+                                href={lessonPath(quiz.id)}
+                                className={quizClass}
+                                onClick={(e) => {
+                                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                                  e.preventDefault()
+                                  navigateToLesson(quiz.id)
+                                }}
+                              >
+                                {quizLabel}
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </nav>
+
+              <div className="hidden lg:block">
                 <div className="flex items-center justify-between gap-2">
                   <Link
                     href={backHref}
@@ -301,18 +487,13 @@ export function CourseLearnPage({
                   >
                     ← {backLabel}
                   </Link>
-                  {!previewMode && (
-                    <span className="text-xs font-medium text-[#1c1917] lg:hidden dark:text-foreground">
-                      {outline.progress}%
-                    </span>
-                  )}
                 </div>
-                <h1 className="mt-1 line-clamp-2 text-base font-semibold leading-tight text-[#1c1917] lg:text-lg dark:text-foreground">
+                <h1 className="mt-1 line-clamp-2 text-lg font-semibold leading-tight text-[#1c1917] dark:text-foreground">
                   {outline.course.title}
                 </h1>
                 {!previewMode && (
-                  <div className="mt-2 space-y-1 lg:mt-3">
-                    <div className="hidden justify-between text-xs lg:flex">
+                  <div className="mt-3 space-y-1">
+                    <div className="flex justify-between text-xs">
                       <span className="text-[#6b5c4f] dark:text-muted-foreground">Progress</span>
                       <span className="font-medium text-[#1c1917] transition-all duration-500 dark:text-foreground">
                         {outline.progress}%
@@ -320,12 +501,12 @@ export function CourseLearnPage({
                     </div>
                     <Progress
                       value={outline.progress}
-                      className="h-1 transition-all duration-500 lg:h-1.5 [&_[data-slot=progress-indicator]]:bg-[#7c6cf0]"
+                      className="h-1.5 transition-all duration-500 [&_[data-slot=progress-indicator]]:bg-[#7c6cf0]"
                     />
                   </div>
                 )}
               </div>
-              <nav className="max-h-[calc(100dvh-13.5rem)] space-y-0.5 overflow-x-hidden overflow-y-auto lg:max-h-[50vh] lg:space-y-1">
+              <nav className="hidden max-h-[50vh] space-y-1 overflow-x-hidden overflow-y-auto lg:block">
                 {roots.map((l, i) => {
                   const quizzes = childrenOf.get(l.id) ?? []
                   const isActive = detail?.lesson.id === l.id
@@ -484,7 +665,7 @@ export function CourseLearnPage({
               }}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
-              Lessons
+              All lessons
             </button>
             {lessonBlocked ? (
               <div

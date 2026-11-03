@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -9,7 +10,6 @@ import {
   Sun,
   Moon,
   LogOut,
-  Menu,
   X,
   Settings,
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/app/provider"
+import { useMobileSidebar } from "@/components/navigation/mobile-sidebar-context"
 import {
   canAccessAdminPanel,
   canAccessOrgAdminPanel,
@@ -61,9 +62,10 @@ const footerNavClass = (iconOnly?: boolean) =>
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [showCollapsedContent, setShowCollapsedContent] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const { open: mobileOpen, setOpen: setMobileOpen } = useMobileSidebar()
   const [mobileRendered, setMobileRendered] = useState(false)
   const [mobileVisible, setMobileVisible] = useState(false)
+  const [portalReady, setPortalReady] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const hasHydratedRef = useRef(false)
   const navScrollRef = useRef<HTMLElement | null>(null)
@@ -168,7 +170,12 @@ export function Sidebar() {
 
   useEffect(() => {
     setThemeMounted(true)
+    setPortalReady(true)
   }, [])
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname, setMobileOpen])
 
   useEffect(() => {
     let cancelled = false
@@ -315,14 +322,15 @@ export function Sidebar() {
   )
 
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className="floating-sidebar-panel flex h-full w-full min-w-0 flex-col overflow-hidden">
+    <div className="floating-sidebar-panel flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
       <div
         className={cn(
           "relative flex shrink-0 items-center transition-[padding] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]",
           showCollapsedContent
             ? "justify-center px-1 pb-2 pt-2.5"
-            : "justify-start pl-[9px] pr-2 pb-1.5 pt-[19px]",
-          mobile && !showCollapsedContent && "pr-1",
+            : mobile
+              ? "justify-start pl-[9px] pb-1.5 pr-1 pt-3"
+              : "justify-start pl-[9px] pr-2 pb-1.5 pt-[19px]",
         )}
       >
         <div
@@ -337,7 +345,7 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-1 top-4 h-8 w-8 shrink-0 text-slate-500"
+            className="absolute right-1 top-2.5 h-8 w-8 shrink-0 text-slate-500"
             onClick={() => setMobileOpen(false)}
           >
             <X className="h-4 w-4" />
@@ -348,8 +356,9 @@ export function Sidebar() {
       <nav
         ref={navScrollRef}
         className={cn(
-          "flex-1 space-y-3 overflow-y-auto pb-2 [scrollbar-color:hsl(var(--sidebar-border))_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1",
+          "min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-2 [scrollbar-color:hsl(var(--sidebar-border))_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1",
           showCollapsedContent ? "px-1.5" : "px-2.5",
+          mobile && "space-y-2",
         )}
       >
         {showOrgAdminNav && renderSection("Organization", orgNavItems as NavItem[])}
@@ -366,12 +375,13 @@ export function Sidebar() {
 
       <div
         className={cn(
-          "relative shrink-0 border-t border-border/60 py-2",
+          "relative shrink-0 border-t border-border/60",
+          mobile ? "py-1.5" : "py-2",
           showCollapsedContent ? "px-1.5" : "px-2",
         )}
       >
         {!showCollapsedContent && user?.email && (
-          <div className="mb-2 px-2">
+          <div className={cn("px-2", mobile ? "mb-1" : "mb-2")}>
             <p className="truncate text-[10px] text-muted-foreground">{user.email}</p>
             {user.role && (
               <p className="mt-0.5 text-[10px] font-medium capitalize text-emerald-700 dark:text-emerald-400">
@@ -445,44 +455,39 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="fixed left-0 top-0 z-50 flex h-[3.25rem] w-16 items-center justify-center sm:w-24 md:hidden">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground dark:bg-background dark:text-foreground dark:hover:bg-background dark:hover:text-foreground"
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-sidebar"
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
-          onClick={() => setMobileOpen((open) => !open)}
-        >
-          <Menu className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {mobileRendered && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <button
-            type="button"
-            aria-label="Close menu"
-            className={cn(
-              "absolute inset-0 bg-black/50 transition-opacity duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              mobileVisible ? "opacity-100" : "pointer-events-none opacity-0",
-            )}
-            onClick={() => setMobileOpen(false)}
-          />
+      {portalReady &&
+        mobileRendered &&
+        createPortal(
           <div
-            id="mobile-sidebar"
-            className={cn(
-              "relative m-3 h-[calc(100%-5.75rem)] origin-top-left overflow-hidden transition-[width] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              mobileVisible ? "w-[min(16rem,85vw)]" : "w-0",
-            )}
+            className="mobile-sidebar-overlay fixed inset-x-0 bottom-0 z-50 md:hidden"
+            style={{
+              top: "calc(var(--pwa-banner-h, 0px) + var(--mobile-top-inset))",
+              paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            }}
           >
-            <div className="h-full w-[min(16rem,85vw)]">
-              <SidebarContent mobile />
+            <button
+              type="button"
+              aria-label="Close menu"
+              className={cn(
+                "absolute inset-0 bg-black/50 transition-opacity duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                mobileVisible ? "opacity-100" : "pointer-events-none opacity-0",
+              )}
+              onClick={() => setMobileOpen(false)}
+            />
+            <div
+              id="mobile-sidebar"
+              className={cn(
+                "absolute bottom-2 left-2 top-2 origin-top-left overflow-hidden transition-[width] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                mobileVisible ? "w-[min(16rem,85vw)]" : "w-0",
+              )}
+            >
+              <div className="h-full min-h-0 w-[min(16rem,85vw)]">
+                <SidebarContent mobile />
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   )
 }

@@ -828,8 +828,15 @@
   }
 }
 
+:root {
+  /* Top chrome inset under the status bar / notch (viewport-fit=cover). */
+  --mobile-top-inset: env(safe-area-inset-top, 0px);
+}
+
 @media (max-width: 767px) {
+  /* Install banner already consumes the safe-area; don't pad the brand bar twice. */
   body:has(.pwa-install-banner) {
+    --mobile-top-inset: 0px;
     padding-top: var(--pwa-banner-h, 2.75rem);
   }
 
