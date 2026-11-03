@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { Card, CardContent } from "@/components/ui/card"
@@ -96,7 +97,7 @@ export default function TeacherStudentsPage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading students…</p>
+          <PageLoader label="Loading students…" className="min-h-[20vh] py-6" />
         ) : students.length === 0 ? (
           <Card className="premium-card border border-border shadow-none">
             <CardContent className="p-8 text-center">

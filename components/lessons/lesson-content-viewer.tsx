@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useState } from "react"
 import { QuizTaker } from "@/components/lessons/quiz-taker"
 import { ArticulateLessonEmbed } from "@/components/lessons/articulate-lesson-embed"
@@ -8,7 +9,7 @@ import { apiPost } from "@/lib/api"
 import { isEmbeddableArticulateUrl, resolveVideoSrc } from "@/lib/lesson-media"
 import type { ScormProgressPayload } from "@/lib/scorm-api"
 import type { Lesson, LessonQuiz } from "@/lib/lesson-types"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 
 type LessonContentViewerProps = {
@@ -70,7 +71,7 @@ function MarkCompleteControl({
       onClick={() => void markComplete()}
       disabled={saving}
     >
-      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+      {saving ? <Spinner size={16} /> : <CheckCircle2 className="h-4 w-4" />}
       Mark as complete
     </Button>
   )

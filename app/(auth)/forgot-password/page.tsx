@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useState } from "react"
 import { authForgotPassword } from "@/lib/api"
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SphereXLogo } from "@/components/logo"
-import { ArrowLeft, Loader2, Mail } from "lucide-react"
+import { ArrowLeft, Mail } from "lucide-react"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -40,7 +41,7 @@ export default function ForgotPasswordPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to login
         </Link>
-        <SphereXLogo className="mb-6 h-9 w-auto" />
+        <SphereXLogo className="mb-6 h-10 w-auto" />
         <h1 className="text-2xl font-bold text-slate-950">Forgot password</h1>
         <p className="mt-2 text-sm text-slate-500">
           Enter your account email and we will send a reset link if it exists.
@@ -70,7 +71,7 @@ export default function ForgotPasswordPage() {
             className="h-11 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800"
             disabled={loading}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
+            {loading ? <Spinner size={16} /> : "Send reset link"}
           </Button>
         </form>
       </div>

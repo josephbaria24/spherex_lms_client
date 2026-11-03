@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/app/provider"
@@ -32,7 +33,7 @@ export function TeacherOrgSlugGate({ children }: { children: React.ReactNode }) 
   if (loadingOrgs && !isPlatformAdmin) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+        <Spinner size={36} />
       </div>
     )
   }

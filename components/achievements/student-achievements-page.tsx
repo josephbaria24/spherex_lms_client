@@ -1,22 +1,9 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import {
-  Award,
-  BookOpen,
-  CheckCircle2,
-  Download,
-  Flame,
-  GraduationCap,
-  History,
-  Loader2,
-  Medal,
-  Sparkles,
-  Target,
-  Trophy,
-  Upload,
-} from "lucide-react"
+import { Award, BookOpen, CheckCircle2, Download, Flame, GraduationCap, History, Medal, Sparkles, Target, Trophy, Upload } from "lucide-react"
 import { GrowHeader } from "@/components/grow-shell"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -424,7 +411,7 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#ebe4da] bg-[#f7f3ec] dark:border-border dark:bg-muted">
                 {photoLoading ? (
                   <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <Spinner size={16} />
                   </div>
                 ) : photoPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -465,7 +452,7 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
                 onClick={() => fileRef.current?.click()}
               >
                 {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner size={16} />
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
@@ -527,7 +514,7 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
                         onClick={() => void downloadPdf(cert.id, cert.serial_number)}
                       >
                         {downloadingId === cert.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Spinner size={16} />
                         ) : (
                           <Download className="h-4 w-4" />
                         )}

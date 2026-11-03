@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useRef, useState } from "react"
 import { apiPatch, apiPost, apiUploadFile } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
@@ -27,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { ImagePlus, Loader2 } from "lucide-react"
+import { ImagePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const EXAM_TYPES = ["CSE", "NLE", "LET", "IELTS", "Other"] as const
@@ -301,7 +302,7 @@ export function GroupFormModal({
               onClick={() => inputRef.current?.click()}
             >
               {uploading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Spinner size={16} className="mr-2" />
               ) : (
                 <ImagePlus className="mr-2 h-4 w-4" />
               )}
@@ -314,7 +315,7 @@ export function GroupFormModal({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? <Spinner size={16} className="mr-2" /> : null}
               {isEdit ? "Save changes" : "Create subject"}
             </Button>
           </div>

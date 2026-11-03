@@ -114,7 +114,7 @@ export function CreateCourseModal({ onCreated, defaultOrganizationId }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="h-11 gap-2 rounded-xl bg-[#FF4B1A] px-5 font-semibold text-white hover:bg-[#e84314]">
           <Plus className="h-4 w-4" />
           Create Course
         </Button>

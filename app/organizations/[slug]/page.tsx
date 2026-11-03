@@ -1,8 +1,9 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { use, useEffect, useState } from "react"
-import { ArrowLeft, BookOpen, Clock, ExternalLink, Loader2, Users } from "lucide-react"
+import { ArrowLeft, BookOpen, Clock, ExternalLink, Users } from "lucide-react"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -54,7 +55,7 @@ export default function OrganizationDetailPage({
       <div className="min-h-screen bg-white dark:bg-background">
         <LandingHeader />
         <main className="flex min-h-[50vh] items-center justify-center gap-2 pt-24 text-slate-500 dark:text-slate-400">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner size={28} />
           Loading organization…
         </main>
       </div>
@@ -117,7 +118,7 @@ export default function OrganizationDetailPage({
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">{organization.name}</h1>
                   <Badge variant={live ? "default" : "secondary"}>
-                    {live ? "Active on SphereX" : orgStatusLabel(organization.status)}
+                    {live ? "Active on PetroCademia" : orgStatusLabel(organization.status)}
                   </Badge>
                 </div>
                 {organization.industry ? (
@@ -159,7 +160,7 @@ export default function OrganizationDetailPage({
               <BookOpen className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
               <h2 className="mt-4 text-xl font-bold dark:text-white">Catalog coming soon</h2>
               <p className="mt-2 text-slate-600 dark:text-slate-300">
-                {organization.name} courses will be available on SphereX as the partnership is finalized.
+                {organization.name} courses will be available on PetroCademia as the partnership is finalized.
               </p>
             </div>
           ) : courses.length === 0 ? (

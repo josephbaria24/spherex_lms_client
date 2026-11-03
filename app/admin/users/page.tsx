@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { Card } from "@/components/ui/card"
@@ -183,7 +184,7 @@ export default function AdminUsersPage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading users...</p>
+          <PageLoader label="Loading users..." className="min-h-[20vh] py-6" />
         ) : filteredUsers.length === 0 ? (
           <p className="text-sm text-muted-foreground">No users match your filters.</p>
         ) : (

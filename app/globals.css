@@ -566,10 +566,10 @@
   }
   .sidebar-footer-item {
     @apply flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-medium leading-tight transition-colors outline-none;
-    @apply focus-visible:ring-2 focus-visible:ring-emerald-500/45 focus-visible:ring-offset-1 focus-visible:ring-offset-background;
+    @apply focus-visible:ring-2 focus-visible:ring-[#FF4B1A]/45 focus-visible:ring-offset-1 focus-visible:ring-offset-background;
   }
   .sidebar-footer-item-inactive {
-    @apply text-sidebar-foreground hover:bg-emerald-500/5 hover:text-emerald-950 dark:hover:text-emerald-50;
+    @apply text-sidebar-foreground hover:bg-[#FF4B1A]/10 hover:text-[#FF4B1A] dark:hover:bg-[#FF4B1A]/15 dark:hover:text-[#FF8A6A];
   }
   .sidebar-footer-item-icon {
     @apply w-full justify-center px-0 py-1.5;
@@ -788,7 +788,7 @@
     @apply border-0 bg-[#1a1f2e] font-semibold text-white ring-0 dark:bg-foreground dark:text-background;
   }
   .grow-shell .premium-row:hover {
-    @apply bg-[#f3ede4]/60 dark:bg-muted/40;
+    @apply bg-[#FFF4EF]/80 dark:bg-[#FF4B1A]/5;
   }
 
   @keyframes dashboard-ticker {

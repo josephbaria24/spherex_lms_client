@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useState } from "react"
 import { authLogin } from "@/lib/api"
@@ -9,15 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SphereXLogo } from "@/components/logo"
 import { AuthMarketingPanel } from "@/components/auth/auth-marketing-panel"
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  LogIn,
-  Mail,
-} from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -42,28 +35,31 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#e7e7e7] p-4 text-slate-950 sm:p-6 lg:p-10">
+    <div className="min-h-screen bg-[#fbfbfb] p-4 text-neutral-950 sm:p-6 lg:p-10">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl items-center justify-center sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-5rem)]">
-        <div className="grid w-full overflow-hidden rounded-[14px] border border-black/5 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] lg:min-h-[760px] lg:grid-cols-[0.94fr_1.06fr]">
+        <div className="grid w-full overflow-hidden rounded-[1.5rem] border border-neutral-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.1)] lg:min-h-[760px] lg:grid-cols-[0.94fr_1.06fr]">
           <section className="flex min-w-0 flex-col px-6 py-8 sm:px-10 lg:px-16 lg:py-14">
             <Link
               href="/"
-              className="mb-6 inline-flex w-fit items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+              className="mb-6 inline-flex w-fit items-center gap-2 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950"
             >
               <ArrowLeft className="h-4 w-4" />
               Go back to the home page
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <SphereXLogo className="h-9 w-auto" priority />
-              <div className="h-8 w-px bg-slate-200" />
-              <p className="text-xs font-semibold uppercase text-teal-700">SphereX LMS</p>
+              <p className="text-[15px] font-semibold tracking-[-0.03em] text-neutral-950">
+                Petro<span className="text-[#FF4B1A]">Cademia</span>
+              </p>
             </div>
 
             <div className="mt-12 max-w-md">
-              <h1 className="text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">Welcome back!</h1>
-              <p className="mt-4 text-sm leading-6 text-slate-500">
-                Sign in to manage courses, organizations, lessons, and learner progress in SphereX LMS.
+              <h1 className="text-4xl font-extrabold leading-[1.05] tracking-[-0.04em] text-neutral-950 sm:text-5xl">
+                Welcome back
+              </h1>
+              <p className="mt-4 text-[15px] leading-7 text-neutral-500">
+                Sign in to manage courses, organizations, lessons, and learner progress in PetroCademia.
               </p>
             </div>
 
@@ -73,11 +69,11 @@ export default function LoginPage() {
                   Email
                 </Label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Mail className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <Input
                     id="email"
                     type="email"
-                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-5 text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
+                    className="h-12 rounded-xl border-neutral-200 bg-white pl-12 pr-5 text-sm text-neutral-950 shadow-none placeholder:text-neutral-400 focus-visible:ring-[#FF4B1A]/30 dark:bg-white dark:text-neutral-950"
                     placeholder="Email address"
                     autoComplete="email"
                     value={email}
@@ -93,11 +89,11 @@ export default function LoginPage() {
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Lock className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    className="h-12 rounded-full border-slate-300 bg-white pl-12 pr-12 text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-teal-500 dark:bg-white dark:text-slate-950"
+                    className="h-12 rounded-xl border-neutral-200 bg-white pl-12 pr-12 text-sm text-neutral-950 shadow-none placeholder:text-neutral-400 focus-visible:ring-[#FF4B1A]/30 dark:bg-white dark:text-neutral-950"
                     placeholder="Password"
                     autoComplete="current-password"
                     value={password}
@@ -107,7 +103,7 @@ export default function LoginPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-900"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-neutral-950"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
@@ -117,25 +113,25 @@ export default function LoginPage() {
               </div>
 
               <div className="flex justify-end">
-                <Link href="/forgot-password" className="text-xs font-medium text-slate-500 hover:text-teal-700">
+                <Link href="/forgot-password" className="text-xs font-medium text-neutral-500 hover:text-[#FF4B1A]">
                   Forgot Password?
                 </Link>
               </div>
 
               {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
                   {error}
                 </div>
               )}
 
               <Button
                 type="submit"
-                className="h-12 w-full gap-2 rounded-full bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
+                className="h-12 w-full gap-2 rounded-xl bg-[#FF4B1A] text-sm font-semibold text-white hover:bg-[#e84314]"
                 disabled={loading}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner size={16} />
                     Signing in...
                   </>
                 ) : (
@@ -146,16 +142,16 @@ export default function LoginPage() {
                 )}
               </Button>
 
-              <p className="text-center text-sm text-slate-500">
+              <p className="text-center text-sm text-neutral-500">
                 Don&apos;t have an account?{" "}
-                <Link href="/register" className="font-medium text-teal-700 hover:underline">
+                <Link href="/register" className="font-semibold text-[#FF4B1A] hover:underline">
                   Sign up
                 </Link>
               </p>
             </form>
           </section>
 
-          <AuthMarketingPanel title="Organize learning, track progress, and manage every organization in SphereX LMS" />
+          <AuthMarketingPanel title="Organize learning, track progress, and manage every organization in PetroCademia." />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiPost } from "@/lib/api"
@@ -7,7 +8,7 @@ import { useAuth } from "@/app/provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Building2, Loader2 } from "lucide-react"
+import { Building2 } from "lucide-react"
 
 export type JoinOrganizationMode = "teacher" | "student"
 
@@ -92,7 +93,7 @@ export function JoinOrganizationForm({
             className="h-8 shrink-0 rounded-md px-2.5 text-xs"
             disabled={loading || !code.trim()}
           >
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Join"}
+            {loading ? <Spinner size={14} /> : "Join"}
           </Button>
         </div>
         {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
@@ -131,7 +132,7 @@ export function JoinOrganizationForm({
       <Button type="submit" className="w-full gap-2 rounded-xl" disabled={loading || !code.trim()}>
         {loading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner size={16} />
             Joining…
           </>
         ) : (

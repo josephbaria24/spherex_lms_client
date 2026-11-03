@@ -71,7 +71,7 @@ export function SidebarBrand({ collapsed }: Props) {
     />
   ) : (
     <SphereXLogo
-      className={cn(collapsed ? "h-9 px-0" : "h-8 w-auto px-[13px] sm:h-9")}
+      className={cn(collapsed ? "h-9 px-0" : "h-8 w-auto sm:h-9")}
       priority
       alt=""
     />
@@ -83,7 +83,7 @@ export function SidebarBrand({ collapsed }: Props) {
       className={cn(
         "group flex min-w-0 items-center rounded-xl outline-none transition-colors",
         "focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2",
-        collapsed ? "justify-center" : "gap-1",
+        collapsed ? "justify-center" : "gap-2",
       )}
       aria-label={collapsed ? APP_NAME : undefined}
     >

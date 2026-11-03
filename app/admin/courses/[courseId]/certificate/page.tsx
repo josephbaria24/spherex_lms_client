@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { Award, ArrowLeft } from "lucide-react"
@@ -36,7 +37,7 @@ export default function AdminCourseCertificatePage({
   if (loading) {
     return (
       <GrowMainLayout>
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
       </GrowMainLayout>
     )
   }

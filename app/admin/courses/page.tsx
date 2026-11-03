@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
@@ -8,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -223,9 +223,9 @@ export default function AdminCoursesPage() {
           <CreateCourseModal onCreated={load} defaultOrganizationId={defaultOrgId} />
         </PageHeader>
 
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
+        <div className="flex flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-[#fbfbfb] p-3 md:flex-row md:items-end dark:border-border dark:bg-muted/20">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <Input
               name="course-search"
               type="search"
@@ -234,7 +234,7 @@ export default function AdminCoursesPage() {
               spellCheck={false}
               readOnly={!searchReady}
               placeholder="Search courses or organizations…"
-              className="pl-10"
+              className="h-11 rounded-xl border-neutral-200 bg-white pl-10 shadow-none focus-visible:ring-[#FF4B1A]/25 dark:border-border dark:bg-background"
               value={searchQuery}
               onFocus={() => setSearchReady(true)}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -242,9 +242,11 @@ export default function AdminCoursesPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Organization</Label>
+              <Label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                Organization
+              </Label>
               <Select value={selectedOrg} onValueChange={setSelectedOrg}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="h-11 w-[200px] rounded-xl border-neutral-200 bg-white dark:border-border dark:bg-background">
                   <SelectValue placeholder="All organizations" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,9 +262,11 @@ export default function AdminCoursesPage() {
             </div>
             {categories.length > 0 && (
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Category</Label>
+                <Label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                  Category
+                </Label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="h-11 w-[160px] rounded-xl border-neutral-200 bg-white dark:border-border dark:bg-background">
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,13 +284,15 @@ export default function AdminCoursesPage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading courses…</p>
+          <PageLoader label="Loading courses…" className="min-h-[20vh] py-6" />
         ) : filteredCourses.length === 0 ? (
-          <Card className="premium-card border border-border shadow-none">
-            <CardContent className="p-8 text-center">
-              <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-3 font-medium">No courses found</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+          <Card className="rounded-[1.5rem] border border-dashed border-neutral-200 shadow-none dark:border-border">
+            <CardContent className="p-10 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFE8E0] text-[#FF4B1A]">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <p className="mt-4 font-semibold text-neutral-950 dark:text-foreground">No courses found</p>
+              <p className="mt-1 text-sm text-neutral-500">
                 {courses.length === 0
                   ? "Create a course and assign it to an organization."
                   : "Try adjusting your filters."}
@@ -294,69 +300,48 @@ export default function AdminCoursesPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filteredCourses.map((course) => (
-              <Card
+              <article
                 key={course.id}
-                className={`premium-card relative flex h-full flex-col gap-0 overflow-hidden border border-border py-0 shadow-none ${course.image ? "min-h-[22rem]" : ""}`}
+                className="group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-neutral-200/80 bg-white shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] transition hover:-translate-y-0.5 hover:border-[#FFD8C8] hover:shadow-[0_22px_50px_-24px_rgba(255,75,26,0.35)] dark:border-border dark:bg-card"
               >
-                {course.image ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                <div className="relative aspect-[16/10] overflow-hidden bg-[#FFF4EF]">
+                  {course.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={assetUrl(course.image)}
                       alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                     />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[78%] bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
-                  </>
-                ) : (
-                  <CourseCardHero cardTheme={course.card_theme} />
-                )}
-                <CardContent
-                  className={`relative z-10 flex flex-col p-4 ${course.image ? "mt-auto text-white" : "h-full"}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-2 flex flex-wrap gap-1.5">
-                        {course.organization_name ? (
-                          <Badge
-                            variant="secondary"
-                            className={`text-[10px] ${course.image ? "border-white/25 bg-white/15 text-white hover:bg-white/15" : ""}`}
-                          >
-                            {course.organization_name}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${course.image ? "border-amber-200/70 bg-black/25 text-amber-100" : "text-amber-700"}`}
-                          >
-                            Unassigned
-                          </Badge>
-                        )}
-                        {course.level && (
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] capitalize ${course.image ? "border-white/30 bg-black/20 text-white" : ""}`}
-                          >
-                            {course.level}
-                          </Badge>
-                        )}
-                        <Badge
-                          variant={(course.price_cents ?? 0) > 0 ? "default" : "secondary"}
-                          className={`text-[10px] ${course.image ? "border-transparent bg-white text-neutral-900 hover:bg-white" : ""}`}
-                        >
-                          {formatCoursePrice(course.price_cents ?? 0)}
-                        </Badge>
-                      </div>
-                      <h3 className={`font-semibold leading-tight ${course.image ? "drop-shadow-sm" : ""}`}>{course.title}</h3>
+                  ) : (
+                    <div className="absolute inset-0">
+                      <CourseCardHero cardTheme={course.card_theme} />
                     </div>
+                  )}
+                  <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+                    {course.organization_name ? (
+                      <span className="rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-neutral-700 shadow-sm">
+                        {course.organization_name}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700 shadow-sm">
+                        Unassigned
+                      </span>
+                    )}
+                    {course.level ? (
+                      <span className="rounded-full bg-neutral-950/80 px-2.5 py-1 text-[10px] font-semibold capitalize text-white shadow-sm">
+                        {course.level}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="absolute right-3 top-3">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`h-8 w-8 shrink-0 ${course.image ? "bg-black/35 text-white hover:bg-black/55 hover:text-white" : ""}`}
+                          className="h-8 w-8 rounded-full bg-white/95 text-neutral-700 shadow-sm hover:bg-white hover:text-neutral-950"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
@@ -376,47 +361,44 @@ export default function AdminCoursesPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
+                </div>
 
-                  <p
-                    className={`mt-2 line-clamp-2 min-h-10 whitespace-pre-line text-sm ${course.image ? "text-white/85" : "text-muted-foreground"}`}
-                  >
-                    {course.description || "\u00A0"}
-                  </p>
-
-                  <div
-                    className={`mt-4 flex flex-wrap gap-3 text-xs ${course.image ? "text-white/80" : "text-muted-foreground"}`}
-                  >
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      {course.enrolled_count ?? 0} enrolled
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ListOrdered className="h-3.5 w-3.5" />
-                      {course.lesson_count ?? course.lessons ?? 0} lessons
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Tag className="h-3.5 w-3.5" />
+                <div className="flex flex-1 flex-col p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight text-neutral-950 dark:text-foreground">
+                      {course.title}
+                    </h3>
+                    <span className="shrink-0 text-sm font-bold text-[#FF4B1A]">
                       {formatCoursePrice(course.price_cents ?? 0)}
                     </span>
                   </div>
 
-                  <div className="mt-3 min-h-[26px]">
+                  <p className="mt-2 line-clamp-2 min-h-10 whitespace-pre-line text-sm leading-6 text-neutral-500">
+                    {course.description || "\u00A0"}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-3 text-xs text-neutral-500">
+                    <span className="inline-flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5 text-[#FF4B1A]" />
+                      {course.enrolled_count ?? 0} enrolled
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <ListOrdered className="h-3.5 w-3.5 text-[#FF4B1A]" />
+                      {course.lesson_count ?? course.lessons ?? 0} lessons
+                    </span>
                     {course.category ? (
-                      <Badge
-                        variant="outline"
-                        className={course.image ? "border-white/30 bg-black/20 text-white" : ""}
-                      >
+                      <span className="inline-flex items-center gap-1">
+                        <Tag className="h-3.5 w-3.5 text-[#FF4B1A]" />
                         {course.category}
-                      </Badge>
+                      </span>
                     ) : null}
                   </div>
 
-                  <div className="mt-auto flex flex-col gap-2 pt-4">
+                  <div className="mt-auto flex flex-col gap-2 pt-5">
                     <Button
                       asChild
-                      variant="outline"
                       size="sm"
-                      className={`w-full ${course.image ? "border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white" : ""}`}
+                      className="h-10 w-full rounded-xl bg-[#FF4B1A] font-semibold text-white hover:bg-[#e84314]"
                     >
                       <Link href={`/admin/courses/${course.id}/certificate`}>Manage certificate</Link>
                     </Button>
@@ -425,14 +407,14 @@ export default function AdminCoursesPage() {
                         asChild
                         variant="outline"
                         size="sm"
-                        className={`w-full ${course.image ? "border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white" : ""}`}
+                        className="h-10 w-full rounded-xl border-neutral-200 font-semibold hover:border-[#FFD8C8] hover:bg-[#FFF8F5] hover:text-[#FF4B1A]"
                       >
                         <Link href={`/admin/courses/${course.id}/lessons`}>Manage lessons</Link>
                       </Button>
                     ) : null}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </article>
             ))}
           </div>
         )}

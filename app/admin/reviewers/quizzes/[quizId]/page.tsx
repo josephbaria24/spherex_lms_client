@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Card } from "@/components/ui/card"
-import { ArrowLeft, ClipboardList, Loader2, Save } from "lucide-react"
+import { ArrowLeft, ClipboardList, Save } from "lucide-react"
 
 const EXAM_TYPES = ["CSE", "NLE", "LET", "IELTS", "Other"] as const
 
@@ -168,14 +169,14 @@ export default function AdminReviewerQuizEditPage() {
             </Link>
           </Button>
           <Button onClick={handleSave} disabled={saving || loading || !quiz}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {saving ? <Spinner size={16} className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
             Save
           </Button>
         </GrowHeader>
 
         {loading || !quiz ? (
           <div className="flex min-h-[240px] items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Spinner size={28} />
             Loading questionnaire…
           </div>
         ) : (

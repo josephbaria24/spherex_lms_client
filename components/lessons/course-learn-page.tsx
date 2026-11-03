@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -17,7 +18,7 @@ import {
   setCachedOutline,
 } from "@/lib/learn-cache"
 import type { Lesson, LessonQuiz } from "@/lib/lesson-types"
-import { CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Circle, CircleHelp, Loader2, CircleDot, Lock } from "lucide-react"
+import { CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Circle, CircleHelp, CircleDot, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { groupLessonOutline } from "@/lib/lesson-outline"
@@ -254,7 +255,7 @@ export function CourseLearnPage({
       <MainLayout>
         <GrowShell bento={false}>
           <div className="flex min-h-[40vh] items-center justify-center gap-2 text-[#6b5c4f]">
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Spinner size={28} />
             Loading course…
           </div>
         </GrowShell>
@@ -507,7 +508,7 @@ export function CourseLearnPage({
 
             {showLessonSkeleton ? (
               <div className="flex min-h-[40vh] items-center justify-center gap-2 text-[#6b5c4f]">
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Spinner size={28} />
                 Loading lesson…
               </div>
             ) : null}

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { PageHeader } from "@/components/layout/page-header"
@@ -202,7 +203,7 @@ export default function OrgSettingsPage() {
         </PageHeader>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
         ) : (
           <Tabs defaultValue="profile" className="space-y-4">
             <TabsList>
@@ -269,7 +270,7 @@ export default function OrgSettingsPage() {
                       <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm">
                         <p className="font-medium">Member limit</p>
                         <p className="mt-1 text-muted-foreground">
-                          Your organization can have up to {maxMembers} members. Contact SphereX support to
+                          Your organization can have up to {maxMembers} members. Contact PetroCademia support to
                           request an increase.
                         </p>
                       </div>

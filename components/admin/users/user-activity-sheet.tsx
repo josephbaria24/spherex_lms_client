@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   Sheet,
@@ -23,24 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { apiDelete, apiGet } from "@/lib/api"
-import {
-  Activity,
-  Award,
-  BookOpen,
-  Building2,
-  CheckCircle2,
-  CircleCheck,
-  ExternalLink,
-  FileQuestion,
-  GraduationCap,
-  Loader2,
-  MonitorPlay,
-  RotateCcw,
-  Trash2,
-  Users,
-  ChevronDown,
-  type LucideIcon,
-} from "lucide-react"
+import { Activity, Award, BookOpen, Building2, CheckCircle2, CircleCheck, ExternalLink, FileQuestion, GraduationCap, MonitorPlay, RotateCcw, Trash2, Users, ChevronDown, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 type UserSummary = {
@@ -305,7 +289,7 @@ export function UserActivitySheet({
 
           {loading ? (
             <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner size={28} />
               Loading activity…
             </div>
           ) : !data ? (

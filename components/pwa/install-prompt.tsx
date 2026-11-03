@@ -118,7 +118,7 @@ export function PwaInstallPrompt() {
     >
       <div className="flex items-center gap-2 px-3 py-2 pl-14 md:pl-3">
         <p className="min-w-0 flex-1 text-sm leading-tight">
-          Install SphereX on this phone
+          Install PetroCademia on this phone
         </p>
         <button
           type="button"

@@ -39,23 +39,37 @@ function LandingThemeToggle() {
   )
 }
 
+const homeNavLinks = [
+  { label: "Courses", href: "/courses" },
+  { label: "Our approach", href: "/#about", sectionId: "about" },
+  { label: "Resources", href: "/#categories", sectionId: "categories" },
+  { label: "Contact", href: "/#contact", sectionId: "contact" },
+]
+
 function NavItem({
   label,
   href,
   sectionId,
   onNavigate,
+  plain = false,
 }: {
   label: string
   href: string
   sectionId?: string
   onNavigate?: () => void
+  plain?: boolean
 }) {
   const pathname = usePathname()
   const isHome = pathname === "/"
   const isActive = !sectionId && pathname === href
   const className = cn(
-    "text-sm font-medium transition-colors hover:text-teal-600 dark:hover:text-teal-400",
-    isActive ? "text-teal-600 dark:text-teal-400" : "text-slate-600 dark:text-slate-300",
+    "transition-colors",
+    plain
+      ? "text-[15px] font-medium tracking-[-0.01em] text-neutral-950 hover:text-neutral-500 dark:text-neutral-100 dark:hover:text-neutral-400"
+      : cn(
+          "text-sm font-medium hover:text-[#FF4B1A] dark:hover:text-[#FF8A6A]",
+          isActive ? "text-[#FF4B1A] dark:text-[#FF8A6A]" : "text-slate-600 dark:text-slate-300",
+        ),
   )
 
   if (sectionId && isHome) {
@@ -99,48 +113,82 @@ export function LandingHeader() {
 
   const authQuery =
     pathname === "/courses" || pathname.startsWith("/courses/") ? "?next=/courses" : ""
+  const plainHome = pathname === "/"
 
   return (
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-all duration-300",
-        scrolled || pathname !== "/"
-          ? "bg-white/90 shadow-sm backdrop-blur-md dark:bg-background/90 dark:shadow-black/20"
-          : "bg-transparent",
+        plainHome
+          ? cn(
+              "bg-[#fbfbfb] dark:bg-background",
+              scrolled && "border-b border-neutral-200 dark:border-border",
+            )
+          : scrolled || pathname !== "/"
+            ? "bg-white/90 shadow-sm backdrop-blur-md dark:bg-background/90 dark:shadow-black/20"
+            : "bg-transparent",
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
-          <SphereXLogo className="h-9 w-auto" priority />
-          <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Sphere<span className="text-teal-600 dark:text-teal-400">X</span>
+      <div
+        className={cn(
+          "mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8",
+          plainHome ? "h-[4.5rem] max-w-6xl" : "h-16 max-w-7xl",
+        )}
+      >
+        <Link href="/" className="flex items-center gap-2.5" aria-label="PetroCademia">
+          <SphereXLogo className={plainHome ? "h-9 w-auto" : "h-8 w-auto"} priority ink={plainHome} />
+          <span
+            className={cn(
+              "font-semibold tracking-[-0.03em] text-slate-900 dark:text-white",
+              plainHome ? "text-[15px]" : "text-lg",
+            )}
+          >
+            Petro<span className="text-[#FF4B1A]">Cademia</span>
           </span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {landingNavLinks.map((link) =>
-            link.dropdown === "categories" ? (
-              <CategoriesDropdown key={link.href} />
-            ) : (
-              <NavItem key={link.href} {...link} />
-            ),
+          {plainHome ? (
+            <>
+              {homeNavLinks.slice(0, 3).map((link) => (
+                <NavItem key={link.href} {...link} plain />
+              ))}
+              <span className="h-4 w-px bg-neutral-300 dark:bg-border" aria-hidden />
+              <NavItem {...homeNavLinks[3]} plain />
+              <Link
+                href={`/login${authQuery}`}
+                className="text-[15px] font-medium tracking-[-0.01em] text-neutral-950 hover:text-neutral-500 dark:text-neutral-100 dark:hover:text-neutral-400"
+              >
+                Log in
+              </Link>
+            </>
+          ) : (
+            landingNavLinks.map((link) =>
+              link.dropdown === "categories" ? (
+                <CategoriesDropdown key={link.href} />
+              ) : (
+                <NavItem key={link.href} {...link} />
+              ),
+            )
           )}
         </nav>
 
         <div className="flex items-center gap-3">
           <LandingThemeToggle />
-          <div className="hidden items-center gap-3 md:flex">
-            <Link href={`/login${authQuery}`}>
-              <Button variant="outline" className="rounded-full px-6 dark:border-border dark:bg-transparent dark:hover:bg-muted">
-                Login
-              </Button>
-            </Link>
-            <Link href={`/register${authQuery}`}>
-              <Button className="rounded-full bg-slate-900 px-6 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
-                Sign up
-              </Button>
-            </Link>
-          </div>
+          {!plainHome && (
+            <div className="hidden items-center gap-3 md:flex">
+              <Link href={`/login${authQuery}`}>
+                <Button variant="outline" className="rounded-full px-6 dark:border-border dark:bg-transparent dark:hover:bg-muted">
+                  Login
+                </Button>
+              </Link>
+              <Link href={`/register${authQuery}`}>
+                <Button className="rounded-full bg-slate-900 px-6 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+                  Sign up
+                </Button>
+              </Link>
+            </div>
+          )}
           <button
             type="button"
             className="relative h-6 w-6 text-slate-800 md:hidden dark:text-slate-100"

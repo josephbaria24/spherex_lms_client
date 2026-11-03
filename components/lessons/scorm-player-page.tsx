@@ -1,9 +1,10 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, RotateCcw, X } from "lucide-react"
+import { ArrowLeft, CheckCircle2, ChevronRight, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { apiGet } from "@/lib/api"
@@ -347,7 +348,7 @@ export function ScormPlayerPage({
   if (!launchUrl) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-black text-white">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+        <Spinner size={40} />
         <p className="text-sm text-white/80">Preparing SCORM player…</p>
       </div>
     )
@@ -393,7 +394,7 @@ export function ScormPlayerPage({
               onClick={() => void retakeLesson()}
               disabled={goingNext}
             >
-              {goingNext ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              {goingNext ? <Spinner size={14} /> : <RotateCcw className="h-3.5 w-3.5" />}
               Retake
             </Button>
           ) : null}
@@ -461,7 +462,7 @@ export function ScormPlayerPage({
                 >
                   <span className="min-w-0 flex-1 truncate text-left">Next: {nextLesson.title}</span>
                   {goingNext ? (
-                    <Loader2 className="size-3.5 shrink-0 animate-spin sm:size-4" />
+                    <Spinner size={14} className="shrink-0" />
                   ) : (
                     <ChevronRight className="size-3.5 shrink-0 sm:size-4" />
                   )}

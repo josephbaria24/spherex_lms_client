@@ -1,8 +1,9 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { Building2, Search, Users, BookOpen, ArrowRight, ExternalLink, Loader2 } from "lucide-react"
+import { Building2, Search, Users, BookOpen, ArrowRight, ExternalLink } from "lucide-react"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -66,7 +67,7 @@ export default function OrganizationsPage() {
                 Partner Organizations
               </span>
               <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
-                Organizations on SphereX
+                Organizations on PetroCademia
               </h1>
               <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-slate-300">
                 Course catalogs are managed per organization. Browse partner programs, view
@@ -77,7 +78,7 @@ export default function OrganizationsPage() {
             <div className="relative mx-auto mt-10 max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
-                placeholder="Search organizations…"
+                placeholder="Search organizations-"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="rounded-full pl-9"
@@ -89,8 +90,8 @@ export default function OrganizationsPage() {
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           {loading ? (
             <div className="flex min-h-[240px] items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Loading organizations…
+              <Spinner size={28} />
+              Loading organizations-
             </div>
           ) : error ? (
             <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
@@ -116,7 +117,7 @@ export default function OrganizationsPage() {
           <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-8 sm:p-10 dark:border-border dark:bg-card">
             <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Bring your organization onboard</h2>
             <p className="mt-3 text-slate-600 dark:text-slate-300">
-              Host your own course catalog on SphereX — self-paced, blended, exam prep, or language programs.
+              Host your own course catalog on PetroCademia - self-paced, blended, exam prep, or language programs.
             </p>
             <Link href="/register" className="mt-6 inline-flex items-center gap-2">
               <Button className="rounded-full bg-teal-600 px-8 text-white hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400">

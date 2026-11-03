@@ -1,15 +1,9 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import {
-  BookOpenCheck,
-  ClipboardList,
-  Download,
-  ExternalLink,
-  Loader2,
-  Search,
-} from "lucide-react"
+import { BookOpenCheck, ClipboardList, Download, ExternalLink, Search } from "lucide-react"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { ReviewerGroupCard } from "@/components/reviewers/reviewer-group-card"
 import { Button } from "@/components/ui/button"
@@ -245,7 +239,7 @@ function ReviewersPageContent() {
           <TabsContent value={examTab} className="mt-0">
             {loading ? (
               <div className="flex min-h-[240px] items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Spinner size={28} />
                 Loading reviewers…
               </div>
             ) : error ? (
@@ -316,7 +310,7 @@ function ReviewersPageContent() {
                         onClick={() => handleOpenMaterial(material)}
                       >
                         {busy ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Spinner size={16} className="mr-2" />
                         ) : isLink ? (
                           <ExternalLink className="mr-2 h-4 w-4" />
                         ) : (
@@ -344,7 +338,7 @@ export default function ReviewersPage() {
         <Suspense
           fallback={
             <div className="flex min-h-[240px] items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner size={28} />
               Loading reviewers…
             </div>
           }

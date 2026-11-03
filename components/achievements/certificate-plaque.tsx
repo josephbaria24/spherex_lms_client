@@ -33,13 +33,13 @@ function PlaqueFace({
               <img src={assetUrl(details.coverUrl)} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-wide text-[#8a7044]">
-                SphereX
+                PetroCademia
               </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6424]">
-              SphereX
+              PetroCademia
             </p>
             <p className="mt-1 font-serif text-sm font-semibold leading-tight sm:text-base">
               Certificate of Completion
@@ -160,7 +160,7 @@ export async function downloadPlaquePng(details: PlaqueDetails) {
 
   ctx.fillStyle = "#8a6424"
   ctx.font = "600 64px Helvetica, Arial, sans-serif"
-  ctx.fillText("SPHEREX", 1080, 420)
+  ctx.fillText("PetroCademia", 1080, 420)
 
   ctx.fillStyle = "#1a1f2e"
   ctx.font = "600 92px Georgia, serif"

@@ -1,9 +1,10 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { use, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/provider"
-import { Loader2 } from "lucide-react"
+
 
 export default function CourseDetailRedirect({
   params,
@@ -25,7 +26,7 @@ export default function CourseDetailRedirect({
 
   return (
     <div className="flex min-h-[40vh] items-center justify-center">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <Spinner size={32} />
     </div>
   )
 }

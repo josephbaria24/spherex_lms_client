@@ -1,9 +1,10 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+
 import { HiArrowLeft, HiPlayCircle } from "@/components/icons/hugeicons"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { Badge } from "@/components/ui/badge"
@@ -73,7 +74,7 @@ export default function IeltsSkillPage({
 
           {loading ? (
             <div className="mt-16 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner size={28} />
               Loading skill…
             </div>
           ) : error || !group ? (

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useEffect, useMemo, useState } from "react"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { GrowShell, GrowHeader } from "@/components/grow-shell"
@@ -169,7 +170,7 @@ export default function CoursesPage() {
   ) => {
     const { showProgress = false, catalog = false, emphasize = false } = options
     if (loading) {
-      return <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Loading courses…</p>
+      return <PageLoader label="Loading courses…" className="min-h-[20vh] py-6" />
     }
     if (courses.length === 0) {
       return (
@@ -226,7 +227,7 @@ export default function CoursesPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-background">
-        <p className="text-sm text-muted-foreground">Loading courses…</p>
+        <PageLoader label="Loading courses…" className="min-h-[20vh] py-6" />
       </div>
     )
   }
@@ -279,7 +280,7 @@ export default function CoursesPage() {
 
   return (
     <MainLayout>
-      <GrowShell className="max-md:p-3 max-md:pb-24" contentClassName="max-md:space-y-3">
+      <GrowShell className="max-md:p-3" contentClassName="max-md:space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <GrowHeader
             className="min-w-0 flex-1"
@@ -313,7 +314,7 @@ export default function CoursesPage() {
             </div>
 
             {loading ? (
-              <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Loading…</p>
+              <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
             ) : enrolledCourses.length === 0 ? (
               <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">
                 No courses yet.{" "}

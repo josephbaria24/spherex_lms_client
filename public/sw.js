@@ -1,4 +1,4 @@
-/* SphereX installability worker. Pass-through only — does not cache app data. */
+/* PetroCademia installability worker. Pass-through only — does not cache app data. */
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting())
 })

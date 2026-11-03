@@ -20,7 +20,7 @@ export function PageHeader({
   icon,
   accent,
   showDate = false,
-  compact = false,
+  compact = true,
   className,
   children,
 }: PageHeaderProps) {

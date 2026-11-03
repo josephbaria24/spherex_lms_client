@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
@@ -40,7 +41,7 @@ export default function AdminCourseLessonsPage({
   if (loading) {
     return (
       <GrowMainLayout>
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
       </GrowMainLayout>
     )
   }

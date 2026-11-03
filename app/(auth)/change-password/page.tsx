@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authChangePassword, authMe } from "@/lib/api"
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SphereXLogo } from "@/components/logo"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -61,7 +62,7 @@ export default function ChangePasswordPage() {
   if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Spinner size={40} />
       </div>
     )
   }
@@ -72,7 +73,7 @@ export default function ChangePasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#e7e7e7] p-4 text-slate-950">
       <div className="w-full max-w-md rounded-[14px] border border-black/5 bg-white p-8 shadow-lg">
-        <SphereXLogo className="mb-6 h-9 w-auto" />
+        <SphereXLogo className="mb-6 h-10 w-auto" />
         <h1 className="text-2xl font-bold text-slate-950">
           {forced ? "Set a new password" : "Change password"}
         </h1>
@@ -167,7 +168,7 @@ export default function ChangePasswordPage() {
             className="h-11 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800"
             disabled={loading}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save password"}
+            {loading ? <Spinner size={16} /> : "Save password"}
           </Button>
         </form>
       </div>

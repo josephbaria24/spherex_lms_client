@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { PageHeader } from "@/components/layout/page-header"
@@ -175,7 +176,7 @@ export default function AdminPaymentRequestsPage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
         ) : items.length === 0 ? (
           <p className="text-sm text-muted-foreground">No requests in this filter.</p>
         ) : (

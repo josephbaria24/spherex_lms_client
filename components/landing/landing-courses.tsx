@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { BookOpen, ChevronDown, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PageLoader } from "@/components/ui/spinner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,7 +117,7 @@ export function LandingCourses() {
   const organizationNames = Array.from(
     new Set(courses.map((course) => course.organizationName).filter((name): name is string => Boolean(name))),
   )
-  const catalogOwner = organizationNames.length === 1 ? organizationNames[0] : "SphereX"
+  const catalogOwner = organizationNames.length === 1 ? organizationNames[0] : "PetroCademia"
 
   const openCourse = (course: LandingCourse) => {
     if (course.isEnrolled) {
@@ -130,20 +131,28 @@ export function LandingCourses() {
   const categoryLabel = category === "all" ? "All Category" : category
 
   return (
-    <section id="courses" className="bg-slate-50/80 py-16 dark:bg-muted/20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-            Explore {catalogOwner} Courses
-          </h2>
+    <section id="courses" className="bg-transparent py-16 sm:py-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              Course catalog
+            </p>
+            <h2 className="mt-2 font-[family-name:var(--font-landing-display)] text-[clamp(1.85rem,3.5vw,2.75rem)] font-semibold tracking-[-0.04em] text-slate-900 dark:text-white">
+              Explore {catalogOwner} courses
+            </h2>
+            <p className="mt-2 max-w-lg text-[15px] leading-7 text-slate-500 dark:text-slate-400">
+              Live catalog from PetroCademia - the same courses you can enroll in after you sign in.
+            </p>
+          </div>
           <div className="flex gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
-                placeholder="Search courses…"
+                placeholder="Search courses-"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-48 rounded-full pl-9 sm:w-56"
+                className="w-48 rounded-full border-slate-200 bg-white pl-9 sm:w-56 dark:border-border dark:bg-card dark:text-foreground"
               />
             </div>
             <DropdownMenu>
@@ -167,20 +176,13 @@ export function LandingCourses() {
           </div>
         </div>
 
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          Live catalog from SphereX — the same courses you can enroll in after you sign in.
-        </p>
-
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-80 animate-pulse rounded-2xl border border-slate-100 bg-white dark:border-border dark:bg-card"
-              />
-            ))
+            <div className="col-span-full">
+              <PageLoader label="Loading courses?" className="min-h-[20vh] py-8" />
+            </div>
           ) : featured.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center dark:border-border dark:bg-card">
+            <div className="col-span-full rounded-[1.5rem] border border-dashed border-slate-200 bg-white p-12 text-center dark:border-border dark:bg-card">
               <BookOpen className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                 {search || category !== "all"
@@ -220,11 +222,11 @@ export function LandingCourses() {
                     <h3 className="line-clamp-2 font-bold text-slate-900 dark:text-white">{course.title}</h3>
                     <p className="mt-1 text-xs text-slate-400">{lessonLabel}</p>
                     <div className="mt-3 flex items-center gap-2">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700 dark:bg-teal-950/70 dark:text-teal-300">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FFE8E0] text-xs font-semibold text-[#FF4B1A]">
                         {orgInitial}
                       </span>
                       <span className="text-sm text-slate-500 dark:text-slate-400">
-                        {course.organizationName ?? "SphereX"}
+                        {course.organizationName ?? "PetroCademia"}
                       </span>
                     </div>
                     <div className="mt-4 flex items-center justify-between">
@@ -257,7 +259,7 @@ export function LandingCourses() {
             </Button>
           </Link>
           <Link href="/courses">
-            <Button className="rounded-full bg-teal-600 px-8 text-white hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400">
+            <Button className="rounded-full bg-[#FF4B1A] px-8 text-white hover:bg-[#e84314]">
               View All Courses
             </Button>
           </Link>

@@ -1,8 +1,9 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
+
 import {
   HiArrowRight,
   HiBookOpen,
@@ -121,7 +122,7 @@ export default function IeltsHubPage() {
 
           {loading ? (
             <div className="mt-16 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin text-teal-600" />
+              <Spinner size={28} />
               Loading IELTS practice…
             </div>
           ) : error ? (

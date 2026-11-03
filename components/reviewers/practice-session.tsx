@@ -1,8 +1,9 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
+
 import {
   HiArrowLeft,
   HiBookOpen,
@@ -137,7 +138,7 @@ export function PracticeSession({ quizId, backHref, backLabel }: PracticeSession
 
         {loading ? (
           <div className="mt-20 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
-            <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+            <Spinner size={32} />
             <p className="text-sm tracking-wide">Preparing your session…</p>
           </div>
         ) : error || !quiz ? (

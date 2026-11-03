@@ -1,10 +1,11 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { PracticeSession } from "@/components/reviewers/practice-session"
 import { fetchPublicReviewerQuiz } from "@/lib/public-reviewers"
-import { Loader2 } from "lucide-react"
+
 
 export default function ReviewerPracticePage({
   params,
@@ -37,8 +38,8 @@ export default function ReviewerPracticePage({
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-2 bg-[#f4f7f9] text-slate-500 dark:bg-background dark:text-slate-400">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        Loading…
+        <Spinner size={28} />
+        
       </div>
     )
   }

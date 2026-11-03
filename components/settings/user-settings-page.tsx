@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/app/provider"
 import { JoinOrgSection } from "@/components/settings/join-org-section"
@@ -12,7 +13,7 @@ import { Separator } from "@/components/ui/separator"
 import { apiGet, apiPatch } from "@/lib/api"
 import type { AuthUser } from "@/lib/api"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+
 
 type ProfileForm = {
   full_name: string
@@ -111,7 +112,7 @@ export function UserSettingsPage() {
           showDate={false}
         />
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Spinner size={16} />
           Loading your account…
         </div>
       </>

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { use, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
@@ -304,18 +305,12 @@ export default function AdminOrganizationSetupPage({
         </PageHeader>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading organization…</p>
+          <PageLoader label="Loading organization…" className="min-h-[20vh] py-6" />
         ) : !org ? (
           <p className="text-sm text-destructive">Organization not found.</p>
         ) : (
           <>
             <Card className="premium-card overflow-hidden border border-border shadow-none">
-              <div
-                className="h-2 w-full"
-                style={{
-                  background: `linear-gradient(90deg, ${branding.brand_primary}, ${branding.brand_accent})`,
-                }}
-              />
               <CardContent className="flex flex-wrap items-center gap-4 p-4">
                 <OrgLogo
                   logo={org.logo}
@@ -671,7 +666,7 @@ export default function AdminOrganizationSetupPage({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add member</DialogTitle>
-            <DialogDescription>User must already have a SphereX account.</DialogDescription>
+            <DialogDescription>User must already have a PetroCademia account.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="space-y-4">
             <div className="space-y-2">

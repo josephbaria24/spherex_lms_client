@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { FileUp, Loader2 } from "lucide-react"
+import { FileUp } from "lucide-react"
 
 type ImportResult = {
   ok: boolean
@@ -154,7 +155,7 @@ export function ImportReviewerPdfModal({ onImported }: ImportReviewerPdfModalPro
               Close
             </Button>
             <Button type="button" onClick={handleImport} disabled={loading || !file}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? <Spinner size={16} className="mr-2" /> : null}
               {loading ? "Extracting…" : "Import & create"}
             </Button>
           </div>

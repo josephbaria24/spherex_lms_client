@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { Building2 } from "lucide-react"
 import {
   Select,
@@ -14,7 +15,7 @@ export function TeacherOrgSelector() {
   const { teachingOrgs, selectedOrgId, setSelectedOrgId, loadingOrgs } = useTeacherOrg()
 
   if (loadingOrgs) {
-    return <span className="text-sm text-muted-foreground">Loading…</span>
+    return <Spinner size={20} />
   }
 
   if (teachingOrgs.length === 0) return null

@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { authMe, authResendVerification, authVerifyEmail, authLogout } from "@/lib/api"
 import { completeAuthSession } from "@/lib/post-auth-redirect"
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SphereXLogo } from "@/components/logo"
-import { Loader2, Mail, ShieldCheck } from "lucide-react"
+import { Mail, ShieldCheck } from "lucide-react"
 
 export default function VerifyEmailPage() {
   const [email, setEmail] = useState<string | null>(null)
@@ -76,7 +77,7 @@ export default function VerifyEmailPage() {
   if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#e7e7e7]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Spinner size={40} />
       </div>
     )
   }
@@ -84,7 +85,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#e7e7e7] p-4 text-slate-950">
       <div className="w-full max-w-md rounded-[14px] border border-black/5 bg-white p-8 shadow-lg">
-        <SphereXLogo className="mb-6 h-9 w-auto" />
+        <SphereXLogo className="mb-6 h-10 w-auto" />
         <h1 className="text-2xl font-bold text-slate-950">Verify your email</h1>
         <p className="mt-2 text-sm text-slate-500">
           We sent a 6-digit code to <span className="font-medium text-slate-700">{email}</span>.
@@ -119,7 +120,7 @@ export default function VerifyEmailPage() {
             disabled={loading || code.length !== 6}
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size={16} />
             ) : (
               <>
                 <ShieldCheck className="mr-2 h-4 w-4" />

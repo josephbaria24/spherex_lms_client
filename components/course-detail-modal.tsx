@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useLayoutEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -19,7 +20,7 @@ import { apiPost, ApiError } from "@/lib/api"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { Building2, Clock, KeyRound, Loader2, Mail, Signal } from "lucide-react"
+import { Building2, Clock, KeyRound, Mail, Signal } from "lucide-react"
 
 interface Props {
   course: Course | null
@@ -266,7 +267,7 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
               </div>
               <Button type="submit" className="w-full gap-2" disabled={requesting}>
                 {requesting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner size={16} />
                 ) : (
                   <Mail className="h-4 w-4" />
                 )}

@@ -27,7 +27,7 @@ export type LandingCategoryGroup = {
   items: LandingCategory[]
 }
 
-/** SphereX learning offerings — courses vary by partner organization. */
+/** PetroCademia learning offerings — courses vary by partner organization. */
 export const landingCategoryGroups: LandingCategoryGroup[] = [
   {
     id: "formats",

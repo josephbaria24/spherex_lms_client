@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
@@ -10,15 +11,7 @@ import { useAuth } from "@/app/provider"
 import { apiGet } from "@/lib/api"
 import { teacherApiPath } from "@/lib/teacher-api"
 import { teacherRoute } from "@/lib/teacher-routes"
-import {
-  type LucideIcon,
-  LayoutDashboard,
-  BookOpen,
-  Users,
-  ListOrdered,
-  ClipboardCheck,
-  CalendarDays,
-} from "lucide-react"
+import { type LucideIcon, LayoutDashboard, BookOpen, Users, ListOrdered, ClipboardCheck, CalendarDays } from "lucide-react"
 
 type DashboardData = {
   stats: {
@@ -307,7 +300,7 @@ export function TeacherDashboard() {
         />
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+          <PageLoader label="Loading dashboard…" className="min-h-[20vh] py-6" />
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">

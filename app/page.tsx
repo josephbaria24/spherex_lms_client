@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import TutorLandingPage from "@/components/tutor-landing-page"
@@ -22,7 +23,7 @@ export default function Page() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+        <Spinner size={40} />
       </div>
     )
   }

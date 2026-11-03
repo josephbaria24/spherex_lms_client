@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner, PageLoader } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SphereXLogo } from "@/components/logo"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams()
@@ -50,7 +51,7 @@ function ResetPasswordForm() {
         <ArrowLeft className="h-4 w-4" />
         Back to login
       </Link>
-      <SphereXLogo className="mb-6 h-9 w-auto" />
+      <SphereXLogo className="mb-6 h-10 w-auto" />
       <h1 className="text-2xl font-bold text-slate-950">Reset password</h1>
       {message ? (
         <div className="mt-4 space-y-4">
@@ -100,7 +101,7 @@ function ResetPasswordForm() {
             className="h-11 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800"
             disabled={loading || !token}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update password"}
+            {loading ? <Spinner size={16} /> : "Update password"}
           </Button>
         </form>
       )}
@@ -111,7 +112,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#e7e7e7] p-4 text-slate-950">
-      <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
+      <Suspense fallback={<PageLoader label="Loading…" className="min-h-[20vh] py-6" />}>
         <ResetPasswordForm />
       </Suspense>
     </div>

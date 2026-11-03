@@ -1,12 +1,14 @@
 // Application constants
 
-export const APP_NAME = "SphereX"
-export const APP_DESCRIPTION = "SphereX LMS — professional training and e-learning platform"
+export const APP_NAME = "PetroCademia"
+export const APP_DESCRIPTION = "PetroCademia — professional training and e-learning platform"
 
-/** Dark logo mark for light backgrounds */
-export const SPHEREX_LOGO_LIGHT = "/spx.png"
-/** Light logo mark for dark backgrounds */
-export const SPHEREX_LOGO_DARK = "/spxwhite.png"
+/** Primary PetroCademia mark — icon only, no wordmark */
+export const APP_LOGO = "/petrocademia-mark.png"
+/** @deprecated Prefer APP_LOGO — kept for older imports */
+export const SPHEREX_LOGO_LIGHT = APP_LOGO
+/** @deprecated Prefer APP_LOGO — kept for older imports */
+export const SPHEREX_LOGO_DARK = APP_LOGO
 
 export const COURSE_CATEGORIES = [
   "Technical Skills",

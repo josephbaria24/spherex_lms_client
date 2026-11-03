@@ -1,5 +1,5 @@
 /**
- * Grow Shell — SphereX student UI design system
+ * Grow Shell — PetroCademia student UI design system
  *
  * Warm cream canvas, bento cards, coral serif accents, pill controls.
  * Invoke in chat: "Use Grow Shell" or "Apply Grow Shell design"
@@ -20,7 +20,7 @@ export const GROW_SHELL = {
     muted: "#6b5c4f",
     border: "#ebe4da",
     borderSoft: "#ddd6ce",
-    accent: "#e85d4a",
+    accent: "#FF4B1A",
     navy: "#1a1f2e",
     violet: "#7c6cf0",
     lime: "#dcf7a1",

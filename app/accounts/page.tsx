@@ -40,9 +40,9 @@ export default function AccountsPage() {
 
         <div className="rounded-[14px] border border-black/5 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] sm:p-8">
           <div className="flex items-center gap-3">
-            <SphereXLogo className="h-9 w-auto" priority />
+            <SphereXLogo className="h-10 w-auto" priority />
             <div className="h-8 w-px bg-slate-200" />
-            <p className="text-xs font-semibold uppercase text-teal-700">SphereX LMS</p>
+            <p className="text-xs font-semibold uppercase text-teal-700">PetroCademia</p>
           </div>
 
           <h1 className="mt-8 text-3xl font-bold text-slate-950">Sample accounts</h1>

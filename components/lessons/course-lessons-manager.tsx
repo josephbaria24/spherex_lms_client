@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -300,7 +301,7 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading lessons…</p>
+        <PageLoader label="Loading lessons…" className="min-h-[20vh] py-6" />
       ) : lessons.length === 0 ? (
         <Card className="premium-card border border-border shadow-none">
           <CardContent className="p-8 text-center">

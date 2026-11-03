@@ -1,8 +1,9 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Download, ImageIcon, Loader2, Maximize2, X } from "lucide-react"
+import { ArrowLeft, Download, ImageIcon, Maximize2, X } from "lucide-react"
 import { toast } from "sonner"
 import { GrowHeader } from "@/components/grow-shell"
 import { Button } from "@/components/ui/button"
@@ -144,7 +145,7 @@ export function CertificatesCoursesPage({
                   disabled={busy !== null}
                   onClick={() => void onPng(details)}
                 >
-                  {busy === "png" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                  {busy === "png" ? <Spinner size={16} /> : <ImageIcon className="h-4 w-4" />}
                   PNG
                 </Button>
                 <Button
@@ -153,7 +154,7 @@ export function CertificatesCoursesPage({
                   disabled={!cert || busy !== null}
                   onClick={() => cert && void onPdf(cert.id, cert.serial_number)}
                 >
-                  {busy === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {busy === "pdf" ? <Spinner size={16} /> : <Download className="h-4 w-4" />}
                   PDF
                 </Button>
               </div>

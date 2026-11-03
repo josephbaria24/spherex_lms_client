@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import {
   Dialog,
   DialogContent,
@@ -9,7 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { resolveArticulateLaunchUrl, resolveVideoSrc } from "@/lib/lesson-media"
 import type { Lesson, LessonQuiz, QuizQuestion } from "@/lib/lesson-types"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
 type LessonPreviewDialogProps = {
   open: boolean
@@ -148,7 +149,7 @@ export function LessonPreviewDialog({
         </DialogHeader>
         {loading || !lesson ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner size={16} />
             Loading content…
           </p>
         ) : (

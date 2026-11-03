@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { Card, CardContent } from "@/components/ui/card"
@@ -63,7 +64,7 @@ export default function TeacherSessionsPage() {
         />
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading sessions…</p>
+          <PageLoader label="Loading sessions…" className="min-h-[20vh] py-6" />
         ) : sessions.length === 0 ? (
           <Card className="premium-card border border-border shadow-none">
             <CardContent className="p-8 text-center">

@@ -1,9 +1,10 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, CheckCheck, Loader2 } from "lucide-react"
+import { Bell, CheckCheck } from "lucide-react"
 import { useAuth } from "@/app/provider"
 import { apiGet, apiPost } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -156,7 +157,7 @@ export function NotificationBell() {
               disabled={loading}
             >
               {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Spinner size={14} />
               ) : (
                 <CheckCheck className="h-3.5 w-3.5" />
               )}

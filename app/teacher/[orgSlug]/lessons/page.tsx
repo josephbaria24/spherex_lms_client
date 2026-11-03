@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useSearchParams } from "next/navigation"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { CourseLessonsManager } from "@/components/lessons/course-lessons-manager"
@@ -29,7 +30,7 @@ export default function TeacherLessonsPage() {
         ) : selectedOrgId ? (
           <CourseLessonsManager orgId={selectedOrgId} courseId={courseIdFromUrl} />
         ) : (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
         )}
       </div>
     </GrowMainLayout>

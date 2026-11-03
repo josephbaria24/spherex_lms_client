@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
@@ -165,7 +166,7 @@ export function DashboardCourseCarousel() {
   if (loading) {
     return (
       <div className={cn(CAROUSEL_CLASS, "flex min-h-[260px] animate-pulse items-center justify-center")}>
-        <p className="text-sm text-[#6b5c7a] dark:text-violet-300/80">Loading courses…</p>
+        <PageLoader label="Loading courses…" className="min-h-[12vh] py-4" />
       </div>
     )
   }

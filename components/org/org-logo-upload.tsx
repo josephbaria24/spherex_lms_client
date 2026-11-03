@@ -1,12 +1,13 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { apiUploadFile } from "@/lib/api"
 import { OrgLogo, type OrgLogoAppearance } from "@/components/org/org-logo"
-import { ImagePlus, Loader2 } from "lucide-react"
+import { ImagePlus } from "lucide-react"
 import { toast } from "sonner"
 
 type OrgLogoUploadProps = {
@@ -97,7 +98,7 @@ export function OrgLogoUpload({
           >
             {uploading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size={16} />
                 Uploading…
               </>
             ) : (

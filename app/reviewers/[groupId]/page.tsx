@@ -1,9 +1,10 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, PlayCircle } from "lucide-react"
+import { ArrowLeft, PlayCircle } from "lucide-react"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -71,7 +72,7 @@ export default function ReviewerGroupDetailPage({
 
           {loading || (!group && !error) ? (
             <div className="mt-16 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner size={28} />
               Loading subject…
             </div>
           ) : error || !group ? (

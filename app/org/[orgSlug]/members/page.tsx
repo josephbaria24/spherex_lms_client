@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { PageHeader } from "@/components/layout/page-header"
@@ -72,7 +73,7 @@ export default function OrgMembersPage() {
     if (!selectedOrgId) return
     if (atCapacity) {
       toast.error("Member limit reached", {
-        description: "Contact SphereX support to increase your organization capacity.",
+        description: "Contact PetroCademia support to increase your organization capacity.",
       })
       return
     }
@@ -143,7 +144,7 @@ export default function OrgMembersPage() {
         )}
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading members…</p>
+          <PageLoader label="Loading members…" className="min-h-[20vh] py-6" />
         ) : members.length === 0 ? (
           <Card className="premium-card border border-border shadow-none">
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
@@ -189,7 +190,7 @@ export default function OrgMembersPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add member</DialogTitle>
-            <DialogDescription>User must already have a SphereX account.</DialogDescription>
+            <DialogDescription>User must already have a PetroCademia account.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4">
             <div className="space-y-2">

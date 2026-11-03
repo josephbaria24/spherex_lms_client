@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -9,7 +10,7 @@ import {
   type CourseCardTheme,
 } from "@/lib/course-card-themes"
 import { CourseCardHero, CourseCardThemeSwatch } from "@/components/admin/courses/course-card-hero"
-import { ImagePlus, Loader2, X } from "lucide-react"
+import { ImagePlus, X } from "lucide-react"
 import { toast } from "sonner"
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif"
@@ -127,7 +128,7 @@ export function CourseCardAppearanceFields({
           >
             {uploading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size={16} />
                 Uploading…
               </>
             ) : (

@@ -1,7 +1,8 @@
 "use client"
 
+import { PageLoader, Spinner } from "@/components/ui/spinner"
 import { useEffect, useRef, useState } from "react"
-import { Award, Eye, Loader2, Plus, Save, Trash2, Upload } from "lucide-react"
+import { Award, Eye, Plus, Save, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -290,7 +291,7 @@ export function CertificateTemplateEditor({
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading certificate template…</p>
+    return <PageLoader label="Loading certificate template…" className="min-h-[20vh] py-6" />
   }
 
   return (
@@ -315,7 +316,7 @@ export function CertificateTemplateEditor({
             disabled={uploading}
             onClick={() => fileRef.current?.click()}
           >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? <Spinner size={16} /> : <Upload className="h-4 w-4" />}
             Upload background
           </Button>
           <Button
@@ -328,7 +329,7 @@ export function CertificateTemplateEditor({
             {preview ? "Editing" : "Preview"}
           </Button>
           <Button type="button" size="sm" onClick={() => void save()} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? <Spinner size={16} /> : <Save className="h-4 w-4" />}
             Save template
           </Button>
         </div>

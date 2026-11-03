@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -407,7 +408,7 @@ export function LessonEditorForm({
       {form.content_type === "quiz" && (
         <div className="rounded-[1.25rem] border border-[#ebe4da] bg-white/80 p-4 dark:border-border dark:bg-card">
           {loadingQuiz ? (
-            <p className="text-sm text-muted-foreground">Loading quiz…</p>
+            <PageLoader label="Loading quiz…" className="min-h-[20vh] py-6" />
           ) : (
             <QuizEditor value={quiz} onChange={setQuiz} disabled={submitting} />
           )}

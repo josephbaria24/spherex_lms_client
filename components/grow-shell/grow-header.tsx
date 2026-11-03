@@ -5,7 +5,7 @@ import { GROW_SHELL } from "@/lib/grow-shell"
 
 type GrowHeaderProps = {
   title: string
-  /** Serif italic accent phrase appended after an em dash */
+  /** Accent phrase appended after an em dash */
   accent?: string
   description?: string
   showDate?: boolean
@@ -17,14 +17,14 @@ type GrowHeaderProps = {
   children?: React.ReactNode
 }
 
-/** Grow Shell page header — date pill, bold title, coral serif accent */
+/** Grow Shell page header — compact title row with optional brand accent */
 export function GrowHeader({
   title,
   accent,
   description,
-  showDate = true,
+  showDate = false,
   icon: Icon,
-  compact = false,
+  compact = true,
   denseOnMobile = false,
   className,
   children,
@@ -32,32 +32,32 @@ export function GrowHeader({
   return (
     <header
       className={cn(
-        "flex flex-col sm:flex-row sm:items-end sm:justify-between",
-        denseOnMobile ? "gap-2 md:gap-4" : compact ? "gap-3" : "gap-4",
+        "flex flex-col sm:flex-row sm:items-center sm:justify-between",
+        denseOnMobile ? "gap-2 md:gap-3" : "gap-2.5",
         className,
       )}
     >
-      <div className={cn("flex min-w-0 items-start", compact ? "gap-3" : "gap-4")}>
+      <div className="flex min-w-0 items-center gap-3">
         {Icon ? (
           <div
             className={cn(
-              "flex shrink-0 items-center justify-center border border-white/50 bg-white/40 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/10",
-              compact ? "h-10 w-10 rounded-lg" : "h-14 w-14 rounded-2xl",
+              "flex shrink-0 items-center justify-center bg-[#FFE8E0] text-[#FF4B1A] shadow-sm",
+              compact ? "h-9 w-9 rounded-xl" : "h-10 w-10 rounded-xl",
             )}
           >
-            <Icon className={cn(compact ? "h-5 w-5" : "h-6 w-6", "text-[#5c4d8a] dark:text-violet-200")} />
+            <Icon className="h-4 w-4 stroke-[1.5]" />
           </div>
         ) : null}
-        <div className={cn("min-w-0", compact || denseOnMobile ? "space-y-0.5 md:space-y-2" : "space-y-2")}>
+        <div className="min-w-0 space-y-0.5">
           {showDate ? (
             <span
               className={cn(
-                "inline-flex items-center rounded-full border border-[#e8dfd3] bg-white/70 px-3 py-1 text-xs font-medium text-[#6b5c4f] dark:border-border dark:bg-card",
+                "inline-flex items-center rounded-full border border-neutral-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:border-border dark:bg-card",
                 denseOnMobile && "hidden md:inline-flex",
               )}
             >
               {new Date().toLocaleDateString(undefined, {
-                weekday: "long",
+                weekday: "short",
                 month: "short",
                 day: "numeric",
               })}
@@ -65,27 +65,26 @@ export function GrowHeader({
           ) : null}
           <h1
             className={cn(
-              "font-bold tracking-tight text-[#1c1917] dark:text-foreground",
-              denseOnMobile ? "text-xl md:text-3xl lg:text-4xl" : compact ? "text-2xl" : "text-3xl sm:text-4xl",
+              "font-bold tracking-[-0.03em] text-neutral-950 dark:text-foreground",
+              denseOnMobile
+                ? "text-lg md:text-xl"
+                : compact
+                  ? "text-lg md:text-xl"
+                  : "text-xl md:text-2xl",
             )}
           >
             {title}
             {accent ? (
-              <span className={cn(denseOnMobile && "hidden md:inline")}>
+              <span className={cn("font-medium text-neutral-400 dark:text-neutral-500", denseOnMobile && "hidden md:inline")}>
                 {" — "}
-                <span
-                  className="font-serif italic"
-                  style={{ color: GROW_SHELL.colors.accent }}
-                >
-                  {accent}
-                </span>
+                <span style={{ color: GROW_SHELL.colors.accent }}>{accent}</span>
               </span>
             ) : null}
           </h1>
           {description ? (
             <p
               className={cn(
-                "max-w-2xl text-sm text-[#6b5c4f] dark:text-muted-foreground",
+                "max-w-xl text-sm leading-5 text-neutral-500 dark:text-muted-foreground",
                 denseOnMobile && "hidden md:block",
               )}
             >
@@ -95,7 +94,9 @@ export function GrowHeader({
         </div>
       </div>
       {children ? (
-        <div className={cn("flex flex-wrap gap-2", denseOnMobile && "hidden md:flex")}>{children}</div>
+        <div className={cn("flex flex-wrap items-center gap-2", denseOnMobile && "hidden md:flex")}>
+          {children}
+        </div>
       ) : null}
     </header>
   )

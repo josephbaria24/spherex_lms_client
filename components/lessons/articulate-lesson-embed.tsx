@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, Circle, Loader2, Maximize2, Play, RotateCcw, X, XCircle } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
+import { CheckCircle2, Circle, Maximize2, Play, RotateCcw, X, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
@@ -97,7 +98,7 @@ function LessonProgressIndicator({
         )}
         <span className="text-sm font-medium text-foreground">{label}</span>
         {saving ? (
-          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-label="Saving" />
+          <Spinner size={14} className="shrink-0" />
         ) : null}
       </div>
       {status !== "preview" && status !== "untracked" ? (

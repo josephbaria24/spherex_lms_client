@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { SphereXLogo } from "@/components/logo"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import { ApiError, apiGet, apiUploadFile } from "@/lib/api"
-import { Loader2, Upload } from "lucide-react"
+import { Upload } from "lucide-react"
 
 type UploadInfo = {
   transaction_number: string
@@ -72,13 +73,13 @@ export default function ReceiptUploadPage() {
     <div className="min-h-screen bg-[#e7e7e7] px-4 py-10">
       <div className="mx-auto max-w-lg rounded-[14px] border border-black/5 bg-white p-6 shadow-lg sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <SphereXLogo className="h-8 w-auto" />
+          <SphereXLogo className="h-10 w-auto" />
           <p className="text-xs font-semibold uppercase text-teal-700">Payment receipt</p>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+            <Spinner size={40} />
           </div>
         ) : error && !info ? (
           <div className="space-y-4">
@@ -130,7 +131,7 @@ export default function ReceiptUploadPage() {
 
             <Button type="submit" className="w-full gap-2" disabled={uploading || !file}>
               {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size={16} />
               ) : (
                 <Upload className="h-4 w-4" />
               )}

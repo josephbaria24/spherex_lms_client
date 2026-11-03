@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { apiPost } from "@/lib/api"
 import {
@@ -28,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Loader2 } from "lucide-react"
+
 import { useRouter } from "next/navigation"
 
 const EXAM_TYPES = ["CSE", "NLE", "LET", "IELTS", "Other"] as const
@@ -172,7 +173,7 @@ export function CreateQuizModal({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? <Spinner size={16} className="mr-2" /> : null}
               Create & edit
             </Button>
           </div>

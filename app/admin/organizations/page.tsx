@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState } from "react"
 import { GrowMainLayout } from "@/components/layouts/grow-main-layout"
 import { PageHeader } from "@/components/layout/page-header"
@@ -206,7 +207,7 @@ export default function AdminOrganizationsPage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
         ) : filtered.length === 0 ? (
           <Card className="premium-card border border-border shadow-none">
             <CardContent className="p-8 text-center text-sm text-muted-foreground">

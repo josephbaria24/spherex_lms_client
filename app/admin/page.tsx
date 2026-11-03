@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
@@ -96,10 +97,11 @@ export default function AdminDashboardPage() {
           title="Admin dashboard"
           accent="platform pulse"
           description="Monitor and manage your training platform"
+          compact
         />
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading dashboard…</p>
+          <PageLoader label="Loading dashboard…" className="min-h-[20vh] py-6" />
         ) : !data ? (
           <p className="text-sm text-muted-foreground">Unable to load dashboard data.</p>
         ) : (
@@ -130,7 +132,7 @@ export default function AdminDashboardPage() {
                           {stat.value}
                         </p>
                         <p
-                          className={`mt-1 text-[10px] ${isDark ? "text-emerald-200" : "text-emerald-600 dark:text-emerald-400"}`}
+                          className={`mt-1 text-[10px] font-medium ${isDark ? "text-white/80" : "text-[#FF4B1A]"}`}
                         >
                           {stat.change}
                         </p>
@@ -147,24 +149,24 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="premium-card border border-border shadow-none">
-                <CardContent className="p-4">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h2 className="setup-type-module-title flex items-center gap-2">
-                      <Activity className="h-4 w-4 stroke-[1.5]" />
+              <Card className="premium-card border border-neutral-200/80 shadow-none">
+                <CardContent className="p-5">
+                  <div className="mb-5 flex items-center justify-between">
+                    <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight text-neutral-950 dark:text-foreground">
+                      <Activity className="h-4 w-4 stroke-[1.5] text-[#FF4B1A]" />
                       Recent Activity
                     </h2>
                   </div>
                   {recentActivity.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No recent activity yet.</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-1">
                       {recentActivity.map((activity) => (
                         <div
                           key={activity.id}
-                          className="flex items-start gap-3 border-b border-border pb-3 last:border-0"
+                          className="flex items-start gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-[#FFF4EF]/70 dark:hover:bg-muted/40"
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFE8E0] text-sm font-semibold text-[#FF4B1A]">
                             {activity.user.charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -185,10 +187,12 @@ export default function AdminDashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="premium-card border border-border shadow-none">
-                <CardContent className="p-4">
-                  <h2 className="setup-type-module-title mb-4">Quick Actions</h2>
-                  <div className="grid gap-2">
+              <Card className="premium-card border border-neutral-200/80 shadow-none">
+                <CardContent className="p-5">
+                  <h2 className="mb-5 text-sm font-semibold tracking-tight text-neutral-950 dark:text-foreground">
+                    Quick Actions
+                  </h2>
+                  <div className="grid gap-2.5">
                     {[
                       {
                         icon: BookOpen,
@@ -224,14 +228,18 @@ export default function AdminDashboardPage() {
                       <Link
                         key={action.title}
                         href={action.href}
-                        className="premium-row flex items-center gap-3 rounded-xl border border-border/60 p-3 text-left"
+                        className="group flex items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white p-3.5 text-left transition hover:-translate-y-0.5 hover:border-[#FFD8C8] hover:bg-[#FFF8F5] hover:shadow-[0_12px_28px_-18px_rgba(255,75,26,0.45)] dark:border-border dark:bg-card dark:hover:border-[#FF4B1A]/35 dark:hover:bg-[#FF4B1A]/5"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFE8E0] text-[#FF4B1A] transition group-hover:bg-[#FF4B1A] group-hover:text-white">
                           <action.icon className="h-4 w-4 stroke-[1.5]" />
                         </div>
-                        <div>
-                          <p className="setup-type-module-title">{action.title}</p>
-                          <p className="setup-type-module-sub">{action.desc}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold tracking-tight text-neutral-950 dark:text-foreground">
+                            {action.title}
+                          </p>
+                          <p className="text-xs leading-snug text-neutral-500 dark:text-muted-foreground">
+                            {action.desc}
+                          </p>
                         </div>
                       </Link>
                     ))}

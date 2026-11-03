@@ -20,12 +20,6 @@ export function OrgBrandedBanner({
 }: OrgBrandedBannerProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-none">
-      <div
-        className="h-2 w-full"
-        style={{
-          background: `linear-gradient(90deg, var(--org-primary, #0d9488), var(--org-accent, #14b8a6))`,
-        }}
-      />
       <div className="flex flex-wrap items-center gap-4 p-5">
         <OrgLogo
           logo={logo}

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageLoader } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { GrowShell, GrowHeader } from "@/components/grow-shell"
@@ -105,7 +106,7 @@ export default function MaterialsPage() {
   const renderGrid = (items: Material[]) => {
     if (loading) {
       return (
-        <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">Loading materials…</p>
+        <PageLoader label="Loading materials…" className="min-h-[20vh] py-6" />
       )
     }
     if (items.length === 0) {

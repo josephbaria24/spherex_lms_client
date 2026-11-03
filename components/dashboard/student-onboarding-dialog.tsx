@@ -103,7 +103,7 @@ export function StudentOnboardingDialog({
               {step === "welcome" &&
                 (emptyCourses
                   ? "You’re all set up — next, find a course to start learning."
-                  : "A quick tour to help you get the most out of SphereX.")}
+                  : "A quick tour to help you get the most out of PetroCademia.")}
               {step === "code-ask" &&
                 "Some organizations unlock free courses with a student code."}
               {step === "code-input" &&
