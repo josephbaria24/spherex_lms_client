@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { CourseCategoryFields } from "@/components/admin/courses/course-category-fields"
 import { CourseDurationFields } from "@/components/admin/courses/course-duration-fields"
 import { CoursePriceFields } from "@/components/admin/courses/course-price-fields"
 import { apiGet, apiPost } from "@/lib/api"
@@ -41,7 +42,6 @@ export function CreateCourseModal({ onCreated, defaultOrganizationId }: Props) {
     title: "",
     description: "",
     category: "",
-    level: "beginner" as "beginner" | "intermediate" | "advanced" | "",
     duration: "",
     price_cents: 0,
   })
@@ -87,8 +87,7 @@ export function CreateCourseModal({ onCreated, defaultOrganizationId }: Props) {
         organization_id: formData.organization_id,
         title: formData.title,
         description: formData.description || undefined,
-        category: formData.category || undefined,
-        level: formData.level || undefined,
+        category: formData.category.trim() || undefined,
         duration: formData.duration || undefined,
         price_cents: formData.price_cents,
       })
@@ -99,7 +98,6 @@ export function CreateCourseModal({ onCreated, defaultOrganizationId }: Props) {
         title: "",
         description: "",
         category: "",
-        level: "beginner",
         duration: "",
         price_cents: 0,
       })
@@ -165,28 +163,11 @@ export function CreateCourseModal({ onCreated, defaultOrganizationId }: Props) {
               className="block min-h-40 max-h-[min(24rem,50vh)] resize-y overflow-y-auto whitespace-pre-wrap leading-relaxed [field-sizing:fixed]"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Input id="category" name="category" value={formData.category} onChange={handleChange} />
-          </div>
-          <div className="space-y-2">
-            <Label>Level</Label>
-            <Select
-              value={formData.level}
-              onValueChange={(v) =>
-                setFormData((f) => ({ ...f, level: v as typeof formData.level }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <CourseCategoryFields
+            idPrefix="create"
+            value={formData.category}
+            onChange={(category) => setFormData((f) => ({ ...f, category }))}
+          />
           <CourseDurationFields
             idPrefix="create-duration"
             resetKey={open ? "create-open" : "create-closed"}

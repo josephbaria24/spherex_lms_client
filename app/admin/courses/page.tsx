@@ -43,6 +43,7 @@ import {
 import { CreateCourseModal } from "@/components/admin/courses/create-course-modal"
 import { CourseCardAppearanceFields } from "@/components/admin/courses/course-card-appearance"
 import { CourseCardHero } from "@/components/admin/courses/course-card-hero"
+import { CourseCategoryFields } from "@/components/admin/courses/course-category-fields"
 import { CourseDurationFields } from "@/components/admin/courses/course-duration-fields"
 import { CoursePriceFields } from "@/components/admin/courses/course-price-fields"
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api"
@@ -89,7 +90,6 @@ export default function AdminCoursesPage() {
     title: "",
     description: "",
     category: "",
-    level: "" as "beginner" | "intermediate" | "advanced" | "",
     duration: "",
     organization_id: "",
     require_sequential_lessons: false,
@@ -151,7 +151,6 @@ export default function AdminCoursesPage() {
         title: editCourse.title || "",
         description: editCourse.description || "",
         category: editCourse.category || "",
-        level: (editCourse.level as typeof editForm.level) || "",
         duration: editCourse.duration || "",
         organization_id: editCourse.organization_id || "",
         require_sequential_lessons: editCourse.require_sequential_lessons ?? false,
@@ -175,8 +174,7 @@ export default function AdminCoursesPage() {
       await apiPatch(`/courses/${editCourse.id}`, {
         title: editForm.title,
         description: editForm.description || undefined,
-        category: editForm.category || undefined,
-        level: editForm.level || undefined,
+        category: editForm.category.trim() || undefined,
         duration: editForm.duration || undefined,
         organization_id: editForm.organization_id,
         require_sequential_lessons: editForm.require_sequential_lessons,
@@ -421,11 +419,11 @@ export default function AdminCoursesPage() {
       </div>
 
       <Dialog open={!!editCourse} onOpenChange={() => setEditCourse(null)}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Course</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
+          <form onSubmit={handleEditSubmit} className="min-h-0 space-y-4">
             <div className="space-y-2">
               <Label>Organization</Label>
               <Select
@@ -467,32 +465,11 @@ export default function AdminCoursesPage() {
                 className="block min-h-40 max-h-[min(24rem,50vh)] resize-y overflow-y-auto whitespace-pre-wrap leading-relaxed [field-sizing:fixed]"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-category">Category</Label>
-              <Input
-                id="edit-category"
-                value={editForm.category}
-                onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Level</Label>
-              <Select
-                value={editForm.level}
-                onValueChange={(v) =>
-                  setEditForm((f) => ({ ...f, level: v as typeof editForm.level }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <CourseCategoryFields
+              idPrefix="edit"
+              value={editForm.category}
+              onChange={(category) => setEditForm((f) => ({ ...f, category }))}
+            />
             <CourseDurationFields
               idPrefix="edit-duration"
               resetKey={editCourse?.id}
