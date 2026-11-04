@@ -148,15 +148,22 @@ export function CertificatesCoursesPage({
                   {busy === "png" ? <Spinner size={16} /> : <ImageIcon className="h-4 w-4" />}
                   PNG
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={!cert || busy !== null}
-                  onClick={() => cert && void onPdf(cert.id, cert.serial_number)}
-                >
-                  {busy === "pdf" ? <Spinner size={16} /> : <Download className="h-4 w-4" />}
-                  PDF
-                </Button>
+                {cert && cert.has_template === false ? (
+                  <p className="w-full text-sm leading-6 text-muted-foreground">
+                    This course does not have a certificate design yet. Your completion is saved.
+                    Contact support and we will send your certificate once the design is ready.
+                  </p>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!cert || busy !== null}
+                    onClick={() => cert && void onPdf(cert.id, cert.serial_number)}
+                  >
+                    {busy === "pdf" ? <Spinner size={16} /> : <Download className="h-4 w-4" />}
+                    PDF
+                  </Button>
+                )}
               </div>
             </article>
           ))}

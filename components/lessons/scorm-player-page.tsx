@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, CheckCircle2, ChevronRight, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LessonConcernButton } from "@/components/lessons/lesson-concern-button"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/app/provider"
 import { isTeacher } from "@/lib/roles"
@@ -407,6 +408,7 @@ export function ScormPlayerPage({
             <ArrowLeft className="h-3.5 w-3.5" />
             Back
           </Button>
+          <LessonConcernButton courseId={courseId} lessonId={lessonId} overlay />
           <span className="hidden truncate text-xs text-white/70 sm:inline">{lessonTitle}</span>
           {lessonFailed && !lessonFinished ? (
             <Button

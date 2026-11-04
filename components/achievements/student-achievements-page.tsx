@@ -505,6 +505,13 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
                       ) : null}
                     </div>
                     <div className="p-4">
+                      {cert.has_template === false ? (
+                        <p className="text-sm leading-6 text-[#6b5c4f] dark:text-muted-foreground">
+                          This course does not have a certificate design yet. Your completion is
+                          saved. Contact support and we will send your certificate once the design
+                          is ready.
+                        </p>
+                      ) : (
                       <Button
                         type="button"
                         size="sm"
@@ -520,6 +527,7 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
                         )}
                         Download PDF
                       </Button>
+                      )}
                     </div>
                   </article>
                 ))}

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { GrowShell } from "@/components/grow-shell"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { LessonContentViewer } from "@/components/lessons/lesson-content-viewer"
+import { LessonConcernButton } from "@/components/lessons/lesson-concern-button"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { grow } from "@/lib/grow-shell"
@@ -18,7 +19,7 @@ import {
   setCachedOutline,
 } from "@/lib/learn-cache"
 import type { Lesson, LessonQuiz } from "@/lib/lesson-types"
-import { CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Circle, CircleHelp, CircleDot, Lock } from "lucide-react"
+import { CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { groupLessonOutline } from "@/lib/lesson-outline"
@@ -100,7 +101,6 @@ export function CourseLearnPage({
     () => !!lessonId && !getCachedLesson<LessonDetail>(courseId, lessonId),
   )
   const [lessonBlocked, setLessonBlocked] = useState<string | null>(null)
-  const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
   const [showPlayer, setShowPlayer] = useState(false)
 
   const previewMode = previewModeProp ?? outline?.preview ?? detail?.preview ?? false
@@ -239,6 +239,11 @@ export function CourseLearnPage({
 
   const lessons = outline?.lessons ?? []
   const { roots, childrenOf } = groupLessonOutline(lessons)
+  const lessonItems = roots.filter((lesson) => lesson.content_type !== "quiz")
+  const quizItems = [
+    ...roots.filter((lesson) => lesson.content_type === "quiz"),
+    ...roots.flatMap((lesson) => childrenOf.get(lesson.id) ?? []),
+  ]
   const currentIdx = detail ? lessons.findIndex((l) => l.id === detail.lesson.id) : -1
   const prevLesson = currentIdx > 0 ? lessons[currentIdx - 1] : null
   const nextLessonCandidate =
@@ -331,8 +336,7 @@ export function CourseLearnPage({
               </div>
 
               <nav className="space-y-2 lg:hidden">
-                {roots.map((l, i) => {
-                  const quizzes = childrenOf.get(l.id) ?? []
+                {lessonItems.map((l, i) => {
                   const isActive = detail?.lesson.id === l.id
                   const status = l.locked
                     ? "Not available yet"
@@ -418,65 +422,61 @@ export function CourseLearnPage({
                           {body}
                         </Link>
                       )}
-                      {quizzes.length > 0 ? (
-                        <div className="space-y-1.5 border-t border-[#ebe4da] bg-[#faf8f5] px-3 py-2.5 dark:border-border dark:bg-muted/20">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6b5c4f] dark:text-muted-foreground">
-                            Quizzes in this lesson
-                          </p>
-                          {quizzes.map((quiz) => {
-                            const quizActive = detail?.lesson.id === quiz.id
-                            const quizOpen = !quiz.locked
-                            const quizClass = cn(
-                              "flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm",
-                              quizActive
-                                ? "bg-[#FFF4EF] text-[#FF4B1A] dark:bg-[#FF4B1A]/10"
-                                : !quizOpen
-                                  ? "cursor-not-allowed text-amber-800 dark:text-amber-200"
-                                  : "text-[#1c1917] dark:text-foreground",
-                            )
-                            const quizLabel = (
-                              <>
-                                <CircleHelp className="h-4 w-4 shrink-0 text-[#FF4B1A]" />
-                                <span className="min-w-0 flex-1 leading-snug">
-                                  <span className="block">{quiz.quiz_title || quiz.title}</span>
-                                  {quiz.locked ? (
-                                    <span className="mt-0.5 block text-[11px] font-medium text-amber-800 dark:text-amber-200">
-                                      Finish the previous lesson before this quiz
-                                    </span>
-                                  ) : null}
-                                </span>
-                                <span className="shrink-0 text-[11px] font-medium text-[#6b5c4f]">
-                                  {quiz.locked ? "Not available yet" : quiz.completed ? "Done" : "Quiz"}
-                                </span>
-                              </>
-                            )
-                            if (!quizOpen) {
-                              return (
-                                <div key={quiz.id} className={quizClass}>
-                                  {quizLabel}
-                                </div>
-                              )
-                            }
-                            return (
-                              <Link
-                                key={quiz.id}
-                                href={lessonPath(quiz.id)}
-                                className={quizClass}
-                                onClick={(e) => {
-                                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                                  e.preventDefault()
-                                  navigateToLesson(quiz.id)
-                                }}
-                              >
-                                {quizLabel}
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      ) : null}
                     </div>
                   )
                 })}
+                {quizItems.length > 0 ? (
+                  <div className="pt-2">
+                    <p className="px-1 pb-2 text-sm font-semibold text-[#312e81]">Quizzes</p>
+                    <div className="space-y-1.5">
+                      {quizItems.map((quiz) => {
+                        const quizActive = detail?.lesson.id === quiz.id
+                        const quizClass = cn(
+                          "flex items-center gap-2 rounded-xl border border-[#ebe4da] bg-white px-3 py-2.5 text-sm text-[#312e81] dark:border-border dark:bg-card",
+                          quizActive && "border-[#312e81]/40 bg-[#ebe4f8] dark:bg-violet-950/40",
+                          quiz.locked && "cursor-not-allowed opacity-60",
+                        )
+                        const quizLabel = (
+                          <>
+                            <CircleHelp className="h-4 w-4 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate">{quiz.quiz_title || quiz.title}</span>
+                            {quiz.locked ? (
+                              <Lock className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <span
+                                className={cn(
+                                  "h-3.5 w-3.5 shrink-0 rounded-full border border-[#312e81]/50",
+                                  quiz.completed && "border-[#312e81] bg-[#312e81]",
+                                )}
+                              />
+                            )}
+                          </>
+                        )
+                        if (quiz.locked) {
+                          return (
+                            <div key={quiz.id} className={quizClass}>
+                              {quizLabel}
+                            </div>
+                          )
+                        }
+                        return (
+                          <Link
+                            key={quiz.id}
+                            href={lessonPath(quiz.id)}
+                            className={quizClass}
+                            onClick={(e) => {
+                              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                              e.preventDefault()
+                              navigateToLesson(quiz.id)
+                            }}
+                          >
+                            {quizLabel}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </nav>
 
               <div className="hidden lg:block">
@@ -506,69 +506,42 @@ export function CourseLearnPage({
                   </div>
                 )}
               </div>
-              <nav className="hidden max-h-[50vh] space-y-1 overflow-x-hidden overflow-y-auto lg:block">
-                {roots.map((l, i) => {
-                  const quizzes = childrenOf.get(l.id) ?? []
+              <nav className="hidden max-h-[50vh] space-y-0.5 overflow-x-hidden overflow-y-auto lg:block">
+                {lessonItems.map((l) => {
                   const isActive = detail?.lesson.id === l.id
-                  const menuOpen = quizzes.length > 0 && collapsedMenus[l.id] !== true
                   const rowClass = cn(
-                    "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-all duration-200 lg:items-start lg:rounded-xl lg:px-2.5 lg:py-2",
+                    "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-[#312e81] transition-colors",
                     isActive
-                      ? "bg-[#ebe4f8] text-[#1c1917] shadow-sm dark:bg-violet-950/40 dark:text-foreground"
+                      ? "bg-[#ebe4f8] dark:bg-violet-950/40"
                       : l.locked
                         ? "cursor-not-allowed opacity-60"
                         : "hover:bg-[#faf8f5] dark:hover:bg-muted/60",
                   )
-                  const icon = l.locked ? (
-                    <Lock className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f] lg:mt-0.5 lg:h-4 lg:w-4" />
-                  ) : l.completed ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 lg:mt-0.5 lg:h-4 lg:w-4 dark:text-emerald-400" />
-                  ) : l.started ? (
-                    <CircleDot className="h-3.5 w-3.5 shrink-0 text-[#7c6cf0] lg:mt-0.5 lg:h-4 lg:w-4" />
-                  ) : (
-                    <Circle className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f] lg:mt-0.5 lg:h-4 lg:w-4" />
-                  )
                   const label = (
                     <>
-                      {icon}
-                      <span className="min-w-0 flex-1">
-                        <span className="hidden text-[10px] text-[#6b5c4f] dark:text-muted-foreground lg:block">
-                          Lesson {i + 1}
-                        </span>
-                        <span className="block truncate font-medium leading-snug lg:overflow-visible lg:whitespace-normal">
-                          <span className="mr-1.5 text-[10px] font-semibold text-[#6b5c4f] lg:hidden dark:text-muted-foreground">
-                            {i + 1}
-                          </span>
-                          {l.title}
-                        </span>
-                      </span>
-                      {quizzes.length > 0 ? (
-                        <span className="shrink-0 text-[10px] text-[#6b5c4f]">
-                          <span className="lg:hidden">{quizzes.length}</span>
-                          <span className="hidden lg:inline">
-                            {quizzes.length} Quiz{quizzes.length === 1 ? "" : "zes"}
-                          </span>
-                        </span>
-                      ) : null}
-                      <span
-                        className={cn(
-                          "shrink-0 text-[10px] font-semibold tabular-nums lg:text-xs",
-                          lessonPercent(l) >= 100
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-[#6b5c4f] dark:text-muted-foreground",
-                        )}
-                      >
-                        {lessonPercent(l)}%
-                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{l.title}</span>
+                      {l.locked ? (
+                        <Lock className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f]" />
+                      ) : (
+                        <span
+                          className={cn(
+                            "h-3.5 w-3.5 shrink-0 rounded-full border border-[#312e81]/50",
+                            l.completed && "border-[#312e81] bg-[#312e81]",
+                          )}
+                        />
+                      )}
                     </>
                   )
-
-                  const lessonRow = l.locked ? (
-                    <div className={rowClass} title="Complete the previous lesson to unlock">
-                      {label}
-                    </div>
-                  ) : (
+                  if (l.locked) {
+                    return (
+                      <div key={l.id} className={rowClass} title="Complete the previous lesson to unlock">
+                        {label}
+                      </div>
+                    )
+                  }
+                  return (
                     <Link
+                      key={l.id}
                       href={lessonPath(l.id)}
                       className={rowClass}
                       onClick={(e) => {
@@ -580,77 +553,61 @@ export function CourseLearnPage({
                       {label}
                     </Link>
                   )
-
-                  if (quizzes.length === 0) {
-                    return <div key={l.id}>{lessonRow}</div>
-                  }
-
-                  return (
-                    <div key={l.id} className="rounded-lg border border-[#312e81]/25 lg:rounded-xl">
-                      <div className="flex items-start">
-                        <button
-                          type="button"
-                          className="ml-1.5 mt-2 text-[#312e81] lg:ml-2 lg:mt-2.5"
-                          aria-expanded={menuOpen}
-                          aria-label={menuOpen ? "Hide quizzes" : "Show quizzes"}
-                          onClick={() =>
-                            setCollapsedMenus((current) => ({ ...current, [l.id]: menuOpen }))
-                          }
-                        >
-                          <ChevronDown className={cn("h-4 w-4 transition", menuOpen ? "" : "-rotate-90")} />
-                        </button>
-                        <div className="min-w-0 flex-1">{lessonRow}</div>
-                      </div>
-                      {menuOpen ? (
-                        <div className="space-y-1 border-t border-[#312e81]/15 px-2 py-2">
-                          {quizzes.map((quiz) => {
-                            const quizActive = detail?.lesson.id === quiz.id
-                            const quizClass = cn(
-                              "flex items-center gap-2 rounded-full border border-[#312e81]/20 px-2.5 py-1.5 text-sm text-[#312e81]",
-                              quizActive && "bg-[#ebe4f8] dark:bg-violet-950/40",
-                              quiz.locked
-                                ? "cursor-not-allowed opacity-60"
-                                : "hover:bg-[#faf8f5] dark:hover:bg-muted/60",
-                            )
-                            const quizLabel = (
-                              <>
-                                <CircleHelp className="h-4 w-4 shrink-0" />
-                                <span className="min-w-0 flex-1 truncate">{quiz.quiz_title || quiz.title}</span>
-                                <span
-                                  className={cn(
-                                    "h-2.5 w-2.5 shrink-0 rounded-full border border-[#312e81]",
-                                    quiz.completed ? "bg-[#312e81]" : "bg-transparent",
-                                  )}
-                                />
-                              </>
-                            )
-                            if (quiz.locked) {
-                              return (
-                                <div key={quiz.id} className={quizClass} title="Complete the previous lesson to unlock">
-                                  {quizLabel}
-                                </div>
-                              )
-                            }
-                            return (
-                              <Link
-                                key={quiz.id}
-                                href={lessonPath(quiz.id)}
-                                className={quizClass}
-                                onClick={(e) => {
-                                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                                  e.preventDefault()
-                                  navigateToLesson(quiz.id)
-                                }}
-                              >
-                                {quizLabel}
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      ) : null}
-                    </div>
-                  )
                 })}
+                {quizItems.length > 0 ? (
+                  <div className="pt-4">
+                    <p className="px-2 pb-1 text-sm font-semibold text-[#312e81]">Quizzes</p>
+                    <div className="space-y-0.5">
+                      {quizItems.map((quiz) => {
+                        const quizActive = detail?.lesson.id === quiz.id
+                        const quizClass = cn(
+                          "flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[#312e81]",
+                          quizActive && "bg-[#ebe4f8] dark:bg-violet-950/40",
+                          quiz.locked
+                            ? "cursor-not-allowed opacity-60"
+                            : "hover:bg-[#faf8f5] dark:hover:bg-muted/60",
+                        )
+                        const quizLabel = (
+                          <>
+                            <CircleHelp className="h-4 w-4 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate">{quiz.quiz_title || quiz.title}</span>
+                            {quiz.locked ? (
+                              <Lock className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f]" />
+                            ) : (
+                              <span
+                                className={cn(
+                                  "h-3.5 w-3.5 shrink-0 rounded-full border border-[#312e81]/50",
+                                  quiz.completed && "border-[#312e81] bg-[#312e81]",
+                                )}
+                              />
+                            )}
+                          </>
+                        )
+                        if (quiz.locked) {
+                          return (
+                            <div key={quiz.id} className={quizClass} title="Complete the previous lesson to unlock">
+                              {quizLabel}
+                            </div>
+                          )
+                        }
+                        return (
+                          <Link
+                            key={quiz.id}
+                            href={lessonPath(quiz.id)}
+                            className={quizClass}
+                            onClick={(e) => {
+                              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                              e.preventDefault()
+                              navigateToLesson(quiz.id)
+                            }}
+                          >
+                            {quizLabel}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </nav>
             </div>
           </aside>
@@ -699,18 +656,21 @@ export function CourseLearnPage({
                 key={detail.lesson.id}
                 className="animate-in fade-in slide-in-from-right-3 space-y-4 duration-300 lg:space-y-6"
               >
-                <div>
-                  <span className="grow-badge text-[#6b5c4f]">
-                    Lesson {currentIdx + 1} of {lessons.length}
-                  </span>
-                  <h2 className="mt-2 text-xl font-bold text-[#1c1917] lg:text-2xl dark:text-foreground">
-                    {detail.lesson.title}
-                  </h2>
-                  {detail.lesson.description && (
-                    <p className="mt-1 text-[#6b5c4f] dark:text-muted-foreground">
-                      {detail.lesson.description}
-                    </p>
-                  )}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="grow-badge text-[#6b5c4f]">
+                      Lesson {currentIdx + 1} of {lessons.length}
+                    </span>
+                    <h2 className="mt-2 text-xl font-bold text-[#1c1917] lg:text-2xl dark:text-foreground">
+                      {detail.lesson.title}
+                    </h2>
+                    {detail.lesson.description && (
+                      <p className="mt-1 text-[#6b5c4f] dark:text-muted-foreground">
+                        {detail.lesson.description}
+                      </p>
+                    )}
+                  </div>
+                  <LessonConcernButton courseId={courseId} lessonId={detail.lesson.id} />
                 </div>
 
                 <LessonContentViewer
