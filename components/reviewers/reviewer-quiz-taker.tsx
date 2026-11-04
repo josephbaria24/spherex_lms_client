@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -242,7 +243,16 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
         </p>
         {result.band_score != null ? (
           <p className="mt-2 inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm font-semibold text-teal-800 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-200">
-            Approx. band {Number(result.band_score).toFixed(1)}
+            Practice band {Number(result.band_score).toFixed(1)}
+          </p>
+        ) : null}
+        {quiz.exam_type === "IELTS" && result.passed ? (
+          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+            Signed-in passes count toward your{" "}
+            <Link href="/ielts#certificate" className="font-semibold text-[#FF4B1A] hover:underline">
+              certificate of completion
+            </Link>
+            .
           </p>
         ) : null}
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">

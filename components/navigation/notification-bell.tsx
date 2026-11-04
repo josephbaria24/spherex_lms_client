@@ -39,7 +39,7 @@ function formatRelativeTime(iso: string): string {
   })
 }
 
-export function NotificationBell() {
+export function NotificationBell({ className }: { className?: string }) {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -120,7 +120,11 @@ export function NotificationBell() {
           type="button"
           variant="ghost"
           size="icon"
-          className="relative h-9 w-9 rounded-full text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground dark:bg-background dark:text-foreground dark:hover:bg-background dark:hover:text-foreground"
+          className={cn(
+            "relative h-9 w-9 rounded-full",
+            className ??
+              "text-foreground hover:bg-muted hover:text-foreground",
+          )}
           aria-label={
             unreadCount > 0
               ? `Notifications, ${unreadCount} unread`

@@ -15,7 +15,9 @@ import type { Course } from "@/lib/types"
 import { CourseDetailsModal } from "@/components/course-detail-modal"
 import { StudentJoinBanner } from "@/components/settings/join-org-section"
 import { LandingHeader } from "@/components/landing/landing-header"
+import { CatalogTrackIntro, CatalogTrackPicker } from "@/components/courses/catalog-track-picker"
 import { assetUrl } from "@/lib/asset-url"
+import { isIeltsCourse, isOshCourse, type CatalogTrackId } from "@/lib/catalog-tracks"
 import { cn } from "@/lib/utils"
 
 type CourseRow = {
@@ -52,6 +54,7 @@ export default function CoursesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [catalogTab, setCatalogTab] = useState("enrolled")
+  const [track, setTrack] = useState<CatalogTrackId | null>(null)
 
   const mapCourse = (c: CourseRow, progress = 0): Course => ({
     id: c.id,
@@ -142,10 +145,12 @@ export default function CoursesPage() {
     )
   }
 
-  const catalogCourses = useMemo(
-    () => filterCourses(allCourses),
-    [allCourses, search],
-  )
+  const catalogCourses = useMemo(() => {
+    const searched = filterCourses(allCourses)
+    if (track === "osh") return searched.filter(isOshCourse)
+    if (track === "ielts") return searched.filter(isIeltsCourse)
+    return searched
+  }, [allCourses, search, track])
 
   const myEnrolled = useMemo(
     () => filterCourses(enrolledCourses),
@@ -264,7 +269,17 @@ export default function CoursesPage() {
             </div>
           </section>
           <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-            {renderGrid(catalogCourses, { catalog: true })}
+            <CatalogTrackPicker value={track} onChange={setTrack} />
+            {track ? (
+              <div className="mt-8">
+                <CatalogTrackIntro track={track} />
+                {track === "osh" || track === "ielts" ? renderGrid(catalogCourses, { catalog: true }) : null}
+              </div>
+            ) : (
+              <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                Choose IELTS, OSH trainings, or Reviewers to see what is available.
+              </p>
+            )}
           </section>
         </main>
         <CourseDetailsModal
@@ -389,8 +404,18 @@ export default function CoursesPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="catalog" className="mt-3 md:mt-5">
-              {renderGrid(catalogCourses, { catalog: true })}
+            <TabsContent value="catalog" className="mt-3 space-y-4 md:mt-5">
+              <CatalogTrackPicker value={track} onChange={setTrack} />
+              {track === "reviewers" ? <CatalogTrackIntro track="reviewers" /> : null}
+              {track === "ielts" ? <CatalogTrackIntro track="ielts" /> : null}
+              {track === "osh" ? <CatalogTrackIntro track="osh" /> : null}
+              {track === "osh" || track === "ielts"
+                ? renderGrid(catalogCourses, { catalog: true })
+                : !track ? (
+                    <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">
+                      Choose IELTS, OSH trainings, or Reviewers.
+                    </p>
+                  ) : null}
             </TabsContent>
 
             <TabsContent value="enrolled" className="mt-3 md:mt-5">

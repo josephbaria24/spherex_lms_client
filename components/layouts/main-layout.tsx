@@ -87,14 +87,14 @@ function MainLayoutShell({ children }: MainLayoutProps) {
               </div>
               <div className="relative z-10 ml-auto flex items-center gap-0.5">
                 <MobileThemeToggle />
-                <NotificationBell />
+                <NotificationBell className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" />
               </div>
             </div>
           </div>
 
           {/* Desktop notifications without the dark bar */}
           <div className="relative z-10 hidden shrink-0 items-center justify-end px-4 pt-3 md:flex md:px-5">
-            <NotificationBell />
+            <NotificationBell className="bg-transparent text-foreground shadow-none hover:bg-muted hover:text-foreground" />
           </div>
           <div className="sleek-page flex min-h-0 flex-1 flex-col overflow-y-auto p-4 md:p-6 has-[.grow-shell]:overflow-hidden has-[.grow-shell]:p-0 has-[.grow-shell]:!min-h-0">
             {children}

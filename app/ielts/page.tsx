@@ -13,6 +13,7 @@ import {
   HiPen,
 } from "@/components/icons/hugeicons"
 import { LandingHeader } from "@/components/landing/landing-header"
+import { IeltsCertificatePanel } from "@/components/ielts/ielts-certificate-panel"
 import { ReviewerGroupCard } from "@/components/reviewers/reviewer-group-card"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +21,34 @@ import {
   type PublicReviewerGroup,
 } from "@/lib/public-reviewers"
 import { cn } from "@/lib/utils"
+
+type IeltsTrack = "academic" | "general" | "ukvi"
+
+const IELTS_TRACKS: {
+  id: IeltsTrack
+  title: string
+  image: string
+  imageAlt: string
+}[] = [
+  {
+    id: "academic",
+    title: "IELTS Academic",
+    image: "/Navy cap, burgundy book, golden pencil-1.png",
+    imageAlt: "Graduation cap over an academic textbook",
+  },
+  {
+    id: "general",
+    title: "IELTS General Training",
+    image: "/Open envelope, books, and pencil-2.png",
+    imageAlt: "Letter, books, and a pencil",
+  },
+  {
+    id: "ukvi",
+    title: "IELTS for UKVI Life Skills",
+    image: "/IELTS Listening and Speaking Illustration-3.png",
+    imageAlt: "Headphones with listening and speaking icons",
+  },
+]
 
 type SkillIcon = (props: { className?: string }) => React.ReactElement
 
@@ -50,6 +79,7 @@ export default function IeltsHubPage() {
   const [groups, setGroups] = useState<PublicReviewerGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [track, setTrack] = useState<IeltsTrack | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -107,20 +137,73 @@ export default function IeltsHubPage() {
               IELTS Preparation
             </span>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
-              Practice by skill
+              Practice by test
             </h1>
             <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-slate-300">
-              Listening and Reading drills with timers, passages, and audio — separate from CSE,
-              NLE, and LET reviewers.
+              Choose Academic, General Training, or UKVI Life Skills. These are PetroCademia practice
+              sets, not official sample papers.
             </p>
-            {!loading && !error ? (
+            {track === "academic" && !loading && !error ? (
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
                 {sorted.length} skills · {totalParts} practice sets
               </p>
             ) : null}
           </div>
+          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            {IELTS_TRACKS.map((item) => {
+              const selected = track === item.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTrack(item.id)}
+                  aria-pressed={selected}
+                  className="group text-left"
+                >
+                  <span
+                    className={cn(
+                      "block overflow-hidden rounded-md bg-slate-200 ring-2 ring-transparent transition group-hover:opacity-95 dark:bg-muted",
+                      selected && "ring-[#FF4B1A]",
+                    )}
+                  >
+                    <img
+                      src={encodeURI(item.image)}
+                      alt={item.imageAlt}
+                      className="aspect-[4/3] w-full bg-white object-contain object-center p-3"
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-3 flex items-start gap-1 text-[15px] font-semibold leading-snug text-slate-900 group-hover:text-[#FF4B1A] dark:text-white dark:group-hover:text-[#FF8A6A]",
+                      selected && "text-[#FF4B1A] dark:text-[#FF8A6A]",
+                    )}
+                  >
+                    {item.title}
+                    <HiArrowRight className="mt-0.5 h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </button>
+              )
+            })}
+          </div>
 
-          {loading ? (
+          <IeltsCertificatePanel />
+
+          {!track ? (
+            <p className="mt-10 text-center text-sm text-slate-500 dark:text-slate-400">
+              Choose Academic, General Training, or UKVI Life Skills to see practice sets.
+            </p>
+          ) : track !== "academic" ? (
+            <div className="mt-12 rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-border dark:bg-card">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                {track === "general" ? "IELTS General Training" : "IELTS for UKVI Life Skills"}
+              </h2>
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {track === "general"
+                  ? "General Training practice — everyday reading and letter-style writing — is not published yet. The sets below Academic are not General Training papers."
+                  : "UKVI Life Skills is speaking and listening only, for certain UK visa routes. Those practice sets are not published yet."}
+              </p>
+            </div>
+          ) : loading ? (
             <div className="mt-16 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
               <Spinner size={28} />
               Loading IELTS practice…

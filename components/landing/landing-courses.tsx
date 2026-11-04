@@ -133,8 +133,8 @@ export function LandingCourses() {
   return (
     <section id="courses" className="bg-transparent py-16 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
               Course catalog
             </p>
@@ -145,23 +145,24 @@ export function LandingCourses() {
               Live catalog from PetroCademia - the same courses you can enroll in after you sign in.
             </p>
           </div>
-          <div className="flex gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center lg:w-auto lg:max-w-md lg:shrink-0">
+            <div className="relative w-full min-w-0 sm:flex-1 lg:w-64 lg:flex-none">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
-                placeholder="Search courses-"
+                placeholder="Search courses"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-48 rounded-full border-slate-200 bg-white pl-9 sm:w-56 dark:border-border dark:bg-card dark:text-foreground"
+                className="h-10 w-full min-w-0 rounded-full border-slate-200 bg-white pl-9 dark:border-border dark:bg-card dark:text-foreground"
               />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 dark:border-border dark:bg-card dark:text-slate-300"
+                  className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 sm:w-auto dark:border-border dark:bg-card dark:text-slate-300"
                 >
-                  {categoryLabel} <ChevronDown className="h-4 w-4" />
+                  <span className="truncate">{categoryLabel}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
