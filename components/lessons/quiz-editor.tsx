@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select"
 import { MathText } from "@/components/reviewers/math-text"
 import type { QuizQuestion } from "@/lib/lesson-types"
-import { Bold, Download, FileUp, FunctionSquare, Plus, Trash2 } from "lucide-react"
+import { Bold, CheckCircle2, Download, FileUp, FunctionSquare, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { downloadQuizTemplate, importQuizFile } from "@/lib/quiz-import"
 
@@ -99,6 +99,22 @@ type QuizEditorProps = {
   disabled?: boolean
   /** Show math/emphasis helpers + live preview (reviewer questionnaires) */
   enableReviewerMarkup?: boolean
+}
+
+function answerKeyLabels(question: QuizQuestion): string[] {
+  if (question.question_type === "fill_blank") {
+    return question.correct_option_id?.trim() ? [question.correct_option_id.trim()] : []
+  }
+  if (question.question_type === "true_false") {
+    if (question.correct_option_id === "true") return ["True"]
+    if (question.correct_option_id === "false") return ["False"]
+    return []
+  }
+  const ids = (question.correct_option_id ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+  return question.options.filter((option) => ids.includes(option.id) && option.text.trim()).map((option) => option.text.trim())
 }
 
 function wrapSelection(
@@ -227,6 +243,8 @@ export function QuizEditor({
   enableReviewerMarkup = false,
 }: QuizEditorProps) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const xmlRef = useRef<HTMLInputElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
 
   function updateQuestion(idx: number, patch: Partial<QuizQuestion>) {
     onChange({
@@ -274,16 +292,22 @@ export function QuizEditor({
       toast.error(result.errors[0] ?? "Could not import questions")
       return
     }
+    const fromQuizExport = file.name.toLowerCase().endsWith(".xml")
     const existing = value.questions.filter((question) => question.prompt.trim())
     onChange({
       ...value,
-      questions: [...existing, ...result.questions],
+      title: result.title?.trim() || value.title,
+      passing_score: result.passingScore ?? value.passing_score,
+      questions: fromQuizExport ? result.questions : [...existing, ...result.questions],
     })
     if (result.errors.length > 0) {
       toast.warning(`Imported ${result.questions.length} questions. ${result.errors[0]}`)
     } else {
       toast.success(`Imported ${result.questions.length} questions`)
     }
+    requestAnimationFrame(() => {
+      previewRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    })
   }
 
   return (
@@ -327,6 +351,18 @@ export function QuizEditor({
             if (file) void onImportFile(file)
           }}
         />
+        <input
+          ref={xmlRef}
+          type="file"
+          accept=".xml,text/xml,application/xml"
+          className="hidden"
+          disabled={disabled}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            e.target.value = ""
+            if (file) void onImportFile(file)
+          }}
+        />
         <Button
           type="button"
           variant="outline"
@@ -340,6 +376,17 @@ export function QuizEditor({
         </Button>
         <Button
           type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          disabled={disabled}
+          onClick={() => xmlRef.current?.click()}
+        >
+          <FileUp className="h-3.5 w-3.5" />
+          Upload quiz XML
+        </Button>
+        <Button
+          type="button"
           variant="ghost"
           size="sm"
           className="gap-1"
@@ -350,9 +397,65 @@ export function QuizEditor({
           Download template
         </Button>
         <p className="text-xs text-muted-foreground">
-          Columns: question type, questions, choices, correct answers. Separate choices with |.
+          CSV columns: question type, questions, choices, correct answers. XML accepts a LearnDash
+          or WpProQuiz export and fills the title, passing score, and questions.
         </p>
       </div>
+
+      {value.questions.some((question) => question.prompt.trim()) ? (
+        <div
+          ref={previewRef}
+          className="max-h-80 space-y-3 overflow-y-auto rounded-xl border border-[#ebe4da] bg-[#faf8f5] p-3 dark:border-border dark:bg-muted/20"
+        >
+          <p className="text-sm font-semibold">Preview and answer key</p>
+          {value.questions.map((question, index) => {
+            if (!question.prompt.trim()) return null
+            const keys = new Set(answerKeyLabels(question))
+            const choices =
+              question.question_type === "true_false"
+                ? [
+                    { id: "true", text: "True" },
+                    { id: "false", text: "False" },
+                  ]
+                : question.options.filter((option) => option.text.trim())
+            return (
+              <div key={`${question.prompt}-${index}`} className="space-y-1.5 text-sm">
+                <p className="font-medium leading-snug">
+                  {index + 1}. <MathText text={question.prompt} />
+                </p>
+                {question.question_type === "fill_blank" ? (
+                  <p className="flex items-start gap-1.5 text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>Answer: {question.correct_option_id}</span>
+                  </p>
+                ) : (
+                  <ul className="space-y-1 pl-4">
+                    {choices.map((option) => {
+                      const correct = keys.has(option.text.trim())
+                      return (
+                        <li
+                          key={option.id}
+                          className={
+                            correct
+                              ? "flex items-start gap-1.5 font-medium text-emerald-700 dark:text-emerald-400"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {correct ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /> : null}
+                          <span>
+                            <MathText text={option.text} />
+                            {correct ? " · answer key" : ""}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
 
       {enableReviewerMarkup ? (
         <div className="rounded-lg border border-dashed bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">

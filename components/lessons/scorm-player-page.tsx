@@ -6,6 +6,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, CheckCircle2, ChevronRight, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { useAuth } from "@/app/provider"
+import { isTeacher } from "@/lib/roles"
 import { cn } from "@/lib/utils"
 import { apiGet } from "@/lib/api"
 import {
@@ -26,6 +29,7 @@ import {
   type Scorm12Api,
 } from "@/lib/scorm-api"
 import { notifyStorylineResize, useStorylineIframeFill } from "@/lib/storyline-iframe-fill"
+import { clearStorylineTestSkip, skipStorylineClip } from "@/lib/storyline-test-skip"
 
 type RotateMode = "off" | "native" | "css"
 
@@ -84,6 +88,9 @@ export function ScormPlayerPage({
   fresh = false,
 }: ScormPlayerPageProps) {
   const router = useRouter()
+  const { user, isAdmin, canAccessOrgAdmin } = useAuth()
+  const showTestSkip = previewMode || isAdmin || canAccessOrgAdmin || isTeacher(user?.role)
+  const [skipVideo, setSkipVideo] = useState(false)
   const [lessonTitle, setLessonTitle] = useState("Lesson")
   const [launchUrl, setLaunchUrl] = useState<string | null>(null)
   const [resumeNote, setResumeNote] = useState<string | null>(null)
@@ -255,6 +262,21 @@ export function ScormPlayerPage({
   useStorylineIframeFill(iframeRef, Boolean(launchUrl))
 
   useEffect(() => {
+    if (!skipVideo || !launchUrl) return
+    const tick = () => {
+      const frame = iframeRef.current?.contentWindow
+      if (frame) skipStorylineClip(frame)
+    }
+    tick()
+    const id = window.setInterval(tick, 600)
+    return () => {
+      window.clearInterval(id)
+      const frame = iframeRef.current?.contentWindow
+      if (frame) clearStorylineTestSkip(frame)
+    }
+  }, [launchUrl, skipVideo])
+
+  useEffect(() => {
     const timers = [80, 400].map((ms) =>
       window.setTimeout(() => notifyStorylineResize(iframeRef.current), ms),
     )
@@ -402,6 +424,18 @@ export function ScormPlayerPage({
         {resumeNote ? <p className="text-[10px] text-white/50">{resumeNote}</p> : null}
       </div>
       <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+        {showTestSkip ? (
+          <label className="flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white">
+            <Switch
+              checked={skipVideo}
+              onCheckedChange={setSkipVideo}
+              aria-label="Skip video for testing"
+            />
+            <span title="Testing only. Skips the video and shows Next without waiting for it to finish.">
+              Skip video
+            </span>
+          </label>
+        ) : null}
         <Button
           type="button"
           variant="secondary"

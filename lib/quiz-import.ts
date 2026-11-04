@@ -9,6 +9,8 @@ const ANSWER_HEADERS = new Set(["correct answers", "correct answer", "answer", "
 export type QuizImportResult = {
   questions: QuizQuestion[]
   errors: string[]
+  title?: string
+  passingScore?: number
 }
 
 function headerKey(value: string) {
@@ -204,8 +206,134 @@ function questionsFromRows(rows: string[][]): QuizImportResult {
   return { questions, errors }
 }
 
+function stripHtml(value: string) {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)))
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function childText(parent: Element, tag: string) {
+  const child = Array.from(parent.children).find((el) => el.localName === tag)
+  return child?.textContent ?? ""
+}
+
+function isTrueFalsePair(options: { text: string }[]) {
+  if (options.length !== 2) return false
+  const labels = options.map((option) => option.text.trim().toLowerCase())
+  return labels.includes("true") && labels.includes("false")
+}
+
+/** LearnDash / WpProQuiz export (`<wpProQuiz>`). Correctness comes from correct="true". */
+export function questionsFromWpProQuizXml(xml: string): QuizImportResult {
+  if (typeof DOMParser === "undefined") {
+    return { questions: [], errors: ["XML import needs a browser."] }
+  }
+  const doc = new DOMParser().parseFromString(xml, "text/xml")
+  if (doc.querySelector("parsererror")) {
+    return { questions: [], errors: ["This file is not valid XML."] }
+  }
+  const rootName = doc.documentElement?.localName?.toLowerCase()
+  const quiz = Array.from(doc.getElementsByTagName("quiz"))[0]
+  if (rootName !== "wpproquiz" || !quiz) {
+    return { questions: [], errors: ["Upload a LearnDash or WpProQuiz export (.xml)."] }
+  }
+
+  const title = stripHtml(childText(quiz, "title"))
+  const passingMatch = xml.match(/sfwd-quiz_passingpercentage"\s*:\s*"(\d+)"/)
+  const passingScore = passingMatch ? Number(passingMatch[1]) : undefined
+  const questionsWrap = Array.from(quiz.children).find((el) => el.localName === "questions")
+  const questionNodes = Array.from(questionsWrap?.children ?? []).filter(
+    (el) => el.localName === "question",
+  )
+  const questions: QuizQuestion[] = []
+  const errors: string[] = []
+
+  questionNodes.forEach((question, index) => {
+    const number = index + 1
+    const answerType = (question.getAttribute("answerType") ?? "single").toLowerCase()
+    const prompt = stripHtml(childText(question, "questionText"))
+    if (!prompt) {
+      errors.push(`Question ${number} has no text.`)
+      return
+    }
+    if (answerType !== "single" && answerType !== "multiple") {
+      errors.push(`Question ${number} uses “${answerType}”, which this quiz editor cannot import.`)
+      return
+    }
+
+    const answersWrap = Array.from(question.children).find((el) => el.localName === "answers")
+    const answers = Array.from(answersWrap?.children ?? []).filter((el) => el.localName === "answer")
+    const options = answers
+      .map((answer) => ({
+        id: optionId(),
+        text: stripHtml(childText(answer, "answerText")),
+        correct: answer.getAttribute("correct") === "true",
+      }))
+      .filter((answer) => answer.text)
+    if (options.length < 2) {
+      errors.push(`Question ${number} needs at least two answers.`)
+      return
+    }
+    const correct = options.filter((answer) => answer.correct)
+    if (correct.length === 0) {
+      errors.push(`Question ${number} has no answer marked correct="true".`)
+      return
+    }
+    if (correct.length > 1) {
+      errors.push(`Question ${number} has more than one correct answer, so it was skipped.`)
+      return
+    }
+
+    if (isTrueFalsePair(options)) {
+      const correctText = correct[0]!.text.trim().toLowerCase()
+      questions.push({
+        prompt,
+        question_type: "true_false",
+        options: [
+          { id: "true", text: "True" },
+          { id: "false", text: "False" },
+        ],
+        correct_option_id: correctText === "true" ? "true" : "false",
+      })
+      return
+    }
+
+    questions.push({
+      prompt,
+      question_type: "multiple_choice",
+      options: options.map(({ id, text }) => ({ id, text })),
+      correct_option_id: correct[0]!.id,
+    })
+  })
+
+  if (questions.length === 0 && errors.length === 0) {
+    errors.push("No questions found in the quiz export.")
+  }
+
+  return {
+    questions,
+    errors,
+    title: title || undefined,
+    passingScore:
+      passingScore != null && passingScore >= 0 && passingScore <= 100 ? passingScore : undefined,
+  }
+}
+
 export async function importQuizFile(file: File): Promise<QuizImportResult> {
   const name = file.name.toLowerCase()
+  if (name.endsWith(".xml") || file.type === "text/xml" || file.type === "application/xml") {
+    return questionsFromWpProQuizXml(await file.text())
+  }
   if (name.endsWith(".csv") || file.type === "text/csv") {
     return questionsFromRows(parseCsv(await file.text()))
   }

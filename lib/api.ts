@@ -53,6 +53,43 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   return parseResponse<T>(res)
 }
 
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const res = await fetch(`/api/lms${path}`, { credentials: "include" })
+  if (!res.ok) {
+    const text = await res.text()
+    let message = res.statusText
+    try {
+      const data = JSON.parse(text) as { error?: string }
+      message = data.error ?? message
+    } catch {
+      if (text) message = text
+    }
+    throw new ApiError(message, res.status)
+  }
+  const contentType = res.headers.get("content-type") ?? ""
+  if (contentType.includes("application/json")) {
+    const data = (await res.json()) as { url?: string; filename?: string }
+    if (!data.url) throw new ApiError("Download link missing", 500)
+    const link = document.createElement("a")
+    link.href = data.url
+    link.download = data.filename || filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    return
+  }
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
 export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api/lms${path}`, {
     method: "DELETE",

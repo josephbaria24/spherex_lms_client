@@ -30,9 +30,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ListOrdered, Plus, Trash2, Pencil, FileQuestion, ChevronDown, CircleHelp } from "lucide-react"
+import { ListOrdered, Plus, Trash2, Pencil, FileQuestion, ChevronDown, CircleHelp, Download } from "lucide-react"
 import { toast } from "sonner"
-import { apiDelete, apiGet } from "@/lib/api"
+import { apiDelete, apiDownload, apiGet } from "@/lib/api"
 import { teacherApiPath } from "@/lib/teacher-api"
 import {
   LessonEditorForm,
@@ -115,6 +115,7 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Lesson | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm(courseId))
   const [editorKey, setEditorKey] = useState(0)
   const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
@@ -246,6 +247,23 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
     }
   }
 
+  function hasUploadedPackage(lesson: Lesson) {
+    return lesson.content_type === "articulate" && (lesson.articulate_url ?? "").includes("/uploads/scorm/")
+  }
+
+  async function downloadPackage(lesson: Lesson) {
+    if (downloadingId) return
+    setDownloadingId(lesson.id)
+    try {
+      const filename = `${lesson.title.replace(/[^\w\s.-]+/g, "").trim().replace(/\s+/g, "-") || "scorm-package"}.zip`
+      await apiDownload(teacherApiPath(orgId, `/lessons/${lesson.id}/scorm`), filename)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not download package")
+    } finally {
+      setDownloadingId(null)
+    }
+  }
+
   async function handleDelete() {
     if (!deleteId) return
     await apiDelete(teacherApiPath(orgId, `/lessons/${deleteId}`))
@@ -371,6 +389,22 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
                         : null}
                     </div>
                     <div className="flex shrink-0 gap-1">
+                      {hasUploadedPackage(lesson) ? (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={downloadingId === lesson.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void downloadPackage(lesson)
+                          }}
+                          aria-label={`Download ${lesson.title}`}
+                          title="Download modified SCORM zip"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : null}
                       {lesson.content_type !== "quiz" ? (
                         <Button
                           variant="outline"

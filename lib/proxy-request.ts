@@ -1,3 +1,6 @@
+import { randomUUID } from "node:crypto"
+import { mkdir, unlink, writeFile } from "node:fs/promises"
+import path from "node:path"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 import { API_URL, SESSION_COOKIE } from "./api-config"
@@ -48,6 +51,24 @@ export async function proxyToBackend(req: NextRequest, backendPath: string) {
       headers: {
         "Content-Type": upstreamType || "application/json",
       },
+    })
+  }
+
+  const disposition = upstream.headers.get("content-disposition")
+  if (disposition?.includes("attachment") && upstream.ok) {
+    const bytes = Buffer.from(await upstream.arrayBuffer())
+    const id = randomUUID()
+    const dir = path.join(process.cwd(), "public", "downloads")
+    await mkdir(dir, { recursive: true })
+    const storedName = `${id}.zip`
+    await writeFile(path.join(dir, storedName), bytes)
+    setTimeout(() => {
+      void unlink(path.join(dir, storedName)).catch(() => {})
+    }, 10 * 60 * 1000)
+    const match = /filename="([^"]+)"/.exec(disposition)
+    return NextResponse.json({
+      url: `/downloads/${storedName}`,
+      filename: match?.[1] ?? "download.zip",
     })
   }
 
