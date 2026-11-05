@@ -734,6 +734,27 @@
     @apply bg-[#1a1f2e] text-white dark:bg-foreground dark:text-background;
   }
 
+  @keyframes catalog-tab-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .catalog-tab-panel[data-state="active"] {
+    animation: catalog-tab-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .catalog-tab-panel[data-state="active"] {
+      animation: none;
+    }
+  }
+
   .grow-toolbar,
   .student-toolbar {
     @apply flex flex-col gap-3 rounded-[1.25rem] border border-[#ebe4da] bg-white/80 p-3 shadow-sm dark:border-border dark:bg-card md:flex-row md:items-center;

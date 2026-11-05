@@ -506,16 +506,19 @@ export function CourseLearnPage({
                   </div>
                 )}
               </div>
-              <nav className="hidden max-h-[50vh] space-y-0.5 overflow-x-hidden overflow-y-auto lg:block">
+              <nav className="hidden max-h-[min(52vh,28rem)] space-y-0.5 overflow-x-hidden overflow-y-auto lg:block">
+                <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Lessons
+                </p>
                 {lessonItems.map((l) => {
                   const isActive = detail?.lesson.id === l.id
                   const rowClass = cn(
-                    "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-[#312e81] transition-colors",
+                    "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm text-foreground transition-colors",
                     isActive
-                      ? "bg-[#ebe4f8] dark:bg-violet-950/40"
+                      ? "bg-[#FF4B1A]/10 text-foreground ring-1 ring-[#FF4B1A]/30 dark:bg-[#FF4B1A]/15"
                       : l.locked
-                        ? "cursor-not-allowed opacity-60"
-                        : "hover:bg-[#faf8f5] dark:hover:bg-muted/60",
+                        ? "cursor-not-allowed text-muted-foreground opacity-60"
+                        : "hover:bg-muted/70",
                   )
                   const label = (
                     <>
@@ -525,8 +528,9 @@ export function CourseLearnPage({
                       ) : (
                         <span
                           className={cn(
-                            "h-3.5 w-3.5 shrink-0 rounded-full border border-[#312e81]/50",
-                            l.completed && "border-[#312e81] bg-[#312e81]",
+                            "h-3.5 w-3.5 shrink-0 rounded-full border border-foreground/25",
+                            l.completed && "border-emerald-500 bg-emerald-500",
+                            isActive && !l.completed && "border-[#FF4B1A]",
                           )}
                         />
                       )}
@@ -556,28 +560,30 @@ export function CourseLearnPage({
                 })}
                 {quizItems.length > 0 ? (
                   <div className="pt-4">
-                    <p className="px-2 pb-1 text-sm font-semibold text-[#312e81]">Quizzes</p>
+                    <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Quizzes
+                    </p>
                     <div className="space-y-0.5">
                       {quizItems.map((quiz) => {
                         const quizActive = detail?.lesson.id === quiz.id
                         const quizClass = cn(
-                          "flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[#312e81]",
-                          quizActive && "bg-[#ebe4f8] dark:bg-violet-950/40",
+                          "flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-foreground",
+                          quizActive && "bg-[#FF4B1A]/10 ring-1 ring-[#FF4B1A]/30 dark:bg-[#FF4B1A]/15",
                           quiz.locked
-                            ? "cursor-not-allowed opacity-60"
-                            : "hover:bg-[#faf8f5] dark:hover:bg-muted/60",
+                            ? "cursor-not-allowed text-muted-foreground opacity-60"
+                            : "hover:bg-muted/70",
                         )
                         const quizLabel = (
                           <>
                             <CircleHelp className="h-4 w-4 shrink-0" />
                             <span className="min-w-0 flex-1 truncate">{quiz.quiz_title || quiz.title}</span>
                             {quiz.locked ? (
-                              <Lock className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f]" />
+                              <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             ) : (
                               <span
                                 className={cn(
-                                  "h-3.5 w-3.5 shrink-0 rounded-full border border-[#312e81]/50",
-                                  quiz.completed && "border-[#312e81] bg-[#312e81]",
+                                  "h-3.5 w-3.5 shrink-0 rounded-full border border-foreground/25",
+                                  quiz.completed && "border-emerald-500 bg-emerald-500",
                                 )}
                               />
                             )}
@@ -612,7 +618,7 @@ export function CourseLearnPage({
             </div>
           </aside>
 
-          <main className={cn(grow.card, "min-w-0 flex-1 p-4 md:p-6", !showPlayer && "max-lg:hidden")}>
+          <main className={cn(grow.card, "min-w-0 flex-1 p-4 md:p-5", !showPlayer && "max-lg:hidden")}>
             <button
               type="button"
               className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-[#6b5c4f] lg:hidden"
@@ -656,16 +662,25 @@ export function CourseLearnPage({
                 key={detail.lesson.id}
                 className="animate-in fade-in slide-in-from-right-3 space-y-4 duration-300 lg:space-y-6"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3 dark:bg-muted/20">
                   <div className="min-w-0">
-                    <span className="grow-badge text-[#6b5c4f]">
-                      Lesson {currentIdx + 1} of {lessons.length}
-                    </span>
-                    <h2 className="mt-2 text-xl font-bold text-[#1c1917] lg:text-2xl dark:text-foreground">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-[#FF4B1A]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#FF4B1A]">
+                        Lesson {currentIdx + 1} of {lessons.length}
+                      </span>
+                      <span className="rounded-full bg-background px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-border">
+                        {detail.completed
+                          ? "Completed"
+                          : lessons.find((item) => item.id === detail.lesson.id)?.started
+                            ? "In progress"
+                            : "Not started"}
+                      </span>
+                    </div>
+                    <h2 className="mt-2 text-xl font-bold text-foreground lg:text-2xl">
                       {detail.lesson.title}
                     </h2>
                     {detail.lesson.description && (
-                      <p className="mt-1 text-[#6b5c4f] dark:text-muted-foreground">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {detail.lesson.description}
                       </p>
                     )}
@@ -728,7 +743,7 @@ export function CourseLearnPage({
                   }}
                 />
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#ebe4da] pt-4 dark:border-border">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-muted/30 px-3 py-2.5 dark:bg-muted/15">
                   <div>
                     {prevLesson && (
                       <Button

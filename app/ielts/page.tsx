@@ -21,34 +21,11 @@ import {
   type PublicReviewerGroup,
 } from "@/lib/public-reviewers"
 import { cn } from "@/lib/utils"
+import { IeltsAccessDialog, useIeltsAccess } from "@/components/ielts/ielts-access-dialog"
+import { IeltsCompanyMaterials } from "@/components/ielts/ielts-company-materials"
+import { IELTS_TRACKS, type IeltsTrackId } from "@/lib/ielts-tracks"
 
-type IeltsTrack = "academic" | "general" | "ukvi"
-
-const IELTS_TRACKS: {
-  id: IeltsTrack
-  title: string
-  image: string
-  imageAlt: string
-}[] = [
-  {
-    id: "academic",
-    title: "IELTS Academic",
-    image: "/Navy cap, burgundy book, golden pencil-1.png",
-    imageAlt: "Graduation cap over an academic textbook",
-  },
-  {
-    id: "general",
-    title: "IELTS General Training",
-    image: "/Open envelope, books, and pencil-2.png",
-    imageAlt: "Letter, books, and a pencil",
-  },
-  {
-    id: "ukvi",
-    title: "IELTS for UKVI Life Skills",
-    image: "/IELTS Listening and Speaking Illustration-3.png",
-    imageAlt: "Headphones with listening and speaking icons",
-  },
-]
+type IeltsTrack = IeltsTrackId
 
 type SkillIcon = (props: { className?: string }) => React.ReactElement
 
@@ -75,11 +52,22 @@ const SKILL_META: Record<string, { icon: SkillIcon; blurb: string; tint: string 
   },
 }
 
+function trackFromQuery(value: string | null): IeltsTrack | null {
+  if (value === "academic" || value === "general" || value === "ukvi") return value
+  return null
+}
+
 export default function IeltsHubPage() {
   const [groups, setGroups] = useState<PublicReviewerGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [track, setTrack] = useState<IeltsTrack | null>(null)
+  const access = useIeltsAccess()
+
+  useEffect(() => {
+    const next = trackFromQuery(new URLSearchParams(window.location.search).get("track"))
+    if (next) setTrack(next)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -156,13 +144,19 @@ export default function IeltsHubPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setTrack(item.id)}
+                  onClick={() => {
+                    if (!access.unlocked) {
+                      access.ask(item.title)
+                      return
+                    }
+                    setTrack(item.id)
+                  }}
                   aria-pressed={selected}
                   className="group text-left"
                 >
                   <span
                     className={cn(
-                      "block overflow-hidden rounded-md bg-slate-200 ring-2 ring-transparent transition group-hover:opacity-95 dark:bg-muted",
+                      "relative block overflow-hidden rounded-md bg-slate-200 ring-2 ring-transparent transition group-hover:opacity-95 dark:bg-muted",
                       selected && "ring-[#FF4B1A]",
                     )}
                   >
@@ -171,6 +165,11 @@ export default function IeltsHubPage() {
                       alt={item.imageAlt}
                       className="aspect-[4/3] w-full bg-white object-contain object-center p-3"
                     />
+                    {!access.unlocked ? (
+                      <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-neutral-950/85 px-2.5 py-1 text-[10px] font-semibold text-white">
+                        Locked
+                      </span>
+                    ) : null}
                   </span>
                   <span
                     className={cn(
@@ -187,6 +186,16 @@ export default function IeltsHubPage() {
           </div>
 
           <IeltsCertificatePanel />
+          <IeltsAccessDialog
+            open={access.open}
+            onOpenChange={access.setOpen}
+            training={access.training}
+            onUnlocked={() => {
+              access.markUnlocked()
+              const picked = IELTS_TRACKS.find((item) => item.title === access.training)
+              if (picked) setTrack(picked.id)
+            }}
+          />
 
           {!track ? (
             <p className="mt-10 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -214,6 +223,12 @@ export default function IeltsHubPage() {
             </div>
           ) : (
             <>
+              <div className="mt-10">
+                <IeltsCompanyMaterials
+                  unlocked={access.unlocked}
+                  onLocked={(title) => access.ask(title)}
+                />
+              </div>
               <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {sorted.map((group) => {
                   const meta = SKILL_META[group.subject] ?? SKILL_META[group.title]

@@ -1,0 +1,135 @@
+export type IeltsMaterialKind = "paper" | "audio" | "answers"
+
+export type IeltsAcademicMaterial = {
+  id: string
+  title: string
+  detail: string
+  href: string
+  kind: IeltsMaterialKind
+}
+
+export const IELTS_ACADEMIC_MOCKS: {
+  day: string
+  title: string
+  note?: string
+  files: IeltsAcademicMaterial[]
+}[] = [
+  {
+    day: "Day 1",
+    title: "Academic mock test 1",
+    note: "Question paper only. This set has no listening recording.",
+    files: [
+      {
+        id: "mock-1-paper",
+        title: "Question paper",
+        detail: "PDF",
+        href: "/ielts-academic/academic-mock-1-questions.pdf",
+        kind: "paper",
+      },
+    ],
+  },
+  {
+    day: "Day 2",
+    title: "Academic mock test 2",
+    files: [
+      {
+        id: "mock-2-paper",
+        title: "Question paper",
+        detail: "PDF",
+        href: "/ielts-academic/academic-mock-2-questions.pdf",
+        kind: "paper",
+      },
+      {
+        id: "mock-2-audio",
+        title: "Listening",
+        detail: "Audio",
+        href: "/ielts-academic/academic-mock-2-listening.mp3",
+        kind: "audio",
+      },
+    ],
+  },
+  {
+    day: "Day 3",
+    title: "Academic mock test 3",
+    files: [
+      {
+        id: "mock-3-paper",
+        title: "Question paper",
+        detail: "PDF",
+        href: "/ielts-academic/academic-mock-3-questions.pdf",
+        kind: "paper",
+      },
+      {
+        id: "mock-3-audio",
+        title: "Listening",
+        detail: "Audio",
+        href: "/ielts-academic/academic-mock-3-listening.mp3",
+        kind: "audio",
+      },
+    ],
+  },
+  {
+    day: "Day 4",
+    title: "Academic mock test 4",
+    files: [
+      {
+        id: "mock-4-paper",
+        title: "Question paper",
+        detail: "PDF",
+        href: "/ielts-academic/academic-mock-4-questions.pdf",
+        kind: "paper",
+      },
+      {
+        id: "mock-4-audio",
+        title: "Listening",
+        detail: "Audio",
+        href: "/ielts-academic/academic-mock-4-listening.mp3",
+        kind: "audio",
+      },
+    ],
+  },
+  {
+    day: "Day 5",
+    title: "Academic mock test 5",
+    files: [
+      {
+        id: "mock-5-paper",
+        title: "Question paper",
+        detail: "PDF",
+        href: "/ielts-academic/academic-mock-5-questions.pdf",
+        kind: "paper",
+      },
+      {
+        id: "mock-5-audio",
+        title: "Listening",
+        detail: "Audio",
+        href: "/ielts-academic/academic-mock-5-listening.mp3",
+        kind: "audio",
+      },
+    ],
+  },
+]
+
+export const IELTS_ACADEMIC_KEYS: IeltsAcademicMaterial[] = [
+  {
+    id: "listening-answers",
+    title: "Listening answers",
+    detail: "PDF",
+    href: "/ielts-academic/academic-listening-answers.pdf",
+    kind: "answers",
+  },
+  {
+    id: "reading-answers",
+    title: "Reading answers",
+    detail: "PDF",
+    href: "/ielts-academic/academic-reading-answers.pdf",
+    kind: "answers",
+  },
+  {
+    id: "writing-examples",
+    title: "Writing examples",
+    detail: "PDF",
+    href: "/ielts-academic/academic-writing-examples.pdf",
+    kind: "answers",
+  },
+]

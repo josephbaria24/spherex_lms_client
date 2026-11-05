@@ -16,6 +16,7 @@ import {
   type PublicReviewerGroup,
 } from "@/lib/public-reviewers"
 import { cn } from "@/lib/utils"
+import { IeltsAccessDialog, useIeltsAccess } from "@/components/ielts/ielts-access-dialog"
 
 export default function IeltsSkillPage({
   params,
@@ -27,6 +28,7 @@ export default function IeltsSkillPage({
   const [group, setGroup] = useState<PublicReviewerGroup | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const access = useIeltsAccess()
 
   useEffect(() => {
     let cancelled = false
@@ -142,12 +144,23 @@ export default function IeltsSkillPage({
                             {quiz.category ? ` · ${quiz.category}` : ""}
                           </p>
                         </div>
-                        <Button asChild className={cn("shrink-0 rounded-full", accent.button)}>
-                          <Link href={`/ielts/practice/${quiz.id}`}>
+                        {access.unlocked ? (
+                          <Button asChild className={cn("shrink-0 rounded-full", accent.button)}>
+                            <Link href={`/ielts/practice/${quiz.id}`}>
+                              <HiPlayCircle className="mr-1.5 h-4 w-4" />
+                              Start
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            className={cn("shrink-0 rounded-full", accent.button)}
+                            onClick={() => access.ask(quiz.title)}
+                          >
                             <HiPlayCircle className="mr-1.5 h-4 w-4" />
-                            Start
-                          </Link>
-                        </Button>
+                            Locked
+                          </Button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -157,6 +170,12 @@ export default function IeltsSkillPage({
           )}
         </div>
       </main>
+      <IeltsAccessDialog
+        open={access.open}
+        onOpenChange={access.setOpen}
+        training={access.training}
+        onUnlocked={access.markUnlocked}
+      />
     </div>
   )
 }

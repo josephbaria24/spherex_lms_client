@@ -336,7 +336,7 @@ export function ArticulateLessonEmbed({
         </div>
       ) : null}
 
-      <div className="relative flex h-[min(50vh,420px)] w-full flex-col items-center justify-center overflow-hidden rounded-xl border border-border bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white">
+      <div className="relative flex h-[min(52vh,460px)] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-[#12151c] text-white dark:border-white/10 dark:bg-[#0c0e14]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.15),transparent_70%)]" />
         <div className="relative flex flex-col items-center gap-4 px-6 text-center">
           <p className="text-lg font-semibold">{title}</p>

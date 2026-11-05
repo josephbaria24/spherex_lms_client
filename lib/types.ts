@@ -18,6 +18,7 @@ export interface Course {
   duration: string
   level: "beginner" | "intermediate" | "advanced"
   enrolledCount: number
+  lessonCount?: number
   progress?: number
   priceCents?: number
   requiresEnrollCode?: boolean

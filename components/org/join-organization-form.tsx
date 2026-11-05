@@ -74,13 +74,13 @@ export function JoinOrganizationForm({
 
   if (dense) {
     return (
-      <form onSubmit={handleSubmit} className="space-y-1">
-        <div className="flex items-center gap-1.5">
+      <form onSubmit={handleSubmit} className="space-y-1.5">
+        <div className="flex min-w-0 items-center gap-1 rounded-full border border-[#FFD0C2] bg-white p-1 pl-3 shadow-sm dark:border-[#FF4B1A]/30 dark:bg-background">
           <Input
             id={`org-join-code-${mode}`}
             aria-label={label}
-            placeholder="Org code"
-            className="h-8 bg-background font-mono text-xs uppercase tracking-wider"
+            placeholder="Enter code"
+            className="h-8 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-xs uppercase tracking-wider shadow-none focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             disabled={loading}
@@ -90,14 +90,14 @@ export function JoinOrganizationForm({
           <Button
             type="submit"
             size="sm"
-            className="h-8 shrink-0 rounded-md px-2.5 text-xs"
+            className="h-8 shrink-0 rounded-full bg-[#FF4B1A] px-3.5 text-xs font-semibold text-white hover:bg-[#e84314]"
             disabled={loading || !code.trim()}
           >
             {loading ? <Spinner size={14} /> : "Join"}
           </Button>
         </div>
-        {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
-        {success ? <p className="text-[11px] text-emerald-700">{success}</p> : null}
+        {error ? <p className="text-[11px] leading-4 text-destructive">{error}</p> : null}
+        {success ? <p className="text-[11px] leading-4 text-emerald-700 dark:text-emerald-400">{success}</p> : null}
       </form>
     )
   }

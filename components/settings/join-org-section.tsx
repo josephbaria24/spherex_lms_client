@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { X } from "lucide-react"
 import { apiGet } from "@/lib/api"
 import type { OrgMembership } from "@/lib/org-types"
 import {
@@ -97,6 +98,20 @@ export function JoinOrgSection({ variant = "default" }: JoinOrgSectionProps) {
   )
 }
 
+const JOIN_BANNER_HIDE_MS = 24 * 60 * 60 * 1000
+
+function joinBannerStorageKey(userId: string | undefined) {
+  return `petrocademia.student-join-banner.dismissed-at.${userId ?? "anonymous"}`
+}
+
+function joinBannerIsHidden(userId: string | undefined) {
+  if (typeof window === "undefined") return false
+  const raw = window.localStorage.getItem(joinBannerStorageKey(userId))
+  const dismissedAt = Number(raw)
+  if (!Number.isFinite(dismissedAt)) return false
+  return Date.now() - dismissedAt < JOIN_BANNER_HIDE_MS
+}
+
 export function StudentJoinBanner({
   compact = false,
 }: {
@@ -105,28 +120,48 @@ export function StudentJoinBanner({
   const { user } = useAuth()
   const [memberships, setMemberships] = useState<OrgMembership[]>([])
   const [loading, setLoading] = useState(true)
+  const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
     if (!isStudent(user?.role)) {
       setLoading(false)
       return
     }
+    setDismissed(joinBannerIsHidden(user?.id))
     apiGet<{ memberships: OrgMembership[] }>("/organizations/me")
       .then((data) => setMemberships(data.memberships ?? []))
       .finally(() => setLoading(false))
-  }, [user?.role])
+  }, [user?.id, user?.role])
 
-  if (loading || !isStudent(user?.role) || getStudentMemberships(memberships).length > 0) {
+  if (loading || dismissed || !isStudent(user?.role) || getStudentMemberships(memberships).length > 0) {
     return null
   }
 
   if (hasTeachingOrganization(memberships)) return null
 
+  function dismissBanner() {
+    window.localStorage.setItem(joinBannerStorageKey(user?.id), String(Date.now()))
+    setDismissed(true)
+  }
+
   if (compact) {
     return (
-      <aside className="h-fit w-full rounded-lg border border-border/70 bg-accent p-2 text-accent-foreground">
-        <h2 className="text-xs font-semibold">Have an org code?</h2>
-        <div className="mt-1.5">
+      <aside className="relative flex w-full flex-col gap-3 rounded-2xl border border-[#FFD8C8] bg-[#FFF6F2] p-3 pr-10 text-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-4 sm:pr-11 dark:border-[#FF4B1A]/35 dark:bg-[#FF4B1A]/10">
+        <button
+          type="button"
+          onClick={dismissBanner}
+          aria-label="Hide for a day"
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-[#9a6b5c] transition hover:bg-white/80 hover:text-[#1c1917] dark:text-[#FFB09A] dark:hover:bg-white/10 dark:hover:text-white"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#FF4B1A]">Organization</p>
+          <h2 className="mt-0.5 text-sm font-semibold leading-5 text-[#1c1917] dark:text-foreground">
+            Join with a student code
+          </h2>
+        </div>
+        <div className="w-full min-w-0 sm:max-w-sm">
           <JoinOrganizationForm mode="student" compact dense redirectTo="/courses" />
         </div>
       </aside>

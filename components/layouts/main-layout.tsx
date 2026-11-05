@@ -87,7 +87,7 @@ function MainLayoutShell({ children }: MainLayoutProps) {
               </div>
               <div className="relative z-10 ml-auto flex items-center gap-0.5">
                 <MobileThemeToggle />
-                <NotificationBell className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" />
+                <NotificationBell className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground dark:text-white dark:hover:bg-white/10 dark:hover:text-white" />
               </div>
             </div>
           </div>
