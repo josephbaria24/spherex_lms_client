@@ -812,20 +812,6 @@
     @apply bg-[#FFF4EF]/80 dark:bg-[#FF4B1A]/5;
   }
 
-  @keyframes dashboard-ticker {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(-50%);
-    }
-  }
-
-  .dashboard-ticker {
-    animation: dashboard-ticker 28s linear infinite;
-    width: max-content;
-  }
-
   .plaque-holo-sheen {
     background: linear-gradient(
       115deg,
@@ -852,6 +838,15 @@
 :root {
   /* Top chrome inset under the status bar / notch (viewport-fit=cover). */
   --mobile-top-inset: env(safe-area-inset-top, 0px);
+}
+
+/* Safari and Chrome zoom the page when a focused field is smaller than 16px. */
+@media (max-width: 1024px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 @media (max-width: 767px) {

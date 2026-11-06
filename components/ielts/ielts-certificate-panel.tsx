@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { Award, Download } from "lucide-react"
+import { Award, Download, Info } from "lucide-react"
 import { useAuth } from "@/app/provider"
 import { apiGet, apiPost } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -101,20 +101,19 @@ export function IeltsCertificatePanel() {
   return (
     <section
       id="certificate"
-      className="mx-auto mt-10 max-w-3xl rounded-[1.75rem] border border-[#ebe4da] bg-white p-5 text-left shadow-sm sm:p-6 dark:border-border dark:bg-card"
+      className="mx-auto mt-6 max-w-3xl rounded-2xl border border-[#ebe4da] bg-white p-3 text-left shadow-sm sm:mt-8 sm:rounded-[1.5rem] sm:p-4 dark:border-border dark:bg-card"
     >
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#FFE8E0] text-[#FF4B1A]">
-          <Award className="h-5 w-5" />
+      <div className="flex items-start gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FFE8E0] text-[#FF4B1A]">
+          <Award className="h-4 w-4" />
         </span>
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-slate-900 sm:text-base dark:text-white">
             Certificate of completion
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Pass every published PetroCademia IELTS practice test while signed in. We then issue a
-            certificate with your scores and a serial number you can verify on this site. It is not
-            an official IELTS result.
+          <p className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            Pass every published practice test while signed in. The certificate lists your scores
+            and a serial number. It is not an official IELTS result.
           </p>
         </div>
       </div>
@@ -129,7 +128,7 @@ export function IeltsCertificatePanel() {
           Sign in to track results
         </Link>
       ) : status ? (
-        <div className="mt-5 space-y-4">
+        <div className="mt-3 space-y-3">
           <div>
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-slate-900 dark:text-white">
@@ -172,19 +171,20 @@ export function IeltsCertificatePanel() {
                 </Button>
               </div>
             </div>
-          ) : (
+          ) : status.eligible ? (
             <Button
               type="button"
-              disabled={!status.eligible || issuing}
-              className="h-10 rounded-full bg-[#FF4B1A] px-5 text-white hover:bg-[#e84314] disabled:opacity-50"
+              disabled={issuing}
+              className="h-9 rounded-full bg-[#FF4B1A] px-4 text-white hover:bg-[#e84314]"
               onClick={() => void claim()}
             >
-              {issuing
-                ? "Issuing…"
-                : status.eligible
-                  ? "Get certificate"
-                  : "Pass the remaining tests to unlock"}
+              {issuing ? "Issuing…" : "Get certificate"}
             </Button>
+          ) : (
+            <div className="flex items-start gap-2 rounded-xl bg-[#f4f7f9] px-3 py-2.5 text-xs leading-5 text-slate-600 dark:bg-muted/40 dark:text-slate-300">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FF4B1A]" />
+              <p>Pass the remaining tests to unlock your certificate.</p>
+            </div>
           )}
         </div>
       ) : null}

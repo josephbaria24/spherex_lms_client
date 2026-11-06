@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { SESSION_COOKIE } from "@/lib/api-config"
-import { canAccessAdminPanel, canAccessTeacherPanel, isAdmin, isStudent } from "@/lib/roles"
+import { canAccessAdminPanel, canAccessTeacherPanel, isStudent } from "@/lib/roles"
 import { getSessionClaims } from "@/lib/session-token"
 
 const IELTS_ANSWER_KEY_PATHS = new Set([
   "/ielts-academic/academic-listening-answers.pdf",
   "/ielts-academic/academic-reading-answers.pdf",
   "/ielts-academic/academic-writing-examples.pdf",
+])
+
+const IELTS_MOCK_PATHS = new Set([
+  "/ielts-academic/academic-mock-1-questions.pdf",
+  "/ielts-academic/academic-mock-2-questions.pdf",
+  "/ielts-academic/academic-mock-2-listening.mp3",
+  "/ielts-academic/academic-mock-3-questions.pdf",
+  "/ielts-academic/academic-mock-3-listening.mp3",
+  "/ielts-academic/academic-mock-4-questions.pdf",
+  "/ielts-academic/academic-mock-4-listening.mp3",
+  "/ielts-academic/academic-mock-5-questions.pdf",
+  "/ielts-academic/academic-mock-5-listening.mp3",
 ])
 
 function isCourseLearnPath(pathname: string) {
@@ -19,15 +31,18 @@ function isPublicCatalogPath(pathname: string) {
   return false
 }
 
-async function answerKeysAreVisible(req: NextRequest) {
+async function ieltsCatalogFlags(req: NextRequest) {
   try {
     const flagUrl = new URL("/api/lms/reviewers/ielts/answer-keys", req.nextUrl.origin)
     const res = await fetch(flagUrl, { cache: "no-store" })
-    if (!res.ok) return false
-    const data = (await res.json()) as { show_answer_keys?: boolean }
-    return data.show_answer_keys === true
+    if (!res.ok) return { show_answer_keys: false, mock_session_open: false }
+    const data = (await res.json()) as { show_answer_keys?: boolean; mock_session_open?: boolean }
+    return {
+      show_answer_keys: data.show_answer_keys === true,
+      mock_session_open: data.mock_session_open === true,
+    }
   } catch {
-    return false
+    return { show_answer_keys: false, mock_session_open: false }
   }
 }
 
@@ -35,10 +50,12 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value
   const pathname = req.nextUrl.pathname
 
-  if (IELTS_ANSWER_KEY_PATHS.has(pathname)) {
+  if (IELTS_ANSWER_KEY_PATHS.has(pathname) || IELTS_MOCK_PATHS.has(pathname)) {
     const role = token ? getSessionClaims(token).role : null
-    if (isAdmin(role)) return NextResponse.next()
-    if (await answerKeysAreVisible(req)) return NextResponse.next()
+    if (canAccessTeacherPanel(role)) return NextResponse.next()
+    const flags = await ieltsCatalogFlags(req)
+    const allowed = IELTS_MOCK_PATHS.has(pathname) ? flags.mock_session_open : flags.show_answer_keys
+    if (allowed) return NextResponse.next()
     return new NextResponse(null, { status: 404 })
   }
   const claims = token ? getSessionClaims(token) : { role: null, email_verified: null }
@@ -124,5 +141,14 @@ export const config = {
     "/ielts-academic/academic-listening-answers.pdf",
     "/ielts-academic/academic-reading-answers.pdf",
     "/ielts-academic/academic-writing-examples.pdf",
+    "/ielts-academic/academic-mock-1-questions.pdf",
+    "/ielts-academic/academic-mock-2-questions.pdf",
+    "/ielts-academic/academic-mock-2-listening.mp3",
+    "/ielts-academic/academic-mock-3-questions.pdf",
+    "/ielts-academic/academic-mock-3-listening.mp3",
+    "/ielts-academic/academic-mock-4-questions.pdf",
+    "/ielts-academic/academic-mock-4-listening.mp3",
+    "/ielts-academic/academic-mock-5-questions.pdf",
+    "/ielts-academic/academic-mock-5-listening.mp3",
   ],
 }

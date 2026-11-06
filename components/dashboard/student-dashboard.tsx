@@ -101,8 +101,7 @@ function buildKnowledgeSeries(
 export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
   const [range, setRange] = useState<RangeKey>("1M")
   const name = displayName(user)
-  const { summary, enrollments, knowledge_timeline, focus_by_day, course_peers, recent_activity } =
-    dashboard
+  const { summary, enrollments, knowledge_timeline, focus_by_day, course_peers } = dashboard
 
   const inProgress = enrollments.find((e) => !e.completed && e.progress_percent < 100)
   const resumeCourse = inProgress ?? enrollments.find((e) => !e.completed) ?? null
@@ -117,17 +116,6 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
     summary.knowledge_growth_percent >= 0
       ? `+${summary.knowledge_growth_percent}%`
       : `${summary.knowledge_growth_percent}%`
-
-  const tickerItems = useMemo(() => {
-    if (recent_activity.length === 0) {
-      return [{ text: "Complete a lesson to see your activity here" }]
-    }
-    return recent_activity.map((item) => ({
-      text: item.course_title
-        ? `${item.detail} — ${item.course_title}`
-        : `${item.detail}: ${item.label}`,
-    }))
-  }, [recent_activity])
 
   const donutData = [
     { name: "done", value: summary.weekly_goal_percent },
@@ -362,17 +350,6 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
         </div>
 
         <DashboardCourseCarousel />
-      </div>
-
-      <div className="overflow-hidden rounded-[11px] bg-[#1a1f2e] py-3 text-white dark:bg-[#12151f]">
-        <div className="dashboard-ticker flex gap-8 whitespace-nowrap text-sm">
-          {[...tickerItems, ...tickerItems].map((item, i) => (
-            <span key={`${item.text}-${i}`} className="inline-flex items-center gap-2 text-white/85">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#ff6b35]" />
-              {item.text}
-            </span>
-          ))}
-        </div>
       </div>
     </div>
   )

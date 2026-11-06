@@ -2,17 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { KeyRound, Lock, Mail } from "lucide-react"
+import { KeyRound, Lock, Mail, Phone, UserRound } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/app/provider"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiGet, apiPost, ApiError } from "@/lib/api"
@@ -131,31 +125,32 @@ export function IeltsAccessDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Lock className="h-4 w-4 text-[#FF4B1A]" />
-            {training}
-          </DialogTitle>
-        </DialogHeader>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Request access and wait for an admin to accept it. A code from the admin also unlocks every
-          IELTS practice set and mock exam.
-        </p>
+      <DialogContent className="gap-0 rounded-[1.75rem] border-[#FFE0D4] p-5 shadow-[0_24px_60px_-32px_rgba(255,75,26,0.45)] sm:max-w-[26rem] sm:p-6 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:flex [&_[data-slot=dialog-close]]:size-9 [&_[data-slot=dialog-close]]:items-center [&_[data-slot=dialog-close]]:justify-center [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-[#FFF1EC] [&_[data-slot=dialog-close]]:opacity-100 [&_[data-slot=dialog-close]]:hover:bg-[#FFE0D4]">
+        <div className="flex items-start gap-3 pr-8">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#FFF1EC] text-[#FF4B1A]">
+            <Lock className="size-5" />
+          </span>
+          <div>
+            <DialogTitle className="text-lg font-semibold tracking-tight">{training}</DialogTitle>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Ask an admin to open the practice sets, or enter the code they send you. Mock exams
+              open when your trainer starts the session.
+            </p>
+          </div>
+        </div>
 
-        <form onSubmit={requestAccess} className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="ielts-access-name">Full name</Label>
+        <form onSubmit={requestAccess} className="mt-5 space-y-3">
+          <Field icon={UserRound} label="Full name" id="ielts-access-name">
             <Input
               id="ielts-access-name"
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               disabled={requesting}
+              className="h-11 rounded-2xl pl-10"
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ielts-access-email">Email</Label>
+          </Field>
+          <Field icon={Mail} label="Email" id="ielts-access-email">
             <Input
               id="ielts-access-email"
               type="email"
@@ -163,49 +158,80 @@ export function IeltsAccessDialog({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={requesting}
+              className="h-11 rounded-2xl pl-10"
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ielts-access-phone">Phone / mobile</Label>
+          </Field>
+          <Field icon={Phone} label="Phone / mobile" id="ielts-access-phone">
             <Input
               id="ielts-access-phone"
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={requesting}
+              className="h-11 rounded-2xl pl-10"
             />
-          </div>
-          <Button type="submit" className="w-full gap-2 bg-[#FF4B1A] hover:bg-[#e84314]" disabled={requesting}>
-            <Mail className="h-4 w-4" />
+          </Field>
+          <Button
+            type="submit"
+            className="h-11 w-full rounded-full bg-[#FF4B1A] hover:bg-[#e84314]"
+            disabled={requesting}
+          >
+            <Mail className="size-4" />
             {requesting ? "Sending…" : "Request access"}
           </Button>
         </form>
 
-        <form onSubmit={unlockWithCode} className="space-y-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
-          <Label htmlFor="ielts-access-code" className="text-xs font-medium text-emerald-900 dark:text-emerald-200">
-            Access code
-          </Label>
+        <form
+          onSubmit={unlockWithCode}
+          className="mt-4 space-y-3 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/30"
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+            <KeyRound className="size-4" />
+            Have a code?
+          </div>
           <Input
             id="ielts-access-code"
-            className="bg-white font-mono uppercase dark:bg-background"
+            className="h-11 rounded-2xl bg-white font-mono uppercase dark:bg-background"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             disabled={unlocking}
             placeholder="Enter code"
+            aria-label="Access code"
           />
           {user ? (
-            <Button type="submit" className="w-full gap-2" disabled={unlocking}>
-              <KeyRound className="h-4 w-4" />
+            <Button type="submit" className="h-11 w-full rounded-full" disabled={unlocking}>
+              <KeyRound className="size-4" />
               {unlocking ? "Checking…" : "Unlock with code"}
             </Button>
           ) : (
-            <Button type="button" className="w-full" asChild>
+            <Button type="button" className="h-11 w-full rounded-full" asChild>
               <Link href={`/login?next=${encodeURIComponent(next)}`}>Sign in to enter a code</Link>
             </Button>
           )}
         </form>
-        <DialogFooter />
       </DialogContent>
     </Dialog>
+  )
+}
+
+function Field({
+  icon: Icon,
+  label,
+  id,
+  children,
+}: {
+  icon: typeof UserRound
+  label: string
+  id: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Icon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        {children}
+      </div>
+    </div>
   )
 }

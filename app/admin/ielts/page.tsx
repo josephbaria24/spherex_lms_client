@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge"
 import { GrowHeader } from "@/components/grow-shell"
 import { IeltsAccessRequests } from "@/components/admin/ielts/ielts-access-requests"
 import { IeltsAnswerKeyToggle } from "@/components/admin/ielts/ielts-answer-key-toggle"
+import { IeltsMockSessionToggle } from "@/components/admin/ielts/ielts-mock-session-toggle"
+import { IeltsUkviRequests } from "@/components/admin/ielts/ielts-ukvi-requests"
 import {
   Search,
   MoreVertical,
@@ -318,6 +320,8 @@ export default function AdminIeltsPage() {
           ) : null}
         </GrowHeader>
 
+        <IeltsUkviRequests />
+        <IeltsMockSessionToggle />
         <IeltsAnswerKeyToggle />
 
         <div className="grid gap-3 sm:grid-cols-3">

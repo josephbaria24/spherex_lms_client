@@ -1,7 +1,7 @@
 "use client"
 
 import { Spinner } from "@/components/ui/spinner"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 
 import {
@@ -16,12 +16,14 @@ import { LandingHeader } from "@/components/landing/landing-header"
 import { IeltsCertificatePanel } from "@/components/ielts/ielts-certificate-panel"
 import { ReviewerGroupCard } from "@/components/reviewers/reviewer-group-card"
 import { Button } from "@/components/ui/button"
+import { Ban } from "lucide-react"
 import {
   fetchPublicReviewerGroups,
   type PublicReviewerGroup,
 } from "@/lib/public-reviewers"
 import { cn } from "@/lib/utils"
 import { IeltsAccessDialog, useIeltsAccess } from "@/components/ielts/ielts-access-dialog"
+import { IeltsUkviRequestDialog } from "@/components/ielts/ielts-ukvi-request-dialog"
 import { IeltsCompanyMaterials } from "@/components/ielts/ielts-company-materials"
 import { IELTS_TRACKS, type IeltsTrackId } from "@/lib/ielts-tracks"
 
@@ -62,10 +64,26 @@ export default function IeltsHubPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [track, setTrack] = useState<IeltsTrack | null>(null)
+  const [ukviOpen, setUkviOpen] = useState(false)
+  const pendingMocksScroll = useRef(false)
   const access = useIeltsAccess()
+
+  function scrollToMocks() {
+    pendingMocksScroll.current = true
+    window.setTimeout(() => {
+      const target = document.getElementById("ielts-academic-mocks")
+      if (!target) return
+      pendingMocksScroll.current = false
+      target.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 80)
+  }
 
   useEffect(() => {
     const next = trackFromQuery(new URLSearchParams(window.location.search).get("track"))
+    if (next === "ukvi") {
+      setUkviOpen(true)
+      return
+    }
     if (next) setTrack(next)
   }, [])
 
@@ -88,6 +106,14 @@ export default function IeltsHubPage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!pendingMocksScroll.current || track !== "academic" || loading) return
+    const target = document.getElementById("ielts-academic-mocks")
+    if (!target) return
+    pendingMocksScroll.current = false
+    target.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [track, loading])
 
   const sorted = useMemo(
     () =>
@@ -137,7 +163,7 @@ export default function IeltsHubPage() {
               </p>
             ) : null}
           </div>
-          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-3 gap-2 sm:mt-10 sm:gap-6">
             {IELTS_TRACKS.map((item) => {
               const selected = track === item.id
               return (
@@ -145,6 +171,16 @@ export default function IeltsHubPage() {
                   key={item.id}
                   type="button"
                   onClick={() => {
+                    if (!item.available) {
+                      setUkviOpen(true)
+                      return
+                    }
+                    if (item.id === "academic") {
+                      if (!access.unlocked) access.ask(item.title)
+                      setTrack("academic")
+                      scrollToMocks()
+                      return
+                    }
                     if (!access.unlocked) {
                       access.ask(item.title)
                       return
@@ -152,39 +188,64 @@ export default function IeltsHubPage() {
                     setTrack(item.id)
                   }}
                   aria-pressed={selected}
-                  className="group text-left"
+                  className={cn(
+                    "group text-left",
+                    item.available && "cursor-pointer",
+                    !item.available && "opacity-80",
+                  )}
                 >
                   <span
                     className={cn(
-                      "relative block overflow-hidden rounded-md bg-slate-200 ring-2 ring-transparent transition group-hover:opacity-95 dark:bg-muted",
-                      selected && "ring-[#FF4B1A]",
+                      "relative block overflow-hidden transition",
+                      item.available
+                        ? "rounded-2xl border border-[#FFD0C2] bg-white shadow-[0_12px_28px_-18px_rgba(255,75,26,0.85)] group-hover:-translate-y-0.5 group-hover:border-[#FF4B1A] group-active:scale-[0.98] dark:bg-card"
+                        : "rounded-2xl bg-neutral-100 dark:bg-muted",
+                      selected && item.available && "border-[#FF4B1A] ring-2 ring-[#FF4B1A]",
                     )}
                   >
                     <img
                       src={encodeURI(item.image)}
                       alt={item.imageAlt}
-                      className="aspect-[4/3] w-full bg-white object-contain object-center p-3"
+                      className={cn(
+                        "aspect-[4/3] w-full bg-white object-contain object-center p-1.5 sm:p-3",
+                        !item.available && "opacity-35 grayscale",
+                      )}
                     />
-                    {!access.unlocked ? (
-                      <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-neutral-950/85 px-2.5 py-1 text-[10px] font-semibold text-white">
+                    {!item.available ? (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-1.5 py-1 text-[9px] font-semibold text-neutral-500 shadow-sm sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs dark:bg-background/95 dark:text-muted-foreground">
+                          <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="sr-only sm:not-sr-only">Not available</span>
+                        </span>
+                      </span>
+                    ) : !access.unlocked ? (
+                      <span className="absolute right-1 top-1 inline-flex items-center gap-1 rounded-full bg-neutral-950/85 px-1.5 py-0.5 text-[8px] font-semibold text-white sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
                         Locked
                       </span>
                     ) : null}
                   </span>
                   <span
                     className={cn(
-                      "mt-3 flex items-start gap-1 text-[15px] font-semibold leading-snug text-slate-900 group-hover:text-[#FF4B1A] dark:text-white dark:group-hover:text-[#FF8A6A]",
-                      selected && "text-[#FF4B1A] dark:text-[#FF8A6A]",
+                      "mt-1.5 flex items-start gap-1 text-[11px] font-semibold leading-4 sm:mt-3 sm:text-[15px] sm:leading-snug",
+                      item.available
+                        ? "text-slate-900 group-hover:text-[#FF4B1A] dark:text-white dark:group-hover:text-[#FF8A6A]"
+                        : "text-neutral-400 dark:text-muted-foreground",
+                      selected && item.available && "text-[#FF4B1A] dark:text-[#FF8A6A]",
                     )}
                   >
                     {item.title}
-                    <HiArrowRight className="mt-0.5 h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    {item.available ? (
+                      <HiArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FF4B1A] transition-transform group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
+                    ) : (
+                      <Ban className="mt-0.5 hidden h-4 w-4 shrink-0 sm:block" />
+                    )}
                   </span>
                 </button>
               )
             })}
           </div>
 
+          <IeltsUkviRequestDialog open={ukviOpen} onOpenChange={setUkviOpen} />
           <IeltsCertificatePanel />
           <IeltsAccessDialog
             open={access.open}
@@ -223,7 +284,7 @@ export default function IeltsHubPage() {
             </div>
           ) : (
             <>
-              <div className="mt-10">
+              <div className="mt-6 sm:mt-10">
                 <IeltsCompanyMaterials
                   unlocked={access.unlocked}
                   onLocked={(title) => access.ask(title)}

@@ -1,7 +1,7 @@
 "use client"
 
 import { PageLoader } from "@/components/ui/spinner"
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { GrowShell, GrowHeader } from "@/components/grow-shell"
 import { CourseCard } from "@/components/course-card"
@@ -17,6 +17,8 @@ import { StudentJoinBanner } from "@/components/settings/join-org-section"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { CatalogTrackIntro, CatalogTrackPicker } from "@/components/courses/catalog-track-picker"
 import { IeltsTrainingCatalog } from "@/components/ielts/ielts-training-catalog"
+import { IeltsEnrolledCard, ieltsMatchesSearch } from "@/components/ielts/ielts-enrolled-card"
+import { useIeltsAccess } from "@/components/ielts/ielts-access-dialog"
 import { assetUrl } from "@/lib/asset-url"
 import { isIeltsCourse, type CatalogTrackId } from "@/lib/catalog-tracks"
 import { cn } from "@/lib/utils"
@@ -127,11 +129,14 @@ type CourseRow = {
 type EnrollmentRow = {
   course_id: string
   progress_percent?: number
+  completed?: boolean
+  certificate_ready?: boolean
   course?: CourseRow
 }
 
 export default function CoursesPage() {
   const { user, loading: authLoading } = useAuth()
+  const ieltsAccess = useIeltsAccess()
   const [allCourses, setAllCourses] = useState<Course[]>([])
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([])
   const [completedCourses, setCompletedCourses] = useState<Course[]>([])
@@ -142,7 +147,7 @@ export default function CoursesPage() {
   const [catalogTab, setCatalogTab] = useState("enrolled")
   const [track, setTrack] = useState<CatalogTrackId>("osh")
 
-  const mapCourse = (c: CourseRow, progress = 0): Course => ({
+  const mapCourse = (c: CourseRow, progress = 0, certificatePending = false): Course => ({
     id: c.id,
     title: c.title ?? "Untitled",
     description: c.description ?? "",
@@ -157,6 +162,7 @@ export default function CoursesPage() {
     requiresEnrollCode: c.requires_enroll_code ?? false,
     isEnrolled: c.is_enrolled ?? false,
     organizationName: c.organization_name ?? null,
+    certificatePending,
     createdAt: new Date(c.created_at ?? new Date().toISOString()),
     updatedAt: new Date(c.updated_at ?? c.created_at ?? new Date().toISOString()),
   })
@@ -197,15 +203,26 @@ export default function CoursesPage() {
         })),
       )
 
+      const waitingForCertificate = (enrollment: EnrollmentRow) =>
+        enrollment.completed === true && enrollment.certificate_ready !== true
+
       setEnrolledCourses(
         (enrolledData.enrollments ?? [])
-          .map((e) => (e.course ? mapCourse(e.course, e.progress_percent ?? 0) : null))
+          .map((e) =>
+            e.course
+              ? mapCourse(e.course, e.progress_percent ?? 0, waitingForCertificate(e))
+              : null,
+          )
           .filter((c): c is Course => c !== null),
       )
 
       setCompletedCourses(
         (completedData.enrollments ?? [])
-          .map((e) => (e.course ? mapCourse(e.course, e.progress_percent ?? 100) : null))
+          .map((e) =>
+            e.course
+              ? mapCourse(e.course, e.progress_percent ?? 100, waitingForCertificate(e))
+              : null,
+          )
           .filter((c): c is Course => c !== null),
       )
     } catch (err) {
@@ -239,10 +256,15 @@ export default function CoursesPage() {
     return searched
   }, [allCourses, search, track])
 
-  const myEnrolled = useMemo(
-    () => filterCourses(enrolledCourses),
-    [enrolledCourses, search],
-  )
+  const myEnrolled = useMemo(() => {
+    const waiting = filterCourses(completedCourses).filter((course) => course.certificatePending)
+    const active = filterCourses(enrolledCourses)
+    const seen = new Set(active.map((course) => course.id))
+    return [...active, ...waiting.filter((course) => !seen.has(course.id))]
+  }, [enrolledCourses, completedCourses, search])
+
+  const showIelts = Boolean(user) && ieltsAccess.unlocked && ieltsMatchesSearch(search)
+  const activeCount = enrolledCourses.length + (ieltsAccess.unlocked ? 1 : 0)
 
   const openCourse = (course: Course) => {
     setSelectedCourse(course)
@@ -258,13 +280,19 @@ export default function CoursesPage() {
 
   const renderGrid = (
     courses: Course[],
-    options: { showProgress?: boolean; catalog?: boolean; emphasize?: boolean; featured?: boolean } = {},
+    options: {
+      showProgress?: boolean
+      catalog?: boolean
+      emphasize?: boolean
+      featured?: boolean
+      append?: ReactNode
+    } = {},
   ) => {
-    const { showProgress = false, catalog = false, emphasize = false, featured = false } = options
+    const { showProgress = false, catalog = false, emphasize = false, featured = false, append = null } = options
     if (loading) {
       return <PageLoader label="Loading courses…" className="min-h-[20vh] py-6" />
     }
-    if (courses.length === 0) {
+    if (courses.length === 0 && !append) {
       return (
         <div className="grow-empty py-8">
           <BookOpen className="mx-auto h-10 w-10 text-[#c9bfb0] dark:text-muted-foreground" />
@@ -308,6 +336,7 @@ export default function CoursesPage() {
             />
           ),
         )}
+        {append}
       </div>
     )
   }
@@ -394,22 +423,20 @@ export default function CoursesPage() {
             <div
               className={cn(
                 "flex flex-wrap items-center justify-between gap-2",
-                enrolledCourses.length === 0 && "hidden md:flex",
+                enrolledCourses.length === 0 && !ieltsAccess.unlocked && "hidden md:flex",
               )}
             >
               <h2 className="text-sm font-semibold tracking-tight text-[#1c1917] dark:text-foreground">
                 My enrolled courses
               </h2>
               <p className="text-xs text-[#6b5c4f] dark:text-muted-foreground">
-                {enrolledCourses.length > 0
-                  ? `${enrolledCourses.length} active`
-                  : "None yet"}
+                {activeCount > 0 ? `${activeCount} active` : "None yet"}
               </p>
             </div>
 
             {loading ? (
               <PageLoader label="Loading…" className="min-h-[20vh] py-6" />
-            ) : enrolledCourses.length === 0 ? (
+            ) : enrolledCourses.length === 0 && !showIelts ? (
               <p className="text-sm text-[#6b5c4f] dark:text-muted-foreground">
                 No courses yet.{" "}
                 <button
@@ -421,9 +448,13 @@ export default function CoursesPage() {
                 </button>
               </p>
             ) : (
-              renderGrid(myEnrolled, { showProgress: true, featured: true })
+              renderGrid(myEnrolled, {
+                showProgress: true,
+                featured: true,
+                append: showIelts ? <IeltsEnrolledCard variant="resume" /> : null,
+              })
             )}
-            {!loading && enrolledCourses.length > 0 ? (
+            {!loading && (enrolledCourses.length > 0 || showIelts) ? (
               <button
                 type="button"
                 onClick={scrollToCatalog}
@@ -460,7 +491,7 @@ export default function CoursesPage() {
               Shop courses
             </h2>
             <p className="text-xs text-[#6b5c4f] dark:text-muted-foreground">
-              {allCourses.length} in catalog · {enrolledCourses.length} enrolled · {completedCourses.length} completed
+              {allCourses.length} in catalog · {activeCount} enrolled · {completedCourses.length} completed
             </p>
           </div>
 
@@ -482,7 +513,7 @@ export default function CoursesPage() {
             </TabsContent>
 
             <TabsContent value="enrolled" className="catalog-tab-panel mt-3 md:mt-5">
-              {!loading && myEnrolled.length === 0 && !search.trim() ? (
+              {!loading && myEnrolled.length === 0 && !showIelts && !search.trim() ? (
                 <div className="flex flex-col items-center px-4 py-8 text-center">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f3ede4] dark:bg-muted">
                     <BookOpen className="h-8 w-8 text-[#c9bfb0] dark:text-muted-foreground" />
@@ -499,7 +530,11 @@ export default function CoursesPage() {
                   </Button>
                 </div>
               ) : (
-                renderGrid(myEnrolled, { showProgress: true, emphasize: true })
+                renderGrid(myEnrolled, {
+                  showProgress: true,
+                  emphasize: true,
+                  append: showIelts ? <IeltsEnrolledCard variant="compact" /> : null,
+                })
               )}
             </TabsContent>
 

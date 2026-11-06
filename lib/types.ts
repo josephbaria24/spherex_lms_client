@@ -24,6 +24,7 @@ export interface Course {
   requiresEnrollCode?: boolean
   isEnrolled?: boolean
   organizationName?: string | null
+  certificatePending?: boolean
   createdAt: Date
   updatedAt: Date
 }

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle2, Clock, ListOrdered, Tag, Users, TrendingUp } from "lucide-react"
+import { CheckCircle2, Clock, ListOrdered, Loader2, Tag, Users, TrendingUp } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import Link from "next/link"
@@ -25,6 +25,15 @@ function heroGradient(id: string) {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % BENTO_HERO_GRADIENTS.length
   return BENTO_HERO_GRADIENTS[hash]
+}
+
+function CertificateOnTheWay() {
+  return (
+    <div className="flex items-start gap-2 rounded-xl bg-[#FFF7ED] px-3 py-2 text-xs leading-5 text-[#9a3412] dark:bg-orange-950/30 dark:text-orange-200">
+      <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin" />
+      <p>Your certificate is on its way. This course does not have one set up yet.</p>
+    </div>
+  )
 }
 
 function CatalogPrice({ cents }: { cents: number }) {
@@ -93,6 +102,11 @@ export function CourseCard({
           {course.lessonCount != null ? <span> · {course.lessonCount} lessons</span> : null}
           {course.category ? <span> · {course.category}</span> : null}
         </p>
+        {course.certificatePending ? (
+          <div className="mt-2">
+            <CertificateOnTheWay />
+          </div>
+        ) : null}
         <div className="mt-auto pt-2 sm:pt-5">
           <span className="inline-flex h-7 w-full items-center justify-center rounded-lg bg-[#FF4B1A] text-[11px] font-semibold text-white sm:h-10 sm:rounded-xl sm:text-sm">
             <span className="sm:hidden">{course.isEnrolled ? "Continue" : "View"}</span>
@@ -160,9 +174,13 @@ export function CourseCard({
             </span>
           ) : null}
         </div>
-        <span className="mt-auto inline-flex items-center text-sm font-semibold text-[#FF4B1A]">
-          {isCompleted ? "Review course" : "Continue"}
-        </span>
+        {course.certificatePending ? (
+          <CertificateOnTheWay />
+        ) : (
+          <span className="mt-auto inline-flex items-center text-sm font-semibold text-[#FF4B1A]">
+            {isCompleted ? "Review course" : "Continue"}
+          </span>
+        )}
       </div>
     </article>
   )
@@ -191,7 +209,12 @@ export function CourseCard({
         <p className="mt-0.5 text-[11px] text-neutral-500">
           {isCompleted ? "Completed" : `Enrolled · ${course.progress ?? 0}%`}
         </p>
-        {showProgress ? (
+        {course.certificatePending ? (
+          <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-[#9a3412] dark:text-orange-200">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Certificate on its way
+          </p>
+        ) : showProgress ? (
           <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#f3ede4] dark:bg-muted">
             <div
               className="h-full rounded-full bg-[#FF4B1A]"

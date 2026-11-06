@@ -21,8 +21,22 @@ function isIos() {
   return /iphone|ipad|ipod/i.test(ua) || iPadOs
 }
 
-function isAndroid() {
-  return /android/i.test(navigator.userAgent)
+function isMobile() {
+  const ua = navigator.userAgent
+  const phone = /android|iphone|ipad|ipod|mobile/i.test(ua)
+  const coarse = window.matchMedia("(pointer: coarse)").matches
+  const narrow = window.matchMedia("(max-width: 767px)").matches
+  return phone || (coarse && narrow)
+}
+
+function isChrome() {
+  const ua = navigator.userAgent
+  return /chrome|crios|crmo/i.test(ua) && !/edg|opr|samsungbrowser/i.test(ua)
+}
+
+function isSafari() {
+  const ua = navigator.userAgent
+  return /safari/i.test(ua) && !/chrome|crios|crmo|android|edg|opr/i.test(ua)
 }
 
 function isDismissed() {
@@ -39,6 +53,7 @@ export function PwaInstallPrompt() {
   const [ios, setIos] = useState(false)
   const [visible, setVisible] = useState(false)
   const [showIosSteps, setShowIosSteps] = useState(false)
+  const [chromeHint, setChromeHint] = useState(false)
   const bannerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -49,19 +64,24 @@ export function PwaInstallPrompt() {
   }, [])
 
   useEffect(() => {
-    if (isStandalone() || isDismissed()) return
+    if (isStandalone() || isDismissed() || !isMobile()) return
+    const chrome = isChrome()
+    const safari = isSafari()
+    if (!chrome && !safari) return
 
     const iphone = isIos()
-    if (iphone) {
+    if (iphone || safari) {
       setIos(true)
+      setVisible(true)
+    } else if (chrome) {
       setVisible(true)
     }
 
     const onPrompt = (event: Event) => {
-      if (!isAndroid()) return
       event.preventDefault()
       setDeferred(event as BeforeInstallPromptEvent)
       setIos(false)
+      setChromeHint(false)
       setVisible(true)
     }
 
@@ -101,7 +121,11 @@ export function PwaInstallPrompt() {
       if (choice.outcome === "accepted") setVisible(false)
       return
     }
-    if (ios) setShowIosSteps(true)
+    if (ios) {
+      setShowIosSteps(true)
+      return
+    }
+    setChromeHint(true)
   }
 
   function dismiss() {
@@ -114,7 +138,7 @@ export function PwaInstallPrompt() {
   return (
     <div
       ref={bannerRef}
-      className="pwa-install-banner fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[#1a1f2e] text-white"
+      className="pwa-install-banner fixed inset-x-0 top-0 z-[80] border-b border-white/10 bg-[#1a1f2e] text-white"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="flex items-center gap-2 px-3 py-2">
@@ -141,7 +165,12 @@ export function PwaInstallPrompt() {
       {showIosSteps ? (
         <p className="flex items-center gap-1.5 px-3 pb-2 text-xs text-white/80">
           <Share className="h-3.5 w-3.5 shrink-0" />
-          Tap Share, then Add to Home Screen.
+          In Safari or Chrome, tap Share, then Add to Home Screen.
+        </p>
+      ) : null}
+      {chromeHint ? (
+        <p className="px-3 pb-2 text-xs text-white/80">
+          In Chrome, open the menu and tap Install app.
         </p>
       ) : null}
     </div>
