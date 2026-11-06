@@ -11,14 +11,14 @@ export const IELTS_TRACKS: {
     id: "academic",
     title: "IELTS Academic",
     description: "University and professional practice for listening, reading, writing, and speaking.",
-    image: "/Navy cap, burgundy book, golden pencil-1.png",
+    image: "/ielts-track-academic.png",
     imageAlt: "Graduation cap over an academic textbook",
   },
   {
     id: "general",
     title: "IELTS General Training",
     description: "Everyday reading and letter-style writing practice for work and migration.",
-    image: "/Open envelope, books, and pencil-2.png",
+    image: "/ielts-track-general.png",
     imageAlt: "Letter, books, and a pencil",
   },
   {
