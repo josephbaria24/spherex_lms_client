@@ -13,7 +13,16 @@ import { apiGet } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
 import { orgRoute } from "@/lib/org-routes"
 import { CourseCardHero } from "@/components/admin/courses/course-card-hero"
-import { BookOpen, Eye, ListOrdered, Users } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { BookOpen, Eye, Link2, ListOrdered, MoreVertical, Users } from "lucide-react"
+import { toast } from "sonner"
 
 type Course = {
   id: string
@@ -47,6 +56,19 @@ export default function OrgCoursesPage() {
     if (!loadingOrgs) load()
   }, [load, loadingOrgs])
 
+  async function copyRegistrationLink(course: Course) {
+    const url = `${window.location.origin}/courses?course=${course.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success("Registration link copied", {
+        description:
+          "They do not need an account. The link opens this course and they can request access with their name and email.",
+      })
+    } catch {
+      toast.error("Could not copy the registration link")
+    }
+  }
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -74,7 +96,32 @@ export default function OrgCoursesPage() {
                   ? orgRoute(selectedOrgSlug, `courses/${course.id}/preview`)
                   : "#"
               return (
-                <Link key={course.id} href={previewHref} className="group block">
+                <div key={course.id} className="group relative">
+                  <div className="absolute right-2 top-2 z-20">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-white/95 text-neutral-800 shadow-sm hover:bg-white"
+                          aria-label={`Course actions for ${course.title}`}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-64">
+                        <DropdownMenuLabel className="text-xs font-normal leading-5 text-muted-foreground">
+                          Copy a link that opens this course. The learner can enroll from that page without searching the catalog.
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => void copyRegistrationLink(course)}>
+                          <Link2 className="mr-2 h-4 w-4" />
+                          Copy registration link
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                <Link href={previewHref} className="group block">
                   <Card
                     className={`premium-card relative flex h-full flex-col gap-0 overflow-hidden border border-border py-0 shadow-none transition-colors group-hover:border-primary/40 ${
                       course.image ? "min-h-[18rem]" : "group-hover:bg-muted/20"
@@ -163,6 +210,7 @@ export default function OrgCoursesPage() {
                     </CardContent>
                   </Card>
                 </Link>
+                </div>
               )
             })}
           </div>

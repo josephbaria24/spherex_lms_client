@@ -11,18 +11,25 @@ import { toast } from "sonner"
 type CourseLessonAccessSettingsProps = {
   courseId: string
   initialRequireSequential?: boolean
+  initialAllowSkip?: boolean
 }
 
 export function CourseLessonAccessSettings({
   courseId,
   initialRequireSequential = false,
+  initialAllowSkip = false,
 }: CourseLessonAccessSettingsProps) {
   const [requireSequential, setRequireSequential] = useState(initialRequireSequential)
+  const [allowSkip, setAllowSkip] = useState(initialAllowSkip)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     setRequireSequential(initialRequireSequential)
   }, [initialRequireSequential])
+
+  useEffect(() => {
+    setAllowSkip(initialAllowSkip)
+  }, [initialAllowSkip])
 
   async function handleToggle(checked: boolean) {
     const previous = requireSequential
@@ -43,6 +50,25 @@ export function CourseLessonAccessSettings({
     }
   }
 
+  async function handleSkipToggle(checked: boolean) {
+    const previous = allowSkip
+    setAllowSkip(checked)
+    setSaving(true)
+    try {
+      await apiPatch(`/courses/${courseId}`, { allow_lesson_skip: checked })
+      toast.success(
+        checked
+          ? "Students can mark lessons complete or skip them"
+          : "Students must finish each lesson",
+      )
+    } catch (err) {
+      setAllowSkip(previous)
+      toast.error(err instanceof Error ? err.message : "Could not update lesson access")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <Card className="border border-border shadow-none">
       <CardHeader className="pb-3">
@@ -51,10 +77,10 @@ export function CourseLessonAccessSettings({
           <CardTitle className="text-base">Lesson access</CardTitle>
         </div>
         <CardDescription>
-          Control whether learners must finish each lesson before the next one unlocks.
+          Choose whether learners must follow the lesson order, and whether they can mark a lesson complete or skip it.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <Label htmlFor="require-sequential-lessons" className="text-sm font-medium">
@@ -69,6 +95,22 @@ export function CourseLessonAccessSettings({
             checked={requireSequential}
             disabled={saving}
             onCheckedChange={(checked) => void handleToggle(checked)}
+          />
+        </div>
+        <div className="flex items-start justify-between gap-4 border-t border-border pt-5">
+          <div className="space-y-1">
+            <Label htmlFor="allow-lesson-skip" className="text-sm font-medium">
+              Allow mark complete or skip
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              When enabled, students can mark any lesson complete or skip it and move on. When off, a lesson finishes only after its content or quiz is done.
+            </p>
+          </div>
+          <Switch
+            id="allow-lesson-skip"
+            checked={allowSkip}
+            disabled={saving}
+            onCheckedChange={(checked) => void handleSkipToggle(checked)}
           />
         </div>
       </CardContent>

@@ -146,6 +146,8 @@ export default function CoursesPage() {
   const [search, setSearch] = useState("")
   const [catalogTab, setCatalogTab] = useState("enrolled")
   const [track, setTrack] = useState<CatalogTrackId>("osh")
+  const openedRegistrationCourse = useRef(false)
+  const [guestAccessRequest, setGuestAccessRequest] = useState(false)
 
   const mapCourse = (c: CourseRow, progress = 0, certificatePending = false): Course => ({
     id: c.id,
@@ -236,6 +238,21 @@ export default function CoursesPage() {
     if (authLoading) return
     void fetchCourses()
   }, [user, authLoading])
+
+  useEffect(() => {
+    if (loading || openedRegistrationCourse.current) return
+    const courseId = new URLSearchParams(window.location.search).get("course")
+    if (!courseId) return
+    const match =
+      allCourses.find((course) => course.id === courseId) ??
+      enrolledCourses.find((course) => course.id === courseId) ??
+      completedCourses.find((course) => course.id === courseId)
+    if (!match) return
+    openedRegistrationCourse.current = true
+    setGuestAccessRequest(!user)
+    setSelectedCourse(match)
+    setModalOpen(true)
+  }, [loading, allCourses, enrolledCourses, completedCourses])
 
   const filterCourses = (courses: Course[]) => {
     const q = search.trim().toLowerCase()
@@ -401,6 +418,7 @@ export default function CoursesPage() {
           onClose={() => setModalOpen(false)}
           onEnroll={fetchCourses}
           isEnrolled={selectedCourse?.isEnrolled}
+          startWithAccessRequest={guestAccessRequest}
         />
       </div>
     )

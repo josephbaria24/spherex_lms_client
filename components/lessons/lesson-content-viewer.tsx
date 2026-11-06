@@ -17,6 +17,7 @@ type LessonContentViewerProps = {
   lesson: Lesson
   quiz?: LessonQuiz | null
   completed?: boolean
+  allowSkip?: boolean
   onLessonComplete?: (progress?: ScormProgressPayload) => void
   onProgressChange?: (progress: ScormProgressPayload) => void
   previewMode?: boolean
@@ -72,7 +73,7 @@ function MarkCompleteControl({
       disabled={saving}
     >
       {saving ? <Spinner size={16} /> : <CheckCircle2 className="h-4 w-4" />}
-      Mark as complete
+      Mark complete or skip
     </Button>
   )
 }
@@ -82,13 +83,14 @@ export function LessonContentViewer({
   lesson,
   quiz,
   completed,
+  allowSkip = false,
   onLessonComplete,
   onProgressChange,
   previewMode,
   scormPlayerHref,
 }: LessonContentViewerProps) {
   const type = lesson.content_type ?? "text"
-  const completeControl = (
+  const completeControl = allowSkip ? (
     <MarkCompleteControl
       courseId={courseId}
       lessonId={lesson.id}
@@ -96,17 +98,20 @@ export function LessonContentViewer({
       previewMode={previewMode}
       onLessonComplete={onLessonComplete}
     />
-  )
+  ) : null
 
   if (type === "quiz" && quiz) {
     return (
-      <QuizTaker
-        courseId={courseId}
-        lessonId={lesson.id}
-        quiz={quiz}
-        previewMode={previewMode}
-        onPassed={(progress) => onLessonComplete?.(progress)}
-      />
+      <div className="space-y-4">
+        <QuizTaker
+          courseId={courseId}
+          lessonId={lesson.id}
+          quiz={quiz}
+          previewMode={previewMode}
+          onPassed={(progress) => onLessonComplete?.(progress)}
+        />
+        {completeControl}
+      </div>
     )
   }
 
@@ -158,18 +163,21 @@ export function LessonContentViewer({
 
   if (type === "articulate" && lesson.articulate_url && isEmbeddableArticulateUrl(lesson.articulate_url)) {
     return (
-      <ArticulateLessonEmbed
-        title={lesson.title}
-        url={lesson.articulate_url}
-        launchMode={lesson.articulate_launch_mode ?? "story"}
-        durationMinutes={lesson.duration_minutes}
-        courseId={courseId}
-        lessonId={lesson.id}
-        previewMode={previewMode}
-        onLessonCompleted={onLessonComplete}
-        onProgressChange={onProgressChange}
-        scormPlayerHref={scormPlayerHref}
-      />
+      <div className="space-y-4">
+        <ArticulateLessonEmbed
+          title={lesson.title}
+          url={lesson.articulate_url}
+          launchMode={lesson.articulate_launch_mode ?? "story"}
+          durationMinutes={lesson.duration_minutes}
+          courseId={courseId}
+          lessonId={lesson.id}
+          previewMode={previewMode}
+          onLessonCompleted={onLessonComplete}
+          onProgressChange={onProgressChange}
+          scormPlayerHref={scormPlayerHref}
+        />
+        {completeControl}
+      </div>
     )
   }
 

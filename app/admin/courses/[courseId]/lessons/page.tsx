@@ -18,6 +18,7 @@ type CourseDetail = {
   organization_id?: string | null
   organization_name?: string | null
   require_sequential_lessons?: boolean
+  allow_lesson_skip?: boolean
 }
 
 export default function AdminCourseLessonsPage({
@@ -91,6 +92,7 @@ export default function AdminCourseLessonsPage({
           <CourseLessonAccessSettings
             courseId={course.id}
             initialRequireSequential={course.require_sequential_lessons ?? false}
+            initialAllowSkip={course.allow_lesson_skip ?? false}
           />
         </div>
 

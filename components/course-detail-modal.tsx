@@ -28,9 +28,18 @@ interface Props {
   onClose: () => void
   onEnroll: () => void
   isEnrolled?: boolean
+  /** Open the no-account payment request immediately. */
+  startWithAccessRequest?: boolean
 }
 
-export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled }: Props) {
+export function CourseDetailsModal({
+  course,
+  open,
+  onClose,
+  onEnroll,
+  isEnrolled,
+  startWithAccessRequest = false,
+}: Props) {
   const { user } = useAuth()
   const [enrolling, setEnrolling] = useState(false)
   const [requesting, setRequesting] = useState(false)
@@ -47,7 +56,10 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
 
   useLayoutEffect(() => {
     setDescriptionOpen(false)
-  }, [course?.id])
+    if (startWithAccessRequest && (course?.priceCents ?? 0) > 0) {
+      setShowPayForm(true)
+    }
+  }, [course?.id, course?.priceCents, startWithAccessRequest])
 
   useLayoutEffect(() => {
     const el = descriptionRef.current
@@ -62,7 +74,9 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
   const showCodeOption = isPaid || requiresCode || isOrgCourse
 
   const signedIn = Boolean(user)
-  const accountNext = `/login?next=${encodeURIComponent("/courses")}`
+  const accountNext = `/login?next=${encodeURIComponent(
+    course ? `/courses?course=${course.id}` : "/courses",
+  )}`
 
   async function enroll(options?: { enroll_code?: string }) {
     if (!course) return
@@ -231,8 +245,8 @@ export function CourseDetailsModal({ course, open, onClose, onEnroll, isEnrolled
           ) : showPayForm && isPaid ? (
             <form onSubmit={submitPaymentRequest} className="w-full space-y-3">
               <p className="text-sm text-muted-foreground">
-                Enter your details. We will email a transaction number and a link to upload your
-                payment receipt.
+                No account is needed. Enter your name and email. After an admin approves the
+                payment, we create the student login and email it to you.
               </p>
               <div className="space-y-1.5">
                 <Label htmlFor="pay-name">Full name</Label>

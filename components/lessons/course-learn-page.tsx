@@ -32,6 +32,7 @@ type CourseOutline = {
     title: string
     description?: string
     require_sequential_lessons?: boolean
+    allow_lesson_skip?: boolean
   }
   lessons: (Lesson & {
     completed?: boolean
@@ -259,7 +260,7 @@ export function CourseLearnPage({
     return (
       <MainLayout>
         <GrowShell bento={false}>
-          <div className="flex min-h-[40vh] items-center justify-center gap-2 text-[#6b5c4f]">
+          <div className="flex min-h-[40vh] items-center justify-center gap-2 text-[#6b5c4f] dark:text-white/70">
             <Spinner size={28} />
             Loading course…
           </div>
@@ -274,7 +275,7 @@ export function CourseLearnPage({
         <GrowShell bento={false}>
           <div className={cn(grow.card, "mx-auto max-w-lg p-8 text-center")}>
             <p className="font-medium text-[#1c1917] dark:text-foreground">No published lessons yet</p>
-            <p className="mt-2 text-sm text-[#6b5c4f] dark:text-muted-foreground">
+            <p className="mt-2 text-sm text-[#6b5c4f] dark:text-white/70">
               Check back when your instructor publishes content.
             </p>
             <Button asChild className="grow-btn-outline mt-6" variant="outline">
@@ -301,7 +302,7 @@ export function CourseLearnPage({
               <div className="lg:hidden">
                 <Link
                   href={backHref}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-[#6b5c4f] hover:text-[#1c1917] dark:hover:text-foreground"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[#6b5c4f] hover:text-[#1c1917] dark:text-white/70 dark:hover:text-white"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                   {backLabel}
@@ -312,7 +313,7 @@ export function CourseLearnPage({
                 <h1 className="mt-1 text-lg font-bold leading-snug text-[#1c1917] dark:text-foreground">
                   {outline.course.title}
                 </h1>
-                <p className="mt-1.5 text-sm leading-5 text-[#6b5c4f] dark:text-muted-foreground">
+                <p className="mt-1.5 text-sm leading-5 text-[#6b5c4f] dark:text-white/70">
                   {outline.course.require_sequential_lessons
                     ? "Start at lesson 1. The next one unlocks when you finish the one before it."
                     : "Tap a lesson to open it. You can go through them in any order."}
@@ -323,13 +324,13 @@ export function CourseLearnPage({
                       <span className="font-medium text-[#1c1917] dark:text-foreground">
                         {lessons.filter((item) => item.completed).length} of {lessons.length} finished
                       </span>
-                      <span className="tabular-nums text-[#6b5c4f] dark:text-muted-foreground">
+                      <span className="tabular-nums text-[#6b5c4f] dark:text-white/70">
                         {outline.progress}%
                       </span>
                     </div>
                     <Progress
                       value={outline.progress}
-                      className="h-1.5 [&_[data-slot=progress-indicator]]:bg-[#FF4B1A]"
+                      className="h-1.5 bg-[#ebe4da] dark:bg-white/15 [&_[data-slot=progress-indicator]]:bg-[#FF4B1A]"
                     />
                   </div>
                 )}
@@ -382,18 +383,18 @@ export function CourseLearnPage({
                         <span className="mt-1 block text-xs font-medium text-[#1c1917] dark:text-foreground">
                           {status}
                           {!previewMode && !l.locked ? (
-                            <span className="font-normal text-[#6b5c4f] dark:text-muted-foreground">
+                            <span className="font-normal text-[#6b5c4f] dark:text-white/70">
                               {" "}
                               · {lessonPercent(l)}%
                             </span>
                           ) : null}
                         </span>
-                        <span className="mt-0.5 block text-xs leading-5 text-[#6b5c4f] dark:text-muted-foreground">
+                        <span className="mt-0.5 block text-xs leading-5 text-[#6b5c4f] dark:text-white/70">
                           {statusHint}
                         </span>
                       </span>
                       {canOpen ? (
-                        <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-[#6b5c4f]" />
+                        <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-[#6b5c4f] dark:text-white/55" />
                       ) : (
                         <Lock className="mt-2 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
                       )}
@@ -427,12 +428,12 @@ export function CourseLearnPage({
                 })}
                 {quizItems.length > 0 ? (
                   <div className="pt-2">
-                    <p className="px-1 pb-2 text-sm font-semibold text-[#312e81]">Quizzes</p>
+                    <p className="px-1 pb-2 text-sm font-semibold text-[#312e81] dark:text-violet-200">Quizzes</p>
                     <div className="space-y-1.5">
                       {quizItems.map((quiz) => {
                         const quizActive = detail?.lesson.id === quiz.id
                         const quizClass = cn(
-                          "flex items-center gap-2 rounded-xl border border-[#ebe4da] bg-white px-3 py-2.5 text-sm text-[#312e81] dark:border-border dark:bg-card",
+                          "flex items-center gap-2 rounded-xl border border-[#ebe4da] bg-white px-3 py-2.5 text-sm text-[#312e81] dark:border-border dark:bg-card dark:text-violet-100",
                           quizActive && "border-[#312e81]/40 bg-[#ebe4f8] dark:bg-violet-950/40",
                           quiz.locked && "cursor-not-allowed opacity-60",
                         )
@@ -483,7 +484,7 @@ export function CourseLearnPage({
                 <div className="flex items-center justify-between gap-2">
                   <Link
                     href={backHref}
-                    className="text-xs text-[#6b5c4f] transition-colors hover:text-[#1c1917] dark:hover:text-foreground"
+                    className="text-xs text-[#6b5c4f] transition-colors hover:text-[#1c1917] dark:text-white/70 dark:hover:text-white"
                   >
                     ← {backLabel}
                   </Link>
@@ -494,20 +495,20 @@ export function CourseLearnPage({
                 {!previewMode && (
                   <div className="mt-3 space-y-1">
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#6b5c4f] dark:text-muted-foreground">Progress</span>
+                      <span className="text-[#6b5c4f] dark:text-white/70">Progress</span>
                       <span className="font-medium text-[#1c1917] transition-all duration-500 dark:text-foreground">
                         {outline.progress}%
                       </span>
                     </div>
                     <Progress
                       value={outline.progress}
-                      className="h-1.5 transition-all duration-500 [&_[data-slot=progress-indicator]]:bg-[#7c6cf0]"
+                      className="h-1.5 bg-[#ebe4da] transition-all duration-500 dark:bg-white/15 [&_[data-slot=progress-indicator]]:bg-[#FF4B1A]"
                     />
                   </div>
                 )}
               </div>
               <nav className="hidden max-h-[min(52vh,28rem)] space-y-0.5 overflow-x-hidden overflow-y-auto lg:block">
-                <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b5c4f] dark:text-white/60">
                   Lessons
                 </p>
                 {lessonItems.map((l) => {
@@ -524,7 +525,7 @@ export function CourseLearnPage({
                     <>
                       <span className="min-w-0 flex-1 truncate font-medium">{l.title}</span>
                       {l.locked ? (
-                        <Lock className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f]" />
+                        <Lock className="h-3.5 w-3.5 shrink-0 text-[#6b5c4f] dark:text-white/55" />
                       ) : (
                         <span
                           className={cn(
@@ -560,7 +561,7 @@ export function CourseLearnPage({
                 })}
                 {quizItems.length > 0 ? (
                   <div className="pt-4">
-                    <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b5c4f] dark:text-white/60">
                       Quizzes
                     </p>
                     <div className="space-y-0.5">
@@ -621,7 +622,7 @@ export function CourseLearnPage({
           <main className={cn(grow.card, "min-w-0 flex-1 p-4 md:p-5", !showPlayer && "max-lg:hidden")}>
             <button
               type="button"
-              className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-[#6b5c4f] lg:hidden"
+              className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-[#6b5c4f] dark:text-white/70 lg:hidden"
               onClick={() => {
                 setShowPlayer(false)
                 document.querySelector(".grow-shell")?.scrollTo({ top: 0 })
@@ -635,9 +636,9 @@ export function CourseLearnPage({
                 key="blocked"
                 className="animate-in fade-in slide-in-from-right-3 p-8 text-center duration-300"
               >
-                <Lock className="mx-auto h-10 w-10 text-[#6b5c4f]" />
+                <Lock className="mx-auto h-10 w-10 text-[#6b5c4f] dark:text-white/55" />
                 <p className="mt-4 font-medium text-[#1c1917] dark:text-foreground">This lesson is locked</p>
-                <p className="mt-2 text-sm text-[#6b5c4f] dark:text-muted-foreground">{lessonBlocked}</p>
+                <p className="mt-2 text-sm text-[#6b5c4f] dark:text-white/70">{lessonBlocked}</p>
                 {prevLesson && !prevLesson.locked ? (
                   <Button
                     className="grow-btn-outline mt-6"
@@ -651,7 +652,7 @@ export function CourseLearnPage({
             ) : null}
 
             {showLessonSkeleton ? (
-              <div className="flex min-h-[40vh] items-center justify-center gap-2 text-[#6b5c4f]">
+              <div className="flex min-h-[40vh] items-center justify-center gap-2 text-[#6b5c4f] dark:text-white/70">
                 <Spinner size={28} />
                 Loading lesson…
               </div>
@@ -693,6 +694,7 @@ export function CourseLearnPage({
                   lesson={detail.lesson}
                   quiz={detail.quiz}
                   completed={detail.completed}
+                  allowSkip={outline?.course.allow_lesson_skip === true}
                   previewMode={previewMode}
                   scormPlayerHref={`${basePath}/${detail.lesson.id}/scorm`}
                   onLessonComplete={(progress) => {

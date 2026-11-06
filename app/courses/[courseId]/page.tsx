@@ -21,7 +21,7 @@ export default function CourseDetailRedirect({
       router.replace(`/courses/${courseId}/learn`)
       return
     }
-    router.replace("/courses")
+    router.replace(`/courses?course=${courseId}`)
   }, [courseId, loading, router, user])
 
   return (

@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils"
 import type { AuthUser } from "@/lib/api"
 import type { LearnDashboardPayload } from "@/lib/learn-dashboard-types"
 import {
+  ArrowRight,
+  BookOpen,
   Flame,
   Play,
   Plus,
@@ -105,6 +107,9 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
 
   const inProgress = enrollments.find((e) => !e.completed && e.progress_percent < 100)
   const resumeCourse = inProgress ?? enrollments.find((e) => !e.completed) ?? null
+  const hasStartedLesson = Boolean(
+    resumeCourse && (resumeCourse.lessons_completed > 0 || resumeCourse.progress_percent > 0),
+  )
 
   const knowledgeSeries = useMemo(
     () => buildKnowledgeSeries(knowledge_timeline, range),
@@ -124,7 +129,7 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
 
   return (
     <div className="dashboard-bento grow-bento space-y-5">
-      <StudentOnboardingDialog user={user} enrollmentCount={enrollments.length} />
+      <StudentOnboardingDialog user={user} enrollments={enrollments} />
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <span className="inline-flex items-center rounded-full border border-[#e8dfd3] bg-white/70 px-3 py-1 text-xs font-medium text-[#6b5c4f] dark:border-border dark:bg-card">
@@ -157,7 +162,7 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
             >
               <Link href={`/courses/${resumeCourse.course_id}/learn`}>
                 <Play className="mr-1.5 h-4 w-4 fill-current" />
-                Resume lesson
+                {hasStartedLesson ? "Resume lesson" : "Start lesson"}
               </Link>
             </Button>
           ) : null}
@@ -348,6 +353,55 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
             {summary.quiz_attempts} quiz attempt{summary.quiz_attempts === 1 ? "" : "s"}
           </p>
         </div>
+
+        {enrollments.length > 0 ? (
+          <section className="lg:col-span-12">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-[#1c1917] dark:text-foreground">Your courses</h2>
+              <Link href="/courses" className="text-xs font-semibold text-[#e85d4a] hover:underline">
+                See all
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {enrollments.map((enrollment) => (
+                <Link
+                  key={enrollment.id}
+                  href={`/courses/${enrollment.course_id}/learn`}
+                  className="flex flex-col rounded-2xl border border-[#ebe4da] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-[#FFD8C8] dark:border-border dark:bg-card"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 text-sm font-semibold text-[#1c1917] dark:text-foreground">
+                        {enrollment.course.title}
+                      </p>
+                      <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <BookOpen className="h-3 w-3 text-[#FF4B1A]" />
+                        {enrollment.lessons_completed} of {enrollment.lessons_total} lessons
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-[#1a1f2e] px-2 py-0.5 text-[10px] font-semibold text-white">
+                      {enrollment.completed ? "Done" : `${enrollment.progress_percent}%`}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f3ede4] dark:bg-muted">
+                    <div
+                      className="h-full rounded-full bg-[#FF4B1A]"
+                      style={{ width: `${Math.min(100, enrollment.progress_percent)}%` }}
+                    />
+                  </div>
+                  <span className="mt-3 inline-flex items-center text-xs font-semibold text-[#FF4B1A]">
+                    {enrollment.completed
+                      ? "Review course"
+                      : enrollment.lessons_completed > 0 || enrollment.progress_percent > 0
+                        ? "Continue"
+                        : "Start"}
+                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <DashboardCourseCarousel />
       </div>

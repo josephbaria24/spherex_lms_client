@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { BookOpen, Building2, Sparkles } from "lucide-react"
+import { BookOpen, Building2, KeyRound, Play, Sparkles } from "lucide-react"
 import type { AuthUser } from "@/lib/api"
+import type { LearnDashboardEnrollment } from "@/lib/learn-dashboard-types"
 import { JoinOrganizationForm } from "@/components/org/join-organization-form"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +23,31 @@ type Step = "welcome" | "code-ask" | "code-input"
 
 type StudentOnboardingDialogProps = {
   user: AuthUser
-  enrollmentCount: number
+  enrollments: LearnDashboardEnrollment[]
+}
+
+function Tip({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: typeof BookOpen
+  title: string
+  body: string
+}) {
+  return (
+    <li className="flex items-start gap-3 rounded-[1.25rem] border border-[#ebe4da] bg-white/80 p-3 dark:border-border dark:bg-muted/30">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1a1f2e] text-white">
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-[#1c1917] dark:text-foreground">{title}</span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-[#6b5c4f] dark:text-muted-foreground">
+          {body}
+        </span>
+      </span>
+    </li>
+  )
 }
 
 function storageKey(userId: string) {
@@ -35,7 +60,7 @@ function displayName(user: AuthUser) {
 
 export function StudentOnboardingDialog({
   user,
-  enrollmentCount,
+  enrollments,
 }: StudentOnboardingDialogProps) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<Step>("welcome")
@@ -69,7 +94,9 @@ export function StudentOnboardingDialog({
     setOpen(true)
   }
 
-  const emptyCourses = enrollmentCount === 0
+  const emptyCourses = enrollments.length === 0
+  const firstCourse = enrollments.find((item) => !item.completed) ?? enrollments[0]
+  const courseTitle = firstCourse?.course.title
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,7 +130,9 @@ export function StudentOnboardingDialog({
               {step === "welcome" &&
                 (emptyCourses
                   ? "You’re all set up — next, find a course to start learning."
-                  : "A quick tour to help you get the most out of PetroCademia.")}
+                  : courseTitle
+                    ? `${courseTitle} is ready for you. A few tips before you start.`
+                    : "A quick tour to help you get the most out of PetroCademia.")}
               {step === "code-ask" &&
                 "Some organizations unlock free courses with a student code."}
               {step === "code-input" &&
@@ -115,30 +144,60 @@ export function StudentOnboardingDialog({
         <div className="space-y-5 px-6 py-5">
           {step === "welcome" ? (
             <>
-              <div className="rounded-[1.25rem] border border-[#ebe4da] bg-white/80 p-4 dark:border-border dark:bg-muted/30">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1a1f2e] text-white">
-                    <BookOpen className="h-4 w-4" aria-hidden />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-semibold text-[#1c1917] dark:text-foreground">
-                      {emptyCourses ? "No courses yet" : "Browse more courses"}
-                    </p>
-                    <p className="text-xs leading-relaxed text-[#6b5c4f] dark:text-muted-foreground">
-                      {emptyCourses
-                        ? "Open the Courses page to explore the catalog and enroll with payment or an admin enrollment code."
-                        : "You can always find new training in Courses from the sidebar."}
-                    </p>
+              {emptyCourses ? (
+                <div className="rounded-[1.25rem] border border-[#ebe4da] bg-white/80 p-4 dark:border-border dark:bg-muted/30">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1a1f2e] text-white">
+                      <BookOpen className="h-4 w-4" aria-hidden />
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-sm font-semibold text-[#1c1917] dark:text-foreground">
+                        No courses yet
+                      </p>
+                      <p className="text-xs leading-relaxed text-[#6b5c4f] dark:text-muted-foreground">
+                        Open the Courses page to explore the catalog and enroll with payment or an admin enrollment code.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <ul className="space-y-2">
+                  <Tip
+                    icon={Play}
+                    title="Start from Your courses"
+                    body={
+                      courseTitle
+                        ? `${courseTitle} is on this page. Use Continue to open the first lesson.`
+                        : "Your enrolled courses are listed on this page."
+                    }
+                  />
+                  <Tip
+                    icon={BookOpen}
+                    title="Follow the lessons"
+                    body="Some courses unlock the next lesson only after you finish the one you’re on."
+                  />
+                  <Tip
+                    icon={KeyRound}
+                    title="Your login is ready"
+                    body="This email and the password we sent are your student account. You can change the password in Settings."
+                  />
+                </ul>
+              )}
 
               <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                <Button asChild className="grow-btn-primary rounded-full">
-                  <Link href="/courses" onClick={complete}>
-                    Go to courses
-                  </Link>
-                </Button>
+                {firstCourse ? (
+                  <Button asChild className="grow-btn-primary rounded-full">
+                    <Link href={`/courses/${firstCourse.course_id}/learn`} onClick={complete}>
+                      Start {firstCourse.course.title}
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild className="grow-btn-primary rounded-full">
+                    <Link href="/courses" onClick={complete}>
+                      Go to courses
+                    </Link>
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"

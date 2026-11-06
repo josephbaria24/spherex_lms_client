@@ -101,6 +101,8 @@ export function ScormPlayerPage({
   const [nextLesson, setNextLesson] = useState<{ id: string; title: string } | null>(null)
   const [goingNext, setGoingNext] = useState(false)
   const [rotateMode, setRotateMode] = useState<RotateMode>("off")
+  const [chromeVisible, setChromeVisible] = useState(true)
+  const chromeTimer = useRef<number | null>(null)
   const apiRef = useRef<Scorm12Api | null>(null)
   const flushRef = useRef<(() => Promise<void>) | null>(null)
   const markCompletedRef = useRef<(() => Promise<void>) | null>(null)
@@ -110,6 +112,20 @@ export function ScormPlayerPage({
 
   const resolvedLearnBase =
     learnBasePath ?? (backHref.replace(/\/[^/]+\/?$/, "") || backHref)
+
+  function showChrome() {
+    setChromeVisible(true)
+    if (chromeTimer.current) window.clearTimeout(chromeTimer.current)
+    chromeTimer.current = window.setTimeout(() => setChromeVisible(false), 5000)
+  }
+
+  useEffect(() => {
+    if (!launchUrl) return
+    showChrome()
+    return () => {
+      if (chromeTimer.current) window.clearTimeout(chromeTimer.current)
+    }
+  }, [launchUrl])
 
   useEffect(() => {
     let cancelled = false
@@ -395,7 +411,20 @@ export function ScormPlayerPage({
           : undefined
       }
     >
-      <div className="absolute left-3 top-3 z-10 flex max-w-[70%] flex-col gap-1">
+      {!chromeVisible && !lessonFinished ? (
+        <button
+          type="button"
+          className="absolute inset-0 z-[5] cursor-default bg-transparent"
+          aria-label="Show player controls"
+          onPointerDown={() => showChrome()}
+        />
+      ) : null}
+      <div
+        className={cn(
+          "absolute left-3 top-3 z-10 flex max-w-[70%] flex-col gap-1 transition-opacity duration-300",
+          chromeVisible ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+      >
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -425,7 +454,12 @@ export function ScormPlayerPage({
         </div>
         {resumeNote ? <p className="text-[10px] text-white/50">{resumeNote}</p> : null}
       </div>
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+      <div
+        className={cn(
+          "absolute right-3 top-3 z-10 flex items-center gap-2 transition-opacity duration-300",
+          chromeVisible ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+      >
         {showTestSkip ? (
           <label className="flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white">
             <Switch

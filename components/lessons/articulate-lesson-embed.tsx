@@ -336,18 +336,24 @@ export function ArticulateLessonEmbed({
         </div>
       ) : null}
 
-      <div className="relative flex h-[min(52vh,460px)] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-[#12151c] text-white dark:border-white/10 dark:bg-[#0c0e14]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.15),transparent_70%)]" />
-        <div className="relative flex flex-col items-center gap-4 px-6 text-center">
-          <p className="text-lg font-semibold">{title}</p>
+      <div className="relative flex min-h-[min(52vh,420px)] w-full flex-col items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#141820] text-white shadow-sm">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,75,26,0.28),transparent_58%)]" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-[58%] rounded-full border border-white/10" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-[58%] rounded-full border border-white/10" />
+
+        <div className="relative flex w-full max-w-md flex-col items-center gap-5 px-6 py-10 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
+            Interactive lesson
+          </p>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
 
           {scormStatus === "failed" ? (
-            <div className="space-y-2">
+            <div className="flex flex-col items-center gap-3">
               <p className="text-sm text-rose-200">You did not pass this lesson.</p>
               <Button
                 type="button"
                 size="lg"
-                className="gap-2 rounded-full bg-emerald-500 px-6 hover:bg-emerald-600"
+                className="gap-2 rounded-full bg-[#FF4B1A] px-6 text-white hover:bg-[#e84314]"
                 onClick={() => void handleStartOver()}
                 disabled={resetting}
               >
@@ -356,36 +362,45 @@ export function ArticulateLessonEmbed({
               </Button>
             </div>
           ) : hasResumableSession ? (
-            <div className="flex flex-col items-center gap-3 sm:flex-row">
-              <Button
-                type="button"
-                size="lg"
-                className="gap-2 rounded-full bg-emerald-500 px-6 hover:bg-emerald-600"
-                onClick={() => beginPlayback(false)}
-              >
-                <Play className="h-4 w-4 fill-current" />
-                Resume lesson
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                className="gap-2 rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20"
-                onClick={() => void handleStartOver()}
-                disabled={resetting}
-              >
-                <RotateCcw className="h-4 w-4" />
-                {resetting ? "Resetting…" : "Start over"}
-              </Button>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="gap-2 rounded-full bg-[#FF4B1A] px-6 text-white hover:bg-[#e84314]"
+                  onClick={() => beginPlayback(false)}
+                >
+                  <Play className="h-4 w-4 fill-current" />
+                  Resume lesson
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/20"
+                  onClick={() => void handleStartOver()}
+                  disabled={resetting}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {resetting ? "Resetting…" : "Start over"}
+                </Button>
+              </div>
+              {useScormPlayer ? (
+                <p className="max-w-sm text-xs leading-relaxed text-white/60">
+                  {hasBookmark
+                    ? "You'll resume from where you left off."
+                    : "No saved position yet. Resume starts from the beginning."}
+                </p>
+              ) : null}
             </div>
           ) : scormStatus === "completed" ? (
-            <div className="space-y-2">
+            <div className="flex flex-col items-center gap-3">
               <p className="text-sm text-emerald-200">You completed this lesson.</p>
               <Button
                 type="button"
                 size="lg"
                 variant="outline"
-                className="gap-2 rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20"
+                className="gap-2 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/20"
                 onClick={() => void handleStartOver()}
                 disabled={resetting}
               >
@@ -397,25 +412,17 @@ export function ArticulateLessonEmbed({
             <button
               type="button"
               onClick={() => beginPlayback(true)}
-              className="group flex flex-col items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              aria-label={`Play ${title}`}
+              className="group flex flex-col items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4B1A]"
+              aria-label={`Open ${title}`}
             >
-              <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white/10 ring-2 ring-white/20 transition group-hover:scale-105 group-hover:bg-emerald-500/90 group-hover:ring-emerald-300/40">
-                <Play className="h-9 w-9 fill-white text-white pl-1" />
+              <span className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-[#FF4B1A] shadow-[0_12px_32px_rgba(255,75,26,0.35)] transition group-hover:scale-105 group-hover:bg-[#e84314]">
+                <Play className="h-8 w-8 fill-white pl-0.5 text-white" />
               </span>
-              <p className="flex items-center justify-center gap-1.5 text-sm text-white/70">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white/85">
                 <Maximize2 className="h-3.5 w-3.5" />
-                {useScormPlayer ? "Open lesson" : "Click to start in fullscreen"}
-              </p>
+                {useScormPlayer ? "Open lesson" : "Start in fullscreen"}
+              </span>
             </button>
-          )}
-
-          {hasResumableSession && useScormPlayer && scormStatus !== "failed" && (
-            <p className="max-w-md text-xs text-white/60">
-              {hasBookmark
-                ? "You'll resume from where you left off."
-                : "No saved position yet — resume starts from the beginning. Use Start over to reset."}
-            </p>
           )}
         </div>
       </div>

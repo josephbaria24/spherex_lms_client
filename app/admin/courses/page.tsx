@@ -50,7 +50,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
 import { formatCoursePrice } from "@/lib/course-pricing"
 import { type CourseCardTheme, DEFAULT_COURSE_CARD_THEME } from "@/lib/course-card-themes"
-import { BookOpen, ListOrdered, MoreVertical, Pencil, Search, Tag, Trash2, Users } from "lucide-react"
+import { BookOpen, Copy, KeyRound, ListOrdered, MoreVertical, Pencil, Search, Tag, Trash2, Users } from "lucide-react"
 import { toast } from "sonner"
 
 type Organization = { id: string; name: string; slug: string }
@@ -86,6 +86,8 @@ export default function AdminCoursesPage() {
   const [deleteCourseId, setDeleteCourseId] = useState<string | null>(null)
   const [deletePassword, setDeletePassword] = useState("")
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [accessCode, setAccessCode] = useState<{ title: string; code: string } | null>(null)
+  const [generatingCodeId, setGeneratingCodeId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
@@ -190,6 +192,31 @@ export default function AdminCoursesPage() {
       toast.error(err instanceof Error ? err.message : "Failed to update course")
     } finally {
       setEditLoading(false)
+    }
+  }
+
+  async function generateAccessCode(course: Course) {
+    setGeneratingCodeId(course.id)
+    try {
+      const res = await apiPost<{ enroll_code: string }>(
+        `/courses/${course.id}/regenerate-enroll-code`,
+      )
+      setAccessCode({ title: course.title, code: res.enroll_code })
+      await load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not generate an access code")
+    } finally {
+      setGeneratingCodeId(null)
+    }
+  }
+
+  async function copyAccessCode() {
+    if (!accessCode) return
+    try {
+      await navigator.clipboard.writeText(accessCode.code)
+      toast.success("Access code copied")
+    } catch {
+      toast.error("Could not copy the access code")
     }
   }
 
@@ -348,6 +375,13 @@ export default function AdminCoursesPage() {
                         <DropdownMenuItem onClick={() => setEditCourse(course)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={generatingCodeId === course.id}
+                          onClick={() => void generateAccessCode(course)}
+                        >
+                          <KeyRound className="mr-2 h-4 w-4" />
+                          Generate access code
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
@@ -547,6 +581,24 @@ export default function AdminCoursesPage() {
               {editLoading ? "Saving…" : "Save Changes"}
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!accessCode} onOpenChange={(open) => !open && setAccessCode(null)}>
+        <DialogContent className="max-w-sm rounded-[1.5rem]">
+          <DialogHeader>
+            <DialogTitle>Access code</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Share this code for {accessCode?.title}. Learners enter it to enroll.
+          </p>
+          <p className="rounded-xl bg-muted px-3 py-3 text-center font-mono text-lg font-semibold tracking-wide">
+            {accessCode?.code}
+          </p>
+          <Button type="button" className="w-full rounded-full" onClick={() => void copyAccessCode()}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy code
+          </Button>
         </DialogContent>
       </Dialog>
 
