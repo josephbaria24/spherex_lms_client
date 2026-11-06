@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { GrowHeader } from "@/components/grow-shell"
+import { IeltsAccessRequests } from "@/components/admin/ielts/ielts-access-requests"
 import {
   Search,
   MoreVertical,
@@ -101,7 +102,7 @@ type AttemptSummary = {
 const PREVIEW_PARTS = 3
 
 export default function AdminIeltsPage() {
-  const [view, setView] = useState<"skills" | "materials" | "results">("skills")
+  const [view, setView] = useState<"skills" | "materials" | "results" | "requests">("skills")
   const [materials, setMaterials] = useState<ReviewerMaterial[]>([])
   const [groups, setGroups] = useState<AdminGroup[]>([])
   const [attempts, setAttempts] = useState<AttemptRow[]>([])
@@ -283,6 +284,8 @@ export default function AdminIeltsPage() {
       ? "Search skills or practice sets…"
       : view === "materials"
         ? "Search IELTS materials…"
+        : view === "requests"
+        ? "Access requests"
         : "Search results by learner or set…"
 
   return (
@@ -361,6 +364,13 @@ export default function AdminIeltsPage() {
             <BarChart3 className="mr-2 h-4 w-4" />
             Results ({summary.total})
           </Button>
+          <Button
+            variant={view === "requests" ? "default" : "outline"}
+            className="rounded-full"
+            onClick={() => setView("requests")}
+          >
+            Access requests
+          </Button>
         </div>
 
         <div className="grow-toolbar">
@@ -375,7 +385,9 @@ export default function AdminIeltsPage() {
           </div>
         </div>
 
-        {view === "skills" ? (
+        {view === "requests" ? (
+          <IeltsAccessRequests />
+        ) : view === "skills" ? (
           loading ? (
             <Card className="p-12 text-center text-muted-foreground">Loading IELTS skills…</Card>
           ) : filteredGroups.length === 0 ? (

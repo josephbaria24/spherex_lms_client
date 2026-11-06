@@ -37,7 +37,7 @@ export default function IeltsPracticePage({
             This IELTS training is locked
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Request access or enter your code. Either one opens every IELTS practice set and material.
+            Request access and wait for an admin to accept it, or enter the code they send you.
           </p>
           <Button
             type="button"

@@ -95,11 +95,7 @@ export function IeltsAccessDialog({
         email: email.trim(),
         phone: phone.trim(),
       })
-      toast.success(res.message || "Access request sent")
-      if (res.unlocked) {
-        onUnlocked?.()
-        onOpenChange(false)
-      }
+      toast.success(res.message || "Request sent. An admin still needs to accept it.")
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Could not send the access request")
     } finally {
@@ -143,8 +139,8 @@ export function IeltsAccessDialog({
           </DialogTitle>
         </DialogHeader>
         <p className="text-sm leading-6 text-muted-foreground">
-          Request access or enter your code. Either one unlocks every IELTS practice set, mock exam,
-          and answer key on your account.
+          Request access and wait for an admin to accept it. A code from the admin also unlocks every
+          IELTS practice set, mock exam, and answer key.
         </p>
 
         <form onSubmit={requestAccess} className="space-y-3">
