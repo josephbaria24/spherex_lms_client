@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { FileText, Headphones, Lock } from "lucide-react"
+import { apiGet } from "@/lib/api"
 import {
   IELTS_ACADEMIC_KEYS,
   IELTS_ACADEMIC_MOCKS,
@@ -14,6 +16,22 @@ export function IeltsCompanyMaterials({
   unlocked: boolean
   onLocked: (title: string) => void
 }) {
+  const [showAnswerKeys, setShowAnswerKeys] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    apiGet<{ show_answer_keys?: boolean }>("/reviewers/ielts/answer-keys")
+      .then((data) => {
+        if (!cancelled) setShowAnswerKeys(data.show_answer_keys === true)
+      })
+      .catch(() => {
+        if (!cancelled) setShowAnswerKeys(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   function openFile(title: string, href: string) {
     if (!unlocked) {
       onLocked(title)
@@ -59,19 +77,21 @@ export function IeltsCompanyMaterials({
           </article>
         ))}
       </div>
-      <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
-        {IELTS_ACADEMIC_KEYS.map((file) => (
-          <button
-            key={file.id}
-            type="button"
-            onClick={() => openFile(file.title, file.href)}
-            className="flex min-w-0 items-center gap-1.5 rounded-xl border border-[#FFD8C8] bg-[#FFF1EC] px-2 py-2 text-left text-[10px] font-semibold leading-4 text-[#FF4B1A] sm:px-3 sm:text-xs dark:border-[#FF4B1A]/30 dark:bg-[#FF4B1A]/15"
-          >
-            {!unlocked ? <Lock className="h-3 w-3 shrink-0" /> : <FileText className="h-3.5 w-3.5 shrink-0" />}
-            <span className="truncate">{file.title}</span>
-          </button>
-        ))}
-      </div>
+      {showAnswerKeys ? (
+        <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+          {IELTS_ACADEMIC_KEYS.map((file) => (
+            <button
+              key={file.id}
+              type="button"
+              onClick={() => openFile(file.title, file.href)}
+              className="flex min-w-0 items-center gap-1.5 rounded-xl border border-[#FFD8C8] bg-[#FFF1EC] px-2 py-2 text-left text-[10px] font-semibold leading-4 text-[#FF4B1A] sm:px-3 sm:text-xs dark:border-[#FF4B1A]/30 dark:bg-[#FF4B1A]/15"
+            >
+              {!unlocked ? <Lock className="h-3 w-3 shrink-0" /> : <FileText className="h-3.5 w-3.5 shrink-0" />}
+              <span className="truncate">{file.title}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
     </section>
   )
 }

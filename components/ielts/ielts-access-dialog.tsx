@@ -140,7 +140,7 @@ export function IeltsAccessDialog({
         </DialogHeader>
         <p className="text-sm leading-6 text-muted-foreground">
           Request access and wait for an admin to accept it. A code from the admin also unlocks every
-          IELTS practice set, mock exam, and answer key.
+          IELTS practice set and mock exam.
         </p>
 
         <form onSubmit={requestAccess} className="space-y-3">

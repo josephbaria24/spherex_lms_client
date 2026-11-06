@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { GrowHeader } from "@/components/grow-shell"
 import { IeltsAccessRequests } from "@/components/admin/ielts/ielts-access-requests"
+import { IeltsAnswerKeyToggle } from "@/components/admin/ielts/ielts-answer-key-toggle"
 import {
   Search,
   MoreVertical,
@@ -316,6 +317,8 @@ export default function AdminIeltsPage() {
             />
           ) : null}
         </GrowHeader>
+
+        <IeltsAnswerKeyToggle />
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="grow-card p-4">

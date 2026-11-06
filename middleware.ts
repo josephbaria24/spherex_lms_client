@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { SESSION_COOKIE } from "@/lib/api-config"
-import { canAccessAdminPanel, canAccessTeacherPanel, isStudent } from "@/lib/roles"
+import { canAccessAdminPanel, canAccessTeacherPanel, isAdmin, isStudent } from "@/lib/roles"
 import { getSessionClaims } from "@/lib/session-token"
+
+const IELTS_ANSWER_KEY_PATHS = new Set([
+  "/ielts-academic/academic-listening-answers.pdf",
+  "/ielts-academic/academic-reading-answers.pdf",
+  "/ielts-academic/academic-writing-examples.pdf",
+])
 
 function isCourseLearnPath(pathname: string) {
   return /^\/courses\/[^/]+\/learn(?:\/|$)/.test(pathname)
@@ -13,9 +19,28 @@ function isPublicCatalogPath(pathname: string) {
   return false
 }
 
+async function answerKeysAreVisible(req: NextRequest) {
+  try {
+    const flagUrl = new URL("/api/lms/reviewers/ielts/answer-keys", req.nextUrl.origin)
+    const res = await fetch(flagUrl, { cache: "no-store" })
+    if (!res.ok) return false
+    const data = (await res.json()) as { show_answer_keys?: boolean }
+    return data.show_answer_keys === true
+  } catch {
+    return false
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value
   const pathname = req.nextUrl.pathname
+
+  if (IELTS_ANSWER_KEY_PATHS.has(pathname)) {
+    const role = token ? getSessionClaims(token).role : null
+    if (isAdmin(role)) return NextResponse.next()
+    if (await answerKeysAreVisible(req)) return NextResponse.next()
+    return new NextResponse(null, { status: 404 })
+  }
   const claims = token ? getSessionClaims(token) : { role: null, email_verified: null }
   const role = claims.role
   const unverifiedStudent = Boolean(token) && isStudent(role) && claims.email_verified === false
@@ -96,5 +121,8 @@ export const config = {
     "/materials/:path*",
     "/training/:path*",
     "/change-password",
+    "/ielts-academic/academic-listening-answers.pdf",
+    "/ielts-academic/academic-reading-answers.pdf",
+    "/ielts-academic/academic-writing-examples.pdf",
   ],
 }
