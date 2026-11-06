@@ -1,7 +1,7 @@
 "use client"
 
 import { PageLoader } from "@/components/ui/spinner"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { apiGet, apiPatch, apiPost, apiUploadFile } from "@/lib/api"
+import { apiGet, apiPatch, apiPost } from "@/lib/api"
 import {
   LESSON_CONTENT_TYPES,
   type Lesson,
@@ -58,12 +58,74 @@ function quizFromApi(quiz: LessonQuiz): QuizDraft {
   }
 }
 
+export type LessonUploadRequest = {
+  lessonId: string
+  title: string
+  kind: "video" | "scorm"
+  path: string
+  field: string
+  file: File
+}
+
+export type LessonUploadJob = LessonUploadRequest & {
+  id: string
+  percent: number
+  phase: "uploading" | "processing" | "done" | "error"
+  error?: string
+}
+
+type ScormUploadResult = {
+  sanitization?: {
+    packageFormat?: "scorm12" | "xapi" | "unknown"
+    patchedUserJs?: string[]
+    patchedLmsLaunch?: string[]
+    patchedPlayerScale?: string[]
+    patchedFrameStrings?: string[]
+    patchedFrameUpscale?: string[]
+    warnings?: string[]
+  }
+}
+
+export function notifyScormUpload(upload: ScormUploadResult) {
+  const userJsCount = upload.sanitization?.patchedUserJs?.length ?? 0
+  const lmsCount = upload.sanitization?.patchedLmsLaunch?.length ?? 0
+  const scaleCount = upload.sanitization?.patchedPlayerScale?.length ?? 0
+  const frameCount = upload.sanitization?.patchedFrameStrings?.length ?? 0
+  const upscaleCount = upload.sanitization?.patchedFrameUpscale?.length ?? 0
+  if (userJsCount > 0 || lmsCount > 0 || scaleCount > 0 || frameCount > 0 || upscaleCount > 0) {
+    const parts: string[] = []
+    if (userJsCount > 0) {
+      parts.push(
+        `removed LearnDash hooks from story_content/user.js (${userJsCount} file${userJsCount === 1 ? "" : "s"})`,
+      )
+    }
+    if (lmsCount > 0) {
+      parts.push(`adjusted index_lms.html for LMS playback (disabled Tin Can)`)
+    }
+    if (scaleCount > 0) {
+      parts.push(`enabled fill-browser scaling (${scaleCount} launch file${scaleCount === 1 ? "" : "s"})`)
+    }
+    if (frameCount > 0) {
+      parts.push(`patched Storyline unified player strings (${frameCount} file${frameCount === 1 ? "" : "s"})`)
+    }
+    if (upscaleCount > 0) {
+      parts.push(`allowed fullscreen upscaling for unified theme`)
+    }
+    toast.info(`Package auto-fixed on upload: ${parts.join("; ")}.`)
+  }
+  for (const warning of upload.sanitization?.warnings ?? []) {
+    toast.warning(warning)
+  }
+}
+
 type LessonEditorFormProps = {
   orgId: string
   courses: { id: string; title: string }[]
   editingLessonId: string | null
   initial: LessonFormState
+  uploads?: LessonUploadJob[]
   nextSortOrder?: (courseId: string) => number
+  onQueueUpload?: (request: LessonUploadRequest) => string
   onSaved: () => void
   onCancel: () => void
 }
@@ -73,7 +135,9 @@ export function LessonEditorForm({
   courses,
   editingLessonId,
   initial,
+  uploads = [],
   nextSortOrder,
+  onQueueUpload,
   onSaved,
   onCancel,
 }: LessonEditorFormProps) {
@@ -86,6 +150,8 @@ export function LessonEditorForm({
   const [scormFile, setScormFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [loadingQuiz, setLoadingQuiz] = useState(false)
+  const [queuedJobId, setQueuedJobId] = useState<string | null>(null)
+  const finishedUpload = useRef(false)
 
   useEffect(() => {
     setForm(initial)
@@ -120,6 +186,19 @@ export function LessonEditorForm({
       .catch(() => setQuiz(emptyQuiz()))
       .finally(() => setLoadingQuiz(false))
   }, [editingLessonId, orgId, form.content_type])
+
+  const queuedJob = queuedJobId ? uploads.find((job) => job.id === queuedJobId) : undefined
+
+  useEffect(() => {
+    if (finishedUpload.current || !queuedJob) return
+    if (queuedJob.phase === "done") {
+      finishedUpload.current = true
+      onSaved()
+    }
+    if (queuedJob.phase === "error") {
+      setSubmitting(false)
+    }
+  }, [queuedJob, onSaved])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -175,52 +254,32 @@ export function LessonEditorForm({
         await saveLessonQuiz(orgId, lessonId, quiz)
       }
 
-      if (form.content_type === "video" && videoFile) {
-        await apiUploadFile(teacherApiPath(orgId, `/lessons/${lessonId}/video`), "video", videoFile)
+      if (form.content_type === "video" && videoFile && onQueueUpload) {
+        setQueuedJobId(
+          onQueueUpload({
+            lessonId,
+            title: form.title,
+            kind: "video",
+            path: teacherApiPath(orgId, `/lessons/${lessonId}/video`),
+            field: "video",
+            file: videoFile,
+          }),
+        )
+        return
       }
 
-      if (form.content_type === "articulate" && scormFile) {
-        const upload = await apiUploadFile<{
-          sanitization?: {
-            packageFormat?: "scorm12" | "xapi" | "unknown"
-            patchedUserJs?: string[]
-            patchedLmsLaunch?: string[]
-            patchedPlayerScale?: string[]
-            patchedFrameStrings?: string[]
-            patchedFrameUpscale?: string[]
-            warnings?: string[]
-          }
-        }>(teacherApiPath(orgId, `/lessons/${lessonId}/scorm`), "scorm", scormFile)
-
-        const userJsCount = upload.sanitization?.patchedUserJs?.length ?? 0
-        const lmsCount = upload.sanitization?.patchedLmsLaunch?.length ?? 0
-        const scaleCount = upload.sanitization?.patchedPlayerScale?.length ?? 0
-        const frameCount = upload.sanitization?.patchedFrameStrings?.length ?? 0
-        const upscaleCount = upload.sanitization?.patchedFrameUpscale?.length ?? 0
-        if (userJsCount > 0 || lmsCount > 0 || scaleCount > 0 || frameCount > 0 || upscaleCount > 0) {
-          const parts: string[] = []
-          if (userJsCount > 0) {
-            parts.push(
-              `removed LearnDash hooks from story_content/user.js (${userJsCount} file${userJsCount === 1 ? "" : "s"})`,
-            )
-          }
-          if (lmsCount > 0) {
-            parts.push(`adjusted index_lms.html for LMS playback (disabled Tin Can)`)
-          }
-          if (scaleCount > 0) {
-            parts.push(`enabled fill-browser scaling (${scaleCount} launch file${scaleCount === 1 ? "" : "s"})`)
-          }
-          if (frameCount > 0) {
-            parts.push(`patched Storyline unified player strings (${frameCount} file${frameCount === 1 ? "" : "s"})`)
-          }
-          if (upscaleCount > 0) {
-            parts.push(`allowed fullscreen upscaling for unified theme`)
-          }
-          toast.info(`Package auto-fixed on upload: ${parts.join("; ")}.`)
-        }
-        for (const warning of upload.sanitization?.warnings ?? []) {
-          toast.warning(warning)
-        }
+      if (form.content_type === "articulate" && scormFile && onQueueUpload) {
+        setQueuedJobId(
+          onQueueUpload({
+            lessonId,
+            title: form.title,
+            kind: "scorm",
+            path: teacherApiPath(orgId, `/lessons/${lessonId}/scorm`),
+            field: "scorm",
+            file: scormFile,
+          }),
+        )
+        return
       }
 
       toast.success(editingLessonId ? "Lesson updated" : "Lesson created")
@@ -453,12 +512,50 @@ export function LessonEditorForm({
         </div>
       </div>
 
+      {queuedJob && queuedJob.phase !== "done" ? (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>
+              {queuedJob.phase === "error"
+                ? queuedJob.error || "Upload failed"
+                : queuedJob.phase === "processing"
+                  ? "Processing package…"
+                  : `Uploading ${queuedJob.percent}%`}
+            </span>
+            <span>{queuedJob.file.name}</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-[#FF4B1A] transition-[width]"
+              style={{
+                width: `${queuedJob.phase === "processing" ? 100 : queuedJob.percent}%`,
+              }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            You can close this dialog. The upload keeps going, so you can add another lesson.
+          </p>
+        </div>
+      ) : null}
+
       <div className="flex gap-2">
         <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
-          Cancel
+          {queuedJob && queuedJob.phase !== "error" && queuedJob.phase !== "done" ? "Close" : "Cancel"}
         </Button>
-        <Button type="submit" className="flex-1" disabled={submitting || loadingQuiz}>
-          {submitting ? "Saving…" : editingLessonId ? "Save Changes" : "Create Lesson"}
+        <Button
+          type="submit"
+          className="flex-1"
+          disabled={submitting || loadingQuiz || queuedJob?.phase === "uploading" || queuedJob?.phase === "processing"}
+        >
+          {submitting
+            ? "Saving…"
+            : queuedJob?.phase === "processing"
+              ? "Processing…"
+              : queuedJob?.phase === "uploading"
+                ? `Uploading ${queuedJob.percent}%`
+                : editingLessonId
+                  ? "Save Changes"
+                  : "Create Lesson"}
         </Button>
       </div>
     </form>

@@ -100,15 +100,41 @@ export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
   return parseResponse<T>(res)
 }
 
-export async function apiUploadFile<T>(path: string, fieldName: string, file: File): Promise<T> {
-  const formData = new FormData()
-  formData.append(fieldName, file)
-  const res = await fetch(`/api/lms${path}`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
+export function apiUploadFile<T>(
+  path: string,
+  fieldName: string,
+  file: File,
+  options?: { onProgress?: (percent: number) => void },
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open("POST", `/api/lms${path}`)
+    xhr.withCredentials = true
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || event.total <= 0) return
+      const percent = Math.min(100, Math.round((event.loaded / event.total) * 100))
+      options?.onProgress?.(percent)
+    }
+    xhr.onload = () => {
+      const text = xhr.responseText
+      let data = {} as T & { error?: string }
+      try {
+        data = text ? (JSON.parse(text) as T & { error?: string }) : data
+      } catch {
+        reject(new ApiError(text || xhr.statusText || "Upload failed", xhr.status))
+        return
+      }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new ApiError(data.error ?? xhr.statusText ?? "Upload failed", xhr.status, data))
+        return
+      }
+      resolve(data)
+    }
+    xhr.onerror = () => reject(new ApiError("Upload failed", 0))
+    const formData = new FormData()
+    formData.append(fieldName, file)
+    xhr.send(formData)
   })
-  return parseResponse<T>(res)
 }
 
 export async function authLogin(email: string, password: string) {

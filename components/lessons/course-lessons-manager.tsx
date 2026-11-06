@@ -32,11 +32,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { ListOrdered, Plus, Trash2, Pencil, FileQuestion, ChevronDown, CircleHelp, Download } from "lucide-react"
 import { toast } from "sonner"
-import { apiDelete, apiDownload, apiGet } from "@/lib/api"
+import { apiDelete, apiDownload, apiGet, apiUploadFile } from "@/lib/api"
 import { teacherApiPath } from "@/lib/teacher-api"
 import {
   LessonEditorForm,
+  notifyScormUpload,
   type LessonFormState,
+  type LessonUploadJob,
+  type LessonUploadRequest,
 } from "@/components/lessons/lesson-editor-form"
 import { LessonPreviewDialog } from "@/components/lessons/lesson-preview-dialog"
 import type { Lesson, LessonContentType, LessonQuiz } from "@/lib/lesson-types"
@@ -123,6 +126,7 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
   const [viewLoading, setViewLoading] = useState(false)
   const [viewLesson, setViewLesson] = useState<Lesson | null>(null)
   const [viewQuiz, setViewQuiz] = useState<LessonQuiz | null>(null)
+  const [uploads, setUploads] = useState<LessonUploadJob[]>([])
 
   useEffect(() => {
     if (courseId) setFilterCourse(courseId)
@@ -155,6 +159,52 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
 
   useEffect(() => {
     load()
+  }, [load])
+
+  const queueUpload = useCallback((request: LessonUploadRequest) => {
+    const id = crypto.randomUUID()
+    const job: LessonUploadJob = { ...request, id, percent: 0, phase: "uploading" }
+    setUploads((prev) => [...prev, job])
+    void (async () => {
+      try {
+        const result = await apiUploadFile<Parameters<typeof notifyScormUpload>[0]>(
+          request.path,
+          request.field,
+          request.file,
+          {
+            onProgress: (percent) => {
+              setUploads((prev) =>
+                prev.map((item) =>
+                  item.id === id
+                    ? {
+                        ...item,
+                        percent,
+                        phase: percent >= 100 ? "processing" : "uploading",
+                      }
+                    : item,
+                ),
+              )
+            },
+          },
+        )
+        if (request.kind === "scorm") notifyScormUpload(result)
+        toast.success(`${request.title} uploaded`)
+        setUploads((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, percent: 100, phase: "done" } : item)),
+        )
+        void load()
+        window.setTimeout(() => {
+          setUploads((prev) => prev.filter((item) => item.id !== id))
+        }, 4000)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Upload failed"
+        toast.error(message)
+        setUploads((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, phase: "error", error: message } : item)),
+        )
+      }
+    })()
+    return id
   }, [load])
 
   const getNextSortOrder = useCallback(
@@ -509,8 +559,43 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
         quiz={viewQuiz}
       />
 
+      {uploads.length > 0 ? (
+        <div className="fixed right-4 bottom-4 z-[60] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
+          {uploads.map((job) => (
+            <div key={job.id} className="rounded-xl border border-border bg-card p-3 shadow-lg">
+              <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-sm font-medium">{job.title}</p>
+                <p className="shrink-0 text-xs text-muted-foreground">
+                  {job.phase === "uploading"
+                    ? `${job.percent}%`
+                    : job.phase === "processing"
+                      ? "Processing"
+                      : job.phase === "done"
+                        ? "Done"
+                        : "Failed"}
+                </p>
+              </div>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">{job.file.name}</p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-[#FF4B1A] transition-[width]"
+                  style={{ width: `${job.phase === "uploading" ? job.percent : 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent
+          className="max-h-[90vh] max-w-2xl overflow-y-auto"
+          closeTooltip={
+            uploads.some((job) => job.phase === "uploading" || job.phase === "processing")
+              ? "You can close this. The upload keeps going, so you can add another lesson."
+              : undefined
+          }
+        >
           <DialogHeader>
             <DialogTitle>
               {editing
@@ -538,6 +623,8 @@ export function CourseLessonsManager({ orgId, courseId, courseTitle }: CourseLes
             editingLessonId={editing?.id ?? null}
             nextSortOrder={getNextSortOrder}
             initial={form}
+            uploads={uploads}
+            onQueueUpload={queueUpload}
             onSaved={() => {
               setOpen(false)
               void load()
