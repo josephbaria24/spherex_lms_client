@@ -51,6 +51,13 @@ export function validateQuizDraft(quiz: QuizDraft): string | null {
   for (let i = 0; i < quiz.questions.length; i++) {
     const q = quiz.questions[i]!
     if (!q.prompt.trim()) return `Question ${i + 1} needs a prompt`
+    if (q.question_type === "written_response") {
+      const minimum = Number.parseInt(q.correct_option_id ?? "", 10)
+      if (!Number.isFinite(minimum) || minimum < 1) {
+        return `Question ${i + 1} needs a minimum word count`
+      }
+      continue
+    }
     if (q.question_type === "fill_blank") {
       if (!q.correct_option_id?.trim()) return `Question ${i + 1} needs a correct answer`
       continue
@@ -84,8 +91,8 @@ export function quizDraftToPayload(quiz: QuizDraft) {
       prompt: q.prompt.trim(),
       question_type: q.question_type,
       options:
-        q.question_type === "fill_blank"
-          ? (q.options ?? []).filter((o) => o.text.trim())
+        q.question_type === "fill_blank" || q.question_type === "written_response"
+          ? []
           : q.options,
       correct_option_id: q.correct_option_id!,
       sort_order: i,
@@ -262,6 +269,11 @@ export function QuizEditor({
         if (patch.question_type === "fill_blank") {
           next.options = []
           next.correct_option_id = next.correct_option_id?.trim() ? next.correct_option_id : ""
+        }
+        if (patch.question_type === "written_response") {
+          next.options = []
+          const current = Number.parseInt(next.correct_option_id ?? "", 10)
+          next.correct_option_id = Number.isFinite(current) && current > 0 ? String(current) : "150"
         }
         if (patch.question_type === "multi_select" && q.question_type !== "multi_select") {
           if (next.options.length < 2) {
@@ -530,12 +542,27 @@ export function QuizEditor({
                 <>
                   <SelectItem value="fill_blank">Fill in the blank</SelectItem>
                   <SelectItem value="multi_select">Multi-select</SelectItem>
+                  <SelectItem value="written_response">Written response</SelectItem>
                 </>
               ) : null}
             </SelectContent>
           </Select>
 
-          {q.question_type === "fill_blank" ? (
+          {q.question_type === "written_response" ? (
+            <div className="space-y-2">
+              <Label>Minimum words</Label>
+              <Input
+                type="number"
+                min={1}
+                value={q.correct_option_id ?? ""}
+                onChange={(e) => updateQuestion(qIdx, { correct_option_id: e.target.value })}
+                disabled={disabled}
+              />
+              <p className="text-xs text-muted-foreground">
+                The response counts as complete when the learner reaches this word count. It is not an examiner band.
+              </p>
+            </div>
+          ) : q.question_type === "fill_blank" ? (
             <div className="space-y-2">
               <Label>Correct answer</Label>
               <Input

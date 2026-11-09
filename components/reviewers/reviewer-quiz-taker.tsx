@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -32,6 +33,36 @@ function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
   return `${m}:${s.toString().padStart(2, "0")}`
+}
+
+function wordCount(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean).length
+}
+
+function WrittenResponse({
+  value,
+  minimum,
+  onChange,
+}: {
+  value: string
+  minimum: number
+  onChange: (value: string) => void
+}) {
+  const count = wordCount(value)
+  const goal = Number.isFinite(minimum) && minimum > 0 ? minimum : 1
+  return (
+    <div className="mt-4 space-y-2">
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Write your response"
+        className="min-h-40 bg-slate-50/80 dark:bg-muted/40"
+      />
+      <p className={cn("text-xs", count >= goal ? "text-teal-700 dark:text-teal-300" : "text-slate-500")}>
+        {count} / {goal} words. This checks length only. It is not an examiner score.
+      </p>
+    </div>
+  )
 }
 
 function parseMulti(value: string | undefined): string[] {
@@ -402,7 +433,15 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
                   />
                 </p>
 
-                {q.question_type === "fill_blank" ? (
+                {q.question_type === "written_response" ? (
+                  <WrittenResponse
+                    value={q.id ? answers[q.id] ?? "" : ""}
+                    minimum={q.minimum_words ?? Number.parseInt(q.correct_option_id ?? "", 10)}
+                    onChange={(value) =>
+                      q.id && setAnswers((prev) => ({ ...prev, [q.id!]: value }))
+                    }
+                  />
+                ) : q.question_type === "fill_blank" ? (
                   <div className="mt-4">
                     <Input
                       value={q.id ? answers[q.id] ?? "" : ""}

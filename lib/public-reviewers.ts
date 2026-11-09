@@ -59,6 +59,8 @@ export type PublicReviewerQuizDetail = {
     prompt: string
     question_type: string
     options: { id: string; text: string }[]
+    minimum_words?: number
+    correct_option_id?: string
   }[]
 }
 

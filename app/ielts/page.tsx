@@ -44,12 +44,12 @@ const SKILL_META: Record<string, { icon: SkillIcon; blurb: string; tint: string 
   },
   Writing: {
     icon: HiPen,
-    blurb: "Task 1 & Task 2 practice coming soon.",
+    blurb: "Task 1 chart description and Task 2 essay. Length is checked; a person does not mark the writing.",
     tint: "from-amber-50 to-orange-50 border-amber-200 dark:from-amber-950/40 dark:to-orange-950/30 dark:border-amber-800",
   },
   Speaking: {
     icon: HiMic,
-    blurb: "Part 1–3 speaking practice coming soon.",
+    blurb: "Part 1, 2, and 3 prompts. Speak your answer, then type what you said.",
     tint: "from-rose-50 to-orange-50 border-rose-200 dark:from-rose-950/40 dark:to-orange-950/30 dark:border-rose-800",
   },
 }
