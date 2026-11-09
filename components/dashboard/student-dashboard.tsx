@@ -27,6 +27,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { StudentOnboardingDialog } from "@/components/dashboard/student-onboarding-dialog"
+import { StudentJoinBanner } from "@/components/settings/join-org-section"
 
 type StudentDashboardProps = {
   user: AuthUser
@@ -168,6 +169,8 @@ export function StudentDashboard({ user, dashboard }: StudentDashboardProps) {
           ) : null}
         </div>
       </header>
+
+      <StudentJoinBanner compact />
 
       <div className="grid gap-4 lg:grid-cols-12 lg:items-stretch">
         <div className="flex flex-col gap-4 lg:col-span-3">

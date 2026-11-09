@@ -73,6 +73,41 @@ type Course = {
   card_theme?: string | null
   price_cents?: number
   enroll_code?: string | null
+  enroll_code_max_uses?: number | null
+  enroll_code_uses?: number
+  enroll_code_expires_at?: string | null
+}
+
+type AccessCodeDetails = {
+  title: string
+  code: string
+  uses: number
+  maxUses: number | null
+  expiresAt: string | null
+}
+
+function defaultExpiresLocalValue(daysFromNow = 30) {
+  const date = new Date()
+  date.setDate(date.getDate() + daysFromNow)
+  date.setSeconds(0, 0)
+  const offset = date.getTimezoneOffset()
+  const local = new Date(date.getTime() - offset * 60_000)
+  return local.toISOString().slice(0, 16)
+}
+
+function formatAccessExpiry(value: string | null | undefined) {
+  if (!value) return "No expiration"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "No expiration"
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+}
+
+function formatAccessUses(uses: number, maxUses: number | null | undefined) {
+  if (maxUses == null) return `${uses} used · Unlimited`
+  return `${uses} / ${maxUses} uses`
 }
 
 export default function AdminCoursesPage() {
@@ -86,7 +121,10 @@ export default function AdminCoursesPage() {
   const [deleteCourseId, setDeleteCourseId] = useState<string | null>(null)
   const [deletePassword, setDeletePassword] = useState("")
   const [deleteLoading, setDeleteLoading] = useState(false)
-  const [accessCode, setAccessCode] = useState<{ title: string; code: string } | null>(null)
+  const [accessCode, setAccessCode] = useState<AccessCodeDetails | null>(null)
+  const [codeSetup, setCodeSetup] = useState<{ id: string; title: string } | null>(null)
+  const [codeMaxUses, setCodeMaxUses] = useState("25")
+  const [codeExpiresAt, setCodeExpiresAt] = useState(defaultExpiresLocalValue())
   const [generatingCodeId, setGeneratingCodeId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     title: "",
@@ -100,7 +138,6 @@ export default function AdminCoursesPage() {
     price_cents: 0,
     enroll_code: "" as string,
   })
-  const [regeneratingCode, setRegeneratingCode] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
 
   const load = useCallback(async () => {
@@ -195,13 +232,60 @@ export default function AdminCoursesPage() {
     }
   }
 
-  async function generateAccessCode(course: Course) {
-    setGeneratingCodeId(course.id)
+  function toDatetimeLocalValue(value: string | null | undefined, fallbackDays = 30) {
+    if (!value) return defaultExpiresLocalValue(fallbackDays)
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return defaultExpiresLocalValue(fallbackDays)
+    const offset = date.getTimezoneOffset()
+    return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16)
+  }
+
+  function openAccessCodeSetup(course: Course) {
+    setCodeSetup({ id: course.id, title: course.title })
+    setCodeMaxUses(
+      course.enroll_code_max_uses != null ? String(course.enroll_code_max_uses) : "25",
+    )
+    setCodeExpiresAt(toDatetimeLocalValue(course.enroll_code_expires_at))
+  }
+
+  async function confirmGenerateAccessCode() {
+    if (!codeSetup) return
+    const parsedMax = codeMaxUses.trim() === "" ? null : Number(codeMaxUses)
+    if (parsedMax != null && (!Number.isInteger(parsedMax) || parsedMax < 1)) {
+      toast.error("Max uses must be a whole number of at least 1, or leave blank for unlimited")
+      return
+    }
+    setGeneratingCodeId(codeSetup.id)
     try {
-      const res = await apiPost<{ enroll_code: string }>(
-        `/courses/${course.id}/regenerate-enroll-code`,
+      const res = await apiPost<{
+        enroll_code: string
+        enroll_code_max_uses: number | null
+        enroll_code_uses: number
+        enroll_code_expires_at: string | null
+      }>(`/courses/${codeSetup.id}/regenerate-enroll-code`, {
+        max_uses: parsedMax,
+        expires_at: codeExpiresAt.trim() ? new Date(codeExpiresAt).toISOString() : null,
+      })
+      setAccessCode({
+        title: codeSetup.title,
+        code: res.enroll_code,
+        uses: res.enroll_code_uses ?? 0,
+        maxUses: res.enroll_code_max_uses ?? null,
+        expiresAt: res.enroll_code_expires_at ?? null,
+      })
+      setEditForm((f) => ({ ...f, enroll_code: res.enroll_code }))
+      setEditCourse((current) =>
+        current && current.id === codeSetup.id
+          ? {
+              ...current,
+              enroll_code: res.enroll_code,
+              enroll_code_max_uses: res.enroll_code_max_uses ?? null,
+              enroll_code_uses: res.enroll_code_uses ?? 0,
+              enroll_code_expires_at: res.enroll_code_expires_at ?? null,
+            }
+          : current,
       )
-      setAccessCode({ title: course.title, code: res.enroll_code })
+      setCodeSetup(null)
       await load()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not generate an access code")
@@ -376,10 +460,7 @@ export default function AdminCoursesPage() {
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={generatingCodeId === course.id}
-                          onClick={() => void generateAccessCode(course)}
-                        >
+                        <DropdownMenuItem onClick={() => openAccessCodeSetup(course)}>
                           <KeyRound className="mr-2 h-4 w-4" />
                           Generate access code
                         </DropdownMenuItem>
@@ -531,26 +612,38 @@ export default function AdminCoursesPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={regeneratingCode || !editCourse}
-                  onClick={async () => {
+                  disabled={!editCourse}
+                  onClick={() => {
                     if (!editCourse) return
-                    setRegeneratingCode(true)
-                    try {
-                      const res = await apiPost<{ enroll_code: string }>(
-                        `/courses/${editCourse.id}/regenerate-enroll-code`,
-                      )
-                      setEditForm((f) => ({ ...f, enroll_code: res.enroll_code }))
-                      toast.success("Enrollment code generated")
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "Could not generate code")
-                    } finally {
-                      setRegeneratingCode(false)
-                    }
+                    openAccessCodeSetup(editCourse)
                   }}
                 >
-                  {regeneratingCode ? "…" : "Generate"}
+                  Generate
                 </Button>
               </div>
+              {editCourse?.enroll_code ? (
+                <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                  <p>
+                    Uses:{" "}
+                    <span className="font-medium text-foreground">
+                      {formatAccessUses(
+                        editCourse.enroll_code_uses ?? 0,
+                        editCourse.enroll_code_max_uses ?? null,
+                      )}
+                    </span>
+                  </p>
+                  <p>
+                    Expires:{" "}
+                    <span className="font-medium text-foreground">
+                      {formatAccessExpiry(editCourse.enroll_code_expires_at)}
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Generate a code to set use limits and an expiration date.
+                </p>
+              )}
             </div>
             <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
               <div className="space-y-1">
@@ -584,6 +677,84 @@ export default function AdminCoursesPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={!!codeSetup}
+        onOpenChange={(open) => {
+          if (!open) setCodeSetup(null)
+        }}
+      >
+        <DialogContent className="max-w-md rounded-[1.5rem]">
+          <DialogHeader>
+            <DialogTitle>Generate access code</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Create a new code for {codeSetup?.title}. This replaces any existing course access code.
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="access-code-max-uses">Max uses</Label>
+              <Input
+                id="access-code-max-uses"
+                type="number"
+                min={1}
+                placeholder="Leave blank for unlimited"
+                value={codeMaxUses}
+                onChange={(e) => setCodeMaxUses(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                How many learners can enroll with this code.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="access-code-expires">Expiration</Label>
+              <Input
+                id="access-code-expires"
+                type="datetime-local"
+                value={codeExpiresAt}
+                onChange={(e) => setCodeExpiresAt(e.target.value)}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 rounded-full text-xs"
+                  onClick={() => setCodeExpiresAt(defaultExpiresLocalValue(7))}
+                >
+                  7 days
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 rounded-full text-xs"
+                  onClick={() => setCodeExpiresAt(defaultExpiresLocalValue(30))}
+                >
+                  30 days
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 rounded-full text-xs"
+                  onClick={() => setCodeExpiresAt("")}
+                >
+                  No expiration
+                </Button>
+              </div>
+            </div>
+          </div>
+          <Button
+            type="button"
+            className="w-full rounded-full"
+            disabled={!!generatingCodeId}
+            onClick={() => void confirmGenerateAccessCode()}
+          >
+            {generatingCodeId ? "Generating…" : "Generate code"}
+          </Button>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!accessCode} onOpenChange={(open) => !open && setAccessCode(null)}>
         <DialogContent className="max-w-sm rounded-[1.5rem]">
           <DialogHeader>
@@ -595,6 +766,22 @@ export default function AdminCoursesPage() {
           <p className="rounded-xl bg-muted px-3 py-3 text-center font-mono text-lg font-semibold tracking-wide">
             {accessCode?.code}
           </p>
+          <div className="grid gap-2 rounded-xl border border-border bg-card px-3 py-3 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">Uses</span>
+              <span className="font-medium">
+                {accessCode
+                  ? formatAccessUses(accessCode.uses, accessCode.maxUses)
+                  : "—"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">Expires</span>
+              <span className="text-right font-medium">
+                {formatAccessExpiry(accessCode?.expiresAt)}
+              </span>
+            </div>
+          </div>
           <Button type="button" className="w-full rounded-full" onClick={() => void copyAccessCode()}>
             <Copy className="mr-2 h-4 w-4" />
             Copy code

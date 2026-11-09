@@ -3,7 +3,7 @@
 import { Spinner } from "@/components/ui/spinner"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { apiPost } from "@/lib/api"
+import { apiPost, ApiError } from "@/lib/api"
 import { useAuth } from "@/app/provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,9 +12,17 @@ import { Building2 } from "lucide-react"
 
 export type JoinOrganizationMode = "teacher" | "student"
 
+export type RedeemedCourse = {
+  id: string
+  title: string
+  created: boolean
+}
+
 type JoinOrganizationFormProps = {
   mode?: JoinOrganizationMode
   onSuccess?: (orgName: string) => void
+  /** Student mode: called when a course enrollment code succeeds */
+  onCourseEnrolled?: (course: RedeemedCourse) => void
   redirectTo?: string
   compact?: boolean
   dense?: boolean
@@ -23,6 +31,7 @@ type JoinOrganizationFormProps = {
 export function JoinOrganizationForm({
   mode = "teacher",
   onSuccess,
+  onCourseEnrolled,
   redirectTo,
   compact = false,
   dense = false,
@@ -39,24 +48,72 @@ export function JoinOrganizationForm({
   const defaultRedirect = isStudent ? "/courses" : "/teacher"
   const resolvedRedirect = redirectTo ?? defaultRedirect
 
+  async function redeemCourseCode(normalized: string): Promise<RedeemedCourse> {
+    const data = await apiPost<{
+      created: boolean
+      course: { id: string; title: string }
+    }>("/enrollments/redeem-code", { code: normalized })
+    return {
+      id: data.course.id,
+      title: data.course.title,
+      created: data.created,
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     setSuccess(null)
+    const normalized = code.trim().toUpperCase()
     try {
       const data = await apiPost<{
         organization: { name: string }
         promoted_to_teacher?: boolean
-      }>(joinPath, { code: code.trim() })
+      }>(joinPath, { code: normalized })
       setSuccess(`Joined ${data.organization.name}`)
       await refresh()
       onSuccess?.(data.organization.name)
       if (resolvedRedirect) {
         setTimeout(() => router.push(resolvedRedirect), 600)
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not join organization")
+    } catch (orgErr) {
+      if (!isStudent) {
+        setError(orgErr instanceof Error ? orgErr.message : "Could not join organization")
+        return
+      }
+
+      const orgNotFound =
+        orgErr instanceof ApiError
+          ? orgErr.status === 404
+          : orgErr instanceof Error && /invalid|not found/i.test(orgErr.message)
+
+      if (!orgNotFound) {
+        setError(orgErr instanceof Error ? orgErr.message : "Could not join organization")
+        return
+      }
+
+      try {
+        const course = await redeemCourseCode(normalized)
+        setCode("")
+        setSuccess(
+          course.created
+            ? `Enrolled in ${course.title}`
+            : `You're already enrolled in ${course.title}`,
+        )
+        onCourseEnrolled?.(course)
+        if (!onCourseEnrolled && resolvedRedirect) {
+          setTimeout(() => router.push(`/courses/${course.id}/learn`), 600)
+        }
+      } catch (courseErr) {
+        setError(
+          courseErr instanceof Error
+            ? courseErr.message === "Invalid course code"
+              ? "That code isn’t valid for an organization or a course"
+              : courseErr.message
+            : "Could not redeem code",
+        )
+      }
     } finally {
       setLoading(false)
     }
@@ -64,13 +121,13 @@ export function JoinOrganizationForm({
 
   const label = isStudent
     ? compact
-      ? "Student organization code"
-      : "Enter the student code from your organization"
+      ? "Organization or course code"
+      : "Enter an organization student code or a course access code"
     : compact
       ? "Teacher organization code"
       : "Enter the teacher code from your organization admin"
 
-  const placeholder = isStudent ? "e.g. PETRO-STUDENT" : "e.g. PETRO-DEMO"
+  const placeholder = isStudent ? "e.g. PETRO-STUDENT or ENR-…" : "e.g. PETRO-DEMO"
 
   if (dense) {
     return (
@@ -108,7 +165,7 @@ export function JoinOrganizationForm({
         {!compact && (
           <div className="flex items-center gap-2 text-sm font-medium">
             <Building2 className="h-4 w-4 text-teal-600" />
-            {isStudent ? "Student organization code" : "Teacher organization code"}
+            {isStudent ? "Organization or course code" : "Teacher organization code"}
           </div>
         )}
         <Label htmlFor={`org-join-code-${mode}`} className={compact ? "text-[11px] text-muted-foreground" : undefined}>
@@ -135,8 +192,10 @@ export function JoinOrganizationForm({
             <Spinner size={16} />
             Joining…
           </>
+        ) : isStudent ? (
+          "Join / unlock"
         ) : (
-          `Join as ${isStudent ? "student" : "teacher"}`
+          "Join as teacher"
         )}
       </Button>
     </form>
