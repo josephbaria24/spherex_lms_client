@@ -254,11 +254,16 @@ export function ScormPlayerPage({
   useEffect(() => {
     if (!launchUrl || previewMode) return
     let stopped = false
+    const openedAt = Date.now()
+    // Avoid false completes from preloaded end-slide text right after launch.
+    const MIN_MS_BEFORE_TEXT_COMPLETE = 20_000
 
     let saving = false
     const timer = window.setInterval(() => {
+      if (stopped || saving) return
+      if (Date.now() - openedAt < MIN_MS_BEFORE_TEXT_COMPLETE) return
       const frame = iframeRef.current?.contentWindow
-      if (stopped || saving || !frame || !packageFrameLooksComplete(frame)) return
+      if (!frame || !packageFrameLooksComplete(frame)) return
       saving = true
       void markCompletedRef.current?.()
         .then(() => {
@@ -511,7 +516,18 @@ export function ScormPlayerPage({
 
       {lessonFinished ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-slate-950/95 p-6 text-center shadow-2xl backdrop-blur">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/15 bg-slate-950/95 p-6 pt-10 text-center shadow-2xl backdrop-blur">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 h-8 w-8 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+              aria-label="Close and keep watching"
+              disabled={goingNext}
+              onClick={() => setLessonFinished(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
             <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
               <CheckCircle2 className="h-6 w-6" />
             </div>
