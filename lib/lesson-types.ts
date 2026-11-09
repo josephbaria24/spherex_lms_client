@@ -24,6 +24,15 @@ export type QuizAttemptState = {
   attempts_used: number
   attempts_remaining: number
   module_retake_required: boolean
+  already_passed?: boolean
+}
+
+export type QuizAttemptResult = {
+  score: number
+  passed: boolean
+  passing_score: number
+  correct: number
+  total: number
 }
 
 export type Lesson = {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { apiPost } from "@/lib/api"
 import { isEmbeddableArticulateUrl, resolveVideoSrc } from "@/lib/lesson-media"
 import type { ScormProgressPayload } from "@/lib/scorm-api"
-import type { Lesson, LessonQuiz, QuizAttemptState } from "@/lib/lesson-types"
+import type { Lesson, LessonQuiz, QuizAttemptResult, QuizAttemptState } from "@/lib/lesson-types"
 import { CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -17,6 +17,7 @@ type LessonContentViewerProps = {
   lesson: Lesson
   quiz?: LessonQuiz | null
   quizAttempts?: QuizAttemptState | null
+  quizResult?: QuizAttemptResult | null
   completed?: boolean
   allowSkip?: boolean
   onLessonComplete?: (progress?: ScormProgressPayload) => void
@@ -89,6 +90,7 @@ export function LessonContentViewer({
   lesson,
   quiz,
   quizAttempts,
+  quizResult,
   completed,
   allowSkip = false,
   onLessonComplete,
@@ -115,7 +117,9 @@ export function LessonContentViewer({
           courseId={courseId}
           lessonId={lesson.id}
           quiz={quiz}
+          completed={completed || lesson.completed}
           initialAttemptState={quizAttempts}
+          initialResult={quizResult}
           previewMode={previewMode}
           onPassed={(progress) => onLessonComplete?.(progress)}
           onModulesReset={onModulesReset}

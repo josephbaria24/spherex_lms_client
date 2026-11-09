@@ -20,7 +20,7 @@ import {
   setCachedLesson,
   setCachedOutline,
 } from "@/lib/learn-cache"
-import type { Lesson, LessonQuiz, QuizAttemptState } from "@/lib/lesson-types"
+import type { Lesson, LessonQuiz, QuizAttemptResult, QuizAttemptState } from "@/lib/lesson-types"
 import { CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -50,6 +50,7 @@ type LessonDetail = {
   lesson: Lesson
   quiz: LessonQuiz | null
   quiz_attempts?: QuizAttemptState | null
+  quiz_result?: QuizAttemptResult | null
   completed: boolean
   preview?: boolean
 }
@@ -715,6 +716,7 @@ export function CourseLearnPage({
                   lesson={detail.lesson}
                   quiz={detail.quiz}
                   quizAttempts={detail.quiz_attempts}
+                  quizResult={detail.quiz_result}
                   completed={detail.completed}
                   allowSkip={outline?.course.allow_lesson_skip === true}
                   previewMode={previewMode}

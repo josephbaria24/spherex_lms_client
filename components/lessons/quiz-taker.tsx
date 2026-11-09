@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { apiPost, ApiError } from "@/lib/api"
-import type { LessonQuiz, QuizAttemptState } from "@/lib/lesson-types"
+import type { LessonQuiz, QuizAttemptResult, QuizAttemptState } from "@/lib/lesson-types"
 import { toast } from "sonner"
 import { CheckCircle2, RotateCcw, XCircle } from "lucide-react"
 
@@ -21,7 +21,9 @@ type QuizTakerProps = {
   courseId: string
   lessonId: string
   quiz: LessonQuiz
+  completed?: boolean
   initialAttemptState?: QuizAttemptState | null
+  initialResult?: QuizAttemptResult | null
   onPassed: (progress?: ProgressPayload) => void
   onModulesReset?: (payload: {
     firstLessonId: string | null
@@ -37,6 +39,7 @@ function emptyAttemptState(max = 2): QuizAttemptState {
     attempts_used: 0,
     attempts_remaining: max,
     module_retake_required: false,
+    already_passed: false,
   }
 }
 
@@ -44,7 +47,9 @@ export function QuizTaker({
   courseId,
   lessonId,
   quiz,
+  completed = false,
   initialAttemptState,
+  initialResult,
   onPassed,
   onModulesReset,
   previewMode,
@@ -55,22 +60,55 @@ export function QuizTaker({
   const [attemptState, setAttemptState] = useState<QuizAttemptState>(
     () => initialAttemptState ?? emptyAttemptState(),
   )
-  const [result, setResult] = useState<{
-    score: number
-    passed: boolean
-    passing_score: number
-    correct: number
-    total: number
-  } | null>(null)
+  const [result, setResult] = useState<QuizAttemptResult | null>(() => {
+    if (initialResult) return initialResult
+    if (completed || initialAttemptState?.already_passed) {
+      return {
+        score: 100,
+        passed: true,
+        passing_score: quiz.passing_score,
+        correct: quiz.questions.length,
+        total: quiz.questions.length,
+      }
+    }
+    return null
+  })
 
   useEffect(() => {
     if (initialAttemptState) setAttemptState(initialAttemptState)
   }, [initialAttemptState])
 
+  useEffect(() => {
+    if (initialResult) {
+      setResult(initialResult)
+      return
+    }
+    if (completed || initialAttemptState?.already_passed) {
+      setResult((prev) =>
+        prev?.passed
+          ? prev
+          : {
+              score: 100,
+              passed: true,
+              passing_score: quiz.passing_score,
+              correct: quiz.questions.length,
+              total: quiz.questions.length,
+            },
+      )
+    }
+  }, [completed, initialAttemptState?.already_passed, initialResult, quiz.passing_score, quiz.questions.length])
+
+  const alreadyPassed =
+    completed || attemptState.already_passed === true || result?.passed === true
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (previewMode) {
       toast.message("Preview mode", { description: "Quiz answers are not submitted in preview." })
+      return
+    }
+    if (alreadyPassed) {
+      toast.message("Quiz already passed")
       return
     }
     if (attemptState.module_retake_required) {
@@ -115,12 +153,34 @@ export function QuizTaker({
         const body = err.details as {
           details?: QuizAttemptState & { code?: string }
         }
+        if (body?.details?.code === "ALREADY_PASSED") {
+          setAttemptState((prev) => ({
+            ...prev,
+            ...body.details,
+            already_passed: true,
+            attempts_remaining: 0,
+            module_retake_required: false,
+          }))
+          setResult(
+            (prev) =>
+              prev ?? {
+                score: 100,
+                passed: true,
+                passing_score: quiz.passing_score,
+                correct: quiz.questions.length,
+                total: quiz.questions.length,
+              },
+          )
+          toast.message("Quiz already passed")
+          return
+        }
         if (body?.details?.code === "MODULE_RETAKE_REQUIRED" && body.details) {
           setAttemptState({
             max_attempts: body.details.max_attempts,
             attempts_used: body.details.attempts_used,
             attempts_remaining: body.details.attempts_remaining,
             module_retake_required: true,
+            already_passed: false,
           })
           setResult(null)
         }
@@ -175,7 +235,11 @@ export function QuizTaker({
           <p className="text-sm text-muted-foreground">
             {result.correct} of {result.total} correct · Pass mark {result.passing_score}%
           </p>
-          {!result.passed && attemptState.module_retake_required ? (
+          {result.passed ? (
+            <p className="mt-3 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              Quiz passed — no need to retake
+            </p>
+          ) : attemptState.module_retake_required ? (
             <div className="mt-4 space-y-2">
               <p className="text-sm text-muted-foreground">
                 Both attempts used. Retake the course modules, then you can try the quiz again.
@@ -185,7 +249,7 @@ export function QuizTaker({
                 {resetting ? "Resetting…" : "Retake modules"}
               </Button>
             </div>
-          ) : !result.passed ? (
+          ) : (
             <div className="mt-4 space-y-2">
               <p className="text-xs text-muted-foreground">
                 {attemptState.attempts_remaining} attempt
@@ -201,7 +265,7 @@ export function QuizTaker({
                 Retake quiz
               </Button>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     )
