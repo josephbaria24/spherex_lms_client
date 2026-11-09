@@ -24,7 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { apiDelete, apiGet } from "@/lib/api"
-import { Activity, Award, BookOpen, Building2, CheckCircle2, CircleCheck, ExternalLink, FileQuestion, GraduationCap, MonitorPlay, RotateCcw, Trash2, Users, ChevronDown, type LucideIcon } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Activity, Award, BookOpen, Building2, CheckCircle2, CircleCheck, ExternalLink, FileQuestion, GraduationCap, MonitorPlay, RotateCcw, Trash2, UserMinus, Users, ChevronDown, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 type UserSummary = {
@@ -215,7 +217,14 @@ export function UserActivitySheet({
   const [loading, setLoading] = useState(false)
   const [resetAllOpen, setResetAllOpen] = useState(false)
   const [resetCourse, setResetCourse] = useState<{ id: string; title: string } | null>(null)
+  const [unenrollCourse, setUnenrollCourse] = useState<{
+    id: string
+    courseId: string
+    title: string
+  } | null>(null)
+  const [deleteHistoryOnUnenroll, setDeleteHistoryOnUnenroll] = useState(true)
   const [resetting, setResetting] = useState(false)
+  const [unenrolling, setUnenrolling] = useState(false)
 
   const load = useCallback(async () => {
     if (!userId) return
@@ -251,6 +260,28 @@ export function UserActivitySheet({
       toast.error(err instanceof Error ? err.message : "Could not reset progress")
     } finally {
       setResetting(false)
+    }
+  }
+
+  async function handleUnenroll() {
+    if (!userId || !unenrollCourse) return
+    setUnenrolling(true)
+    try {
+      await apiDelete(`/enrollments/${unenrollCourse.id}`, {
+        delete_history: deleteHistoryOnUnenroll,
+      })
+      toast.success(
+        deleteHistoryOnUnenroll
+          ? `Unenrolled from "${unenrollCourse.title}" and deleted history`
+          : `Unenrolled from "${unenrollCourse.title}"`,
+      )
+      setUnenrollCourse(null)
+      setDeleteHistoryOnUnenroll(true)
+      await load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not unenroll user")
+    } finally {
+      setUnenrolling(false)
     }
   }
 
@@ -485,21 +516,40 @@ export function UserActivitySheet({
                         <p className="text-xs text-muted-foreground">
                           {enrollment.progress_percent}% · last activity {formatWhen(enrollment.updated_at)}
                         </p>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 gap-1.5 px-2 text-destructive hover:text-destructive"
-                          onClick={() =>
-                            setResetCourse({
-                              id: enrollment.course_id,
-                              title: enrollment.course_title,
-                            })
-                          }
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          Reset course progress
-                        </Button>
+                        <div className="flex flex-wrap gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1.5 px-2 text-destructive hover:text-destructive"
+                            onClick={() =>
+                              setResetCourse({
+                                id: enrollment.course_id,
+                                title: enrollment.course_title,
+                              })
+                            }
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Reset course progress
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1.5 px-2 text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setDeleteHistoryOnUnenroll(true)
+                              setUnenrollCourse({
+                                id: enrollment.id,
+                                courseId: enrollment.course_id,
+                                title: enrollment.course_title,
+                              })
+                            }}
+                          >
+                            <UserMinus className="h-3.5 w-3.5" />
+                            Unenroll
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -628,6 +678,61 @@ export function UserActivitySheet({
               }}
             >
               {resetting ? "Resetting…" : "Reset course"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!unenrollCourse}
+        onOpenChange={(next) => {
+          if (!next) {
+            setUnenrollCourse(null)
+            setDeleteHistoryOnUnenroll(true)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unenroll from course?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove {displayName} from &quot;{unenrollCourse?.title}&quot;. They will lose access
+              until enrolled again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
+            <Checkbox
+              id="delete-history-on-unenroll"
+              checked={deleteHistoryOnUnenroll}
+              onCheckedChange={(checked) => setDeleteHistoryOnUnenroll(checked === true)}
+              disabled={unenrolling}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="delete-history-on-unenroll" className="text-sm font-medium leading-none">
+                Also delete all history and progress
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Clears lesson completions, SCORM bookmarks, quiz attempts, attempt cycles, and
+                certificates for this course. Leave unchecked only if you want that data kept for
+                re-enrollment.
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unenrolling}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={unenrolling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault()
+                void handleUnenroll()
+              }}
+            >
+              {unenrolling
+                ? "Unenrolling…"
+                : deleteHistoryOnUnenroll
+                  ? "Unenroll & delete history"
+                  : "Unenroll only"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

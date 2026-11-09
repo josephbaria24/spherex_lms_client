@@ -41,7 +41,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
     refresh().finally(() => setLoading(false))
   }, [refresh])
 
+  useEffect(() => {
+    if (!user) return
+    let stop = () => {}
+    void import("@/lib/presence").then(({ startPresenceHeartbeat }) => {
+      stop = startPresenceHeartbeat()
+    })
+    return () => stop()
+  }, [user])
+
   const logout = useCallback(async () => {
+    try {
+      const { setPresenceCourse } = await import("@/lib/presence")
+      setPresenceCourse(null)
+    } catch {
+      // ignore
+    }
     await authLogout()
     setUser(null)
     window.location.href = "/login"

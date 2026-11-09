@@ -2,6 +2,7 @@
 
 import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useRef, useState } from "react"
+import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, CheckCircle2, ChevronRight, RotateCcw, X } from "lucide-react"
@@ -118,6 +119,23 @@ export function ScormPlayerPage({
 
   const resolvedLearnBase =
     learnBasePath ?? (backHref.replace(/\/[^/]+\/?$/, "") || backHref)
+
+  // Keep phone screen on while the SCORM lesson is open
+  useScreenWakeLock(!previewMode)
+
+  useEffect(() => {
+    if (previewMode) return
+    let cancelled = false
+    void import("@/lib/presence").then(({ setPresenceCourse }) => {
+      if (!cancelled) setPresenceCourse(courseId)
+    })
+    return () => {
+      cancelled = true
+      void import("@/lib/presence").then(({ setPresenceCourse }) => {
+        setPresenceCourse(null)
+      })
+    }
+  }, [courseId, previewMode])
 
   function showChrome() {
     setChromeVisible(true)

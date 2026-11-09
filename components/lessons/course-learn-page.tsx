@@ -2,6 +2,7 @@
 
 import { Spinner } from "@/components/ui/spinner"
 import { useCallback, useEffect, useState, useTransition } from "react"
+import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { GrowShell } from "@/components/grow-shell"
@@ -108,6 +109,23 @@ export function CourseLearnPage({
   const [celebrateCourse, setCelebrateCourse] = useState(false)
 
   const previewMode = previewModeProp ?? outline?.preview ?? detail?.preview ?? false
+
+  // Keep phone screen on while learning so idle timeout doesn't interrupt modules
+  useScreenWakeLock(!previewMode && !!lessonId)
+
+  useEffect(() => {
+    if (previewMode) return
+    let cancelled = false
+    void import("@/lib/presence").then(({ setPresenceCourse }) => {
+      if (!cancelled) setPresenceCourse(courseId)
+    })
+    return () => {
+      cancelled = true
+      void import("@/lib/presence").then(({ setPresenceCourse }) => {
+        setPresenceCourse(null)
+      })
+    }
+  }, [courseId, previewMode])
 
   const lessonPath = (id: string) => `${basePath}/${id}`
 
