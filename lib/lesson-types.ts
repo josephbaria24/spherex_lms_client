@@ -19,6 +19,13 @@ export type LessonQuiz = {
   questions: QuizQuestion[]
 }
 
+export type QuizAttemptState = {
+  max_attempts: number
+  attempts_used: number
+  attempts_remaining: number
+  module_retake_required: boolean
+}
+
 export type Lesson = {
   id: string
   course_id: string

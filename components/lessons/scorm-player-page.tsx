@@ -18,7 +18,11 @@ import {
   withIspringQuizCapture,
 } from "@/lib/lesson-media"
 import type { Lesson } from "@/lib/lesson-types"
-import { packageFrameLooksComplete } from "@/lib/package-completion"
+import {
+  packageFrameLooksAtEnd,
+  packageFrameLooksComplete,
+} from "@/lib/package-completion"
+import { ispringSuspendIndicatesFinished } from "@/lib/ispring-completion"
 import {
   buildScormSessionCmi,
   createPersistentScorm12Api,
@@ -98,6 +102,8 @@ export function ScormPlayerPage({
   const [error, setError] = useState<string | null>(null)
   const [lessonFinished, setLessonFinished] = useState(false)
   const [lessonFailed, setLessonFailed] = useState(false)
+  const [canFinishManually, setCanFinishManually] = useState(false)
+  const [finishing, setFinishing] = useState(false)
   const [nextLesson, setNextLesson] = useState<{ id: string; title: string } | null>(null)
   const [goingNext, setGoingNext] = useState(false)
   const [rotateMode, setRotateMode] = useState<RotateMode>("off")
@@ -252,18 +258,35 @@ export function ScormPlayerPage({
   }, [courseId, fresh, lessonId, previewMode])
 
   useEffect(() => {
-    if (!launchUrl || previewMode) return
+    if (!launchUrl || previewMode || lessonFinished) return
     let stopped = false
     const openedAt = Date.now()
     // Avoid false completes from preloaded end-slide text right after launch.
     const MIN_MS_BEFORE_TEXT_COMPLETE = 20_000
+    let endSeenAt: number | null = null
 
     let saving = false
     const timer = window.setInterval(() => {
-      if (stopped || saving) return
-      if (Date.now() - openedAt < MIN_MS_BEFORE_TEXT_COMPLETE) return
+      if (stopped || saving || lessonFinished) return
       const frame = iframeRef.current?.contentWindow
-      if (!frame || !packageFrameLooksComplete(frame)) return
+      if (!frame) return
+
+      const suspend = apiRef.current?.LMSGetValue?.("cmi.suspend_data") ?? ""
+      const suspendDone = ispringSuspendIndicatesFinished(suspend)
+      const atEnd = packageFrameLooksAtEnd(frame)
+      if (suspendDone || atEnd) {
+        setCanFinishManually(true)
+        if (endSeenAt == null) endSeenAt = Date.now()
+      }
+
+      if (Date.now() - openedAt < MIN_MS_BEFORE_TEXT_COMPLETE) return
+
+      const shouldComplete =
+        suspendDone ||
+        packageFrameLooksComplete(frame) ||
+        (atEnd && endSeenAt != null && Date.now() - endSeenAt >= 2500)
+
+      if (!shouldComplete) return
       saving = true
       void markCompletedRef.current?.()
         .then(() => {
@@ -279,7 +302,19 @@ export function ScormPlayerPage({
       stopped = true
       window.clearInterval(timer)
     }
-  }, [launchUrl, previewMode])
+  }, [launchUrl, lessonFinished, previewMode])
+
+  async function finishLessonManually() {
+    if (finishing || lessonFinished || previewMode) return
+    setFinishing(true)
+    try {
+      await markCompletedRef.current?.()
+    } catch {
+      /* keep button available */
+    } finally {
+      setFinishing(false)
+    }
+  }
 
   useStorylineIframeFill(iframeRef, Boolean(launchUrl))
 
@@ -444,6 +479,18 @@ export function ScormPlayerPage({
           </Button>
           <LessonConcernButton courseId={courseId} lessonId={lessonId} overlay />
           <span className="hidden truncate text-xs text-white/70 sm:inline">{lessonTitle}</span>
+          {canFinishManually && !lessonFinished && !lessonFailed ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-1.5 rounded-full bg-emerald-500 px-3 text-xs text-white hover:bg-emerald-600"
+              onClick={() => void finishLessonManually()}
+              disabled={goingNext || finishing}
+            >
+              {finishing ? <Spinner size={14} /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              Finish lesson
+            </Button>
+          ) : null}
           {lessonFailed && !lessonFinished ? (
             <Button
               type="button"

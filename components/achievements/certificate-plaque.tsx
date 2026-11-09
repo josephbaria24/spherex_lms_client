@@ -21,43 +21,44 @@ function PlaqueFace({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[1.1rem] bg-[linear-gradient(145deg,#fff6d6_0%,#e7c56a_22%,#8d5e16_48%,#f6e2a8_68%,#6e4712_100%)] p-[7px] shadow-[0_22px_36px_rgba(40,24,8,0.38),inset_0_1px_0_rgba(255,255,255,0.8)]",
+        "relative overflow-hidden rounded-[1.1rem] bg-[linear-gradient(145deg,#f0d78c_0%,#c9a227_18%,#0b1f44_42%,#163a6b_62%,#d4af37_82%,#8a6a12_100%)] p-[7px] shadow-[0_22px_36px_rgba(8,18,40,0.42),inset_0_1px_0_rgba(255,255,255,0.55)]",
         className,
       )}
     >
-      <div className="relative overflow-hidden rounded-[0.85rem] bg-[linear-gradient(180deg,#fffdf8_0%,#f3e7d2_100%)] px-4 py-4 text-[#1a1f2e] sm:px-5">
+      <div className="relative overflow-hidden rounded-[0.85rem] bg-[linear-gradient(180deg,#f7fbff_0%,#e8eef8_100%)] px-4 py-4 text-[#0b1f44] sm:px-5">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 bg-[linear-gradient(90deg,#8a6a12_0%,#d4af37_35%,#f0d78c_50%,#d4af37_65%,#8a6a12_100%)]" />
         <div className="flex items-start gap-3">
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-[#c6a15a] bg-[#efe4d2] sm:h-20 sm:w-20">
+          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-[#d4af37] bg-[#0b1f44] sm:h-20 sm:w-20">
             {details.coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={assetUrl(details.coverUrl)} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-wide text-[#8a7044]">
+              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-wide text-[#d4af37]">
                 PetroCademia
               </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6424]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b8860b]">
               PetroCademia
             </p>
-            <p className="mt-1 font-serif text-sm font-semibold leading-tight sm:text-base">
-              Certificate of Completion
+            <p className="mt-1 font-serif text-sm font-semibold leading-tight text-[#0b1f44] sm:text-base">
+              Completion Badge
             </p>
-            <p className="mt-2 truncate text-lg font-semibold leading-none sm:text-xl">
+            <p className="mt-2 truncate text-lg font-semibold leading-none text-[#0b1f44] sm:text-xl">
               {details.learnerName}
             </p>
-            <p className="mt-1 line-clamp-2 text-xs text-[#5c5146]">{details.courseTitle}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-[#3d4f6f]">{details.courseTitle}</p>
           </div>
         </div>
-        <div className="mt-3 flex items-end justify-between gap-3 border-t border-[#e4d3ae] pt-2 text-[10px] text-[#6b5c4f]">
+        <div className="mt-3 flex items-end justify-between gap-3 border-t border-[#c9a227]/45 pt-2 text-[10px] text-[#3d4f6f]">
           <span>{details.issuedLabel}</span>
-          <span className="font-semibold tracking-wide text-[#1a1f2e]">
-            {details.serial ?? "Pending"}
-          </span>
+          {details.serial ? (
+            <span className="font-semibold tracking-wide text-[#0b1f44]">{details.serial}</span>
+          ) : null}
         </div>
         <div className="pointer-events-none absolute inset-y-0 -left-1/2 w-[70%] plaque-holo-sheen mix-blend-screen" />
-        <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(118deg,transparent_0_14px,rgba(255,255,255,0.16)_14px_15px)] mix-blend-soft-light" />
+        <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(118deg,transparent_0_14px,rgba(255,255,255,0.14)_14px_15px)] mix-blend-soft-light" />
       </div>
     </div>
   )
@@ -85,6 +86,10 @@ export function CertificatePlaque({
           <PlaqueFace details={details} />
         </div>
       </div>
+      <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+        This is a PetroCademia completion badge for display in the app. It is not your official
+        course certificate. Download the PDF certificate when a design is available for this course.
+      </p>
     </div>
   )
 }
@@ -123,21 +128,31 @@ export async function downloadPlaquePng(details: PlaqueDetails) {
   ctx.clearRect(0, 0, width, height)
 
   const frame = ctx.createLinearGradient(0, 0, width, height)
-  frame.addColorStop(0, "#fff6d6")
-  frame.addColorStop(0.22, "#e7c56a")
-  frame.addColorStop(0.48, "#8d5e16")
-  frame.addColorStop(0.68, "#f6e2a8")
-  frame.addColorStop(1, "#6e4712")
+  frame.addColorStop(0, "#f0d78c")
+  frame.addColorStop(0.18, "#c9a227")
+  frame.addColorStop(0.42, "#0b1f44")
+  frame.addColorStop(0.62, "#163a6b")
+  frame.addColorStop(0.82, "#d4af37")
+  frame.addColorStop(1, "#8a6a12")
   roundRect(ctx, 40, 40, width - 80, height - 80, 72)
   ctx.fillStyle = frame
   ctx.fill()
 
   const paper = ctx.createLinearGradient(0, 120, 0, height - 120)
-  paper.addColorStop(0, "#fffdf8")
-  paper.addColorStop(1, "#f3e7d2")
+  paper.addColorStop(0, "#f7fbff")
+  paper.addColorStop(1, "#e8eef8")
   roundRect(ctx, 110, 110, width - 220, height - 220, 48)
   ctx.fillStyle = paper
   ctx.fill()
+
+  const goldBar = ctx.createLinearGradient(110, 0, width - 110, 0)
+  goldBar.addColorStop(0, "#8a6a12")
+  goldBar.addColorStop(0.35, "#d4af37")
+  goldBar.addColorStop(0.5, "#f0d78c")
+  goldBar.addColorStop(0.65, "#d4af37")
+  goldBar.addColorStop(1, "#8a6a12")
+  ctx.fillStyle = goldBar
+  ctx.fillRect(110, height - 160, width - 220, 50)
 
   const cover = details.coverUrl ? await loadImage(assetUrl(details.coverUrl)) : null
   const photoX = 200
@@ -149,45 +164,47 @@ export async function downloadPlaquePng(details: PlaqueDetails) {
   if (cover) {
     ctx.drawImage(cover, photoX, photoY, photoSize, photoSize)
   } else {
-    ctx.fillStyle = "#efe4d2"
+    ctx.fillStyle = "#0b1f44"
     ctx.fillRect(photoX, photoY, photoSize, photoSize)
   }
   ctx.restore()
   ctx.lineWidth = 10
-  ctx.strokeStyle = "#c6a15a"
+  ctx.strokeStyle = "#d4af37"
   roundRect(ctx, photoX, photoY, photoSize, photoSize, 28)
   ctx.stroke()
 
-  ctx.fillStyle = "#8a6424"
+  ctx.fillStyle = "#b8860b"
   ctx.font = "600 64px Helvetica, Arial, sans-serif"
   ctx.fillText("PetroCademia", 1080, 420)
 
-  ctx.fillStyle = "#1a1f2e"
+  ctx.fillStyle = "#0b1f44"
   ctx.font = "600 92px Georgia, serif"
-  ctx.fillText("Certificate of Completion", 1080, 560)
+  ctx.fillText("Completion Badge", 1080, 560)
 
   ctx.font = "700 120px Helvetica, Arial, sans-serif"
   ctx.fillText(details.learnerName, 1080, 780)
 
-  ctx.fillStyle = "#5c5146"
+  ctx.fillStyle = "#3d4f6f"
   ctx.font = "48px Helvetica, Arial, sans-serif"
   wrapText(ctx, details.courseTitle, 1080, 900, 2100, 64)
 
-  ctx.strokeStyle = "#e4d3ae"
+  ctx.strokeStyle = "rgba(201,162,39,0.55)"
   ctx.lineWidth = 4
   ctx.beginPath()
   ctx.moveTo(200, 1680)
   ctx.lineTo(width - 200, 1680)
   ctx.stroke()
 
-  ctx.fillStyle = "#6b5c4f"
+  ctx.fillStyle = "#3d4f6f"
   ctx.font = "44px Helvetica, Arial, sans-serif"
   ctx.fillText(details.issuedLabel, 200, 1780)
-  ctx.fillStyle = "#1a1f2e"
-  ctx.font = "700 44px Helvetica, Arial, sans-serif"
-  ctx.textAlign = "right"
-  ctx.fillText(details.serial ?? "Pending", width - 200, 1780)
-  ctx.textAlign = "left"
+  if (details.serial) {
+    ctx.fillStyle = "#0b1f44"
+    ctx.font = "700 44px Helvetica, Arial, sans-serif"
+    ctx.textAlign = "right"
+    ctx.fillText(details.serial, width - 200, 1780)
+    ctx.textAlign = "left"
+  }
 
   ctx.save()
   ctx.globalAlpha = 0.22

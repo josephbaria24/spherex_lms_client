@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "@/lib/api"
+import { ispringSuspendIndicatesFinished } from "@/lib/ispring-completion"
 
 export type Scorm12Api = {
   LMSInitialize: (param: string) => string
@@ -301,6 +302,14 @@ export function createPersistentScorm12Api({
         } else if (isFailedLessonStatus(value) && !isFailedLessonStatus(prevValue)) {
           void flush().then(() => notifyLessonFailed())
         }
+      }
+      // iSpring often only updates suspend_data at the end of a presentation.
+      if (
+        element === "cmi.suspend_data" &&
+        !isCompleteLessonStatus(store["cmi.core.lesson_status"]) &&
+        ispringSuspendIndicatesFinished(value)
+      ) {
+        void markCompleted()
       }
       return "true"
     },

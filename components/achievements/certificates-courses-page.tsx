@@ -118,13 +118,15 @@ export function CertificatesCoursesPage({
             You finished {completed.length} course{completed.length === 1 ? "" : "s"}
           </h2>
           <p className="mt-1 text-sm text-white/75">
-            Each plaque below is your certificate for that course. Open it full screen, or download
-            a high-resolution PNG or PDF.
+            Each plaque below is a PetroCademia completion badge — not the official certificate.
+            Open it full screen, save a PNG, or download the PDF certificate when the course design
+            is ready.
           </p>
         </section>
       ) : (
         <section className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-          Finish a course to unlock a certificate plaque. Your enrolled courses are listed below.
+          Finish a course to unlock a PetroCademia completion badge. Your enrolled courses are listed
+          below.
         </section>
       )}
 

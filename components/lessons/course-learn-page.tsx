@@ -8,6 +8,7 @@ import { GrowShell } from "@/components/grow-shell"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { LessonContentViewer } from "@/components/lessons/lesson-content-viewer"
 import { LessonConcernButton } from "@/components/lessons/lesson-concern-button"
+import { CourseCompletionCelebration } from "@/components/lessons/course-completion-celebration"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { grow } from "@/lib/grow-shell"
@@ -18,7 +19,7 @@ import {
   setCachedLesson,
   setCachedOutline,
 } from "@/lib/learn-cache"
-import type { Lesson, LessonQuiz } from "@/lib/lesson-types"
+import type { Lesson, LessonQuiz, QuizAttemptState } from "@/lib/lesson-types"
 import { CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -47,6 +48,7 @@ type CourseOutline = {
 type LessonDetail = {
   lesson: Lesson
   quiz: LessonQuiz | null
+  quiz_attempts?: QuizAttemptState | null
   completed: boolean
   preview?: boolean
 }
@@ -103,6 +105,7 @@ export function CourseLearnPage({
   )
   const [lessonBlocked, setLessonBlocked] = useState<string | null>(null)
   const [showPlayer, setShowPlayer] = useState(false)
+  const [celebrateCourse, setCelebrateCourse] = useState(false)
 
   const previewMode = previewModeProp ?? outline?.preview ?? detail?.preview ?? false
 
@@ -693,12 +696,14 @@ export function CourseLearnPage({
                   courseId={courseId}
                   lesson={detail.lesson}
                   quiz={detail.quiz}
+                  quizAttempts={detail.quiz_attempts}
                   completed={detail.completed}
                   allowSkip={outline?.course.allow_lesson_skip === true}
                   previewMode={previewMode}
                   scormPlayerHref={`${basePath}/${detail.lesson.id}/scorm`}
                   onLessonComplete={(progress) => {
                     if (previewMode) return
+                    if (progress?.completed) setCelebrateCourse(true)
                     const nextDetail = { ...detail, completed: true }
                     setDetail(nextDetail)
                     setCachedLesson(courseId, detail.lesson.id, nextDetail)
@@ -722,6 +727,22 @@ export function CourseLearnPage({
                     }
                     void loadOutline({ silent: true })
                   }}
+                  onModulesReset={({ firstLessonId, progress, attemptState }) => {
+                    if (previewMode) return
+                    const nextDetail = {
+                      ...detail,
+                      completed: false,
+                      quiz_attempts: attemptState,
+                    }
+                    setDetail(nextDetail)
+                    setCachedLesson(courseId, detail.lesson.id, nextDetail)
+                    if (progress) applyProgressUpdate(progress)
+                    void loadOutline({ silent: true }).then(() => {
+                      if (firstLessonId && firstLessonId !== detail.lesson.id) {
+                        navigateToLesson(firstLessonId)
+                      }
+                    })
+                  }}
                   onProgressChange={(progress) => {
                     if (previewMode) return
                     applyProgressUpdate(progress)
@@ -744,6 +765,18 @@ export function CourseLearnPage({
                     })
                   }}
                 />
+
+                {!previewMode &&
+                detail.completed &&
+                !nextLesson &&
+                outline &&
+                (outline.progress >= 100 ||
+                  outline.lessons.every((item) => item.completed)) ? (
+                  <CourseCompletionCelebration
+                    courseId={courseId}
+                    celebrate={celebrateCourse}
+                  />
+                ) : null}
 
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-muted/30 px-3 py-2.5 dark:bg-muted/15">
                   <div>
