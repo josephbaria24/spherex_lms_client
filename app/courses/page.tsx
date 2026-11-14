@@ -144,7 +144,7 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const [catalogTab, setCatalogTab] = useState("enrolled")
+  const [catalogTab, setCatalogTab] = useState("catalog")
   const [track, setTrack] = useState<CatalogTrackId>("osh")
   const openedRegistrationCourse = useRef(false)
   const [guestAccessRequest, setGuestAccessRequest] = useState(false)

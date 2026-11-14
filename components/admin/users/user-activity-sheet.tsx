@@ -26,7 +26,7 @@ import {
 import { apiDelete, apiGet } from "@/lib/api"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Activity, Award, BookOpen, Building2, CheckCircle2, CircleCheck, ExternalLink, FileQuestion, GraduationCap, MonitorPlay, RotateCcw, Trash2, UserMinus, Users, ChevronDown, type LucideIcon } from "lucide-react"
+import { Activity, Award, BookOpen, Building2, CheckCircle2, CircleCheck, ExternalLink, FileQuestion, GraduationCap, Languages, MonitorPlay, RotateCcw, Trash2, UserMinus, Users, ChevronDown, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 type UserSummary = {
@@ -54,6 +54,47 @@ type UserActivityPayload = {
     materials_uploaded: number
     lessons_created: number
     evaluations_given: number
+    ielts_attempts?: number
+    ielts_passed_sets?: number
+    ielts_total_sets?: number
+    ielts_pending_speaking?: number
+  }
+  ielts?: {
+    total_sets: number
+    passed_sets: number
+    completion_pct: number
+    attempts: number
+    avg_band: number | null
+    pending_speaking: number
+    last_activity: string | null
+    certificate: { serial_number: string; issued_at: string } | null
+    skills: Array<{
+      skill: string
+      total_sets: number
+      passed_sets: number
+      attempted_sets: number
+      best_band: number | null
+      pending_review: number
+    }>
+    tests: Array<{
+      id: string
+      title: string
+      skill: string
+      passed: boolean
+      best_score: number | null
+      band_score: number | null
+    }>
+    recent_attempts: Array<{
+      id: string
+      quiz_id: string
+      quiz_title: string
+      skill: string
+      score: number
+      passed: boolean
+      pending_review: boolean
+      band_score: number | null
+      created_at: string
+    }>
   }
   enrollments: Array<{
     id: string
@@ -295,14 +336,18 @@ export function UserActivitySheet({
       data.summary.quiz_attempts > 0)
 
   const completedEnrollments = data?.enrollments.filter((e) => e.completed) ?? []
+  const ielts = data?.ielts
+  const hasIeltsActivity = Boolean(ielts && (ielts.attempts > 0 || ielts.passed_sets > 0 || ielts.certificate))
   const hasAchievements =
-    (data?.certificates.length ?? 0) > 0 || completedEnrollments.length > 0
+    (data?.certificates.length ?? 0) > 0 ||
+    completedEnrollments.length > 0 ||
+    Boolean(ielts?.certificate)
   const scormResponseRecords = getScormResponseRecords(data)
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="flex w-full flex-col overflow-hidden px-[21px] py-[5px] sm:max-w-2xl">
+        <SheetContent className="flex w-full flex-col overflow-hidden bg-white px-[21px] py-[5px] text-neutral-950 sm:max-w-2xl dark:bg-white dark:text-neutral-950">
           <SheetHeader className="shrink-0">
             <SheetTitle>{displayName}</SheetTitle>
             <SheetDescription>
@@ -335,8 +380,16 @@ export function UserActivitySheet({
                   <Stat icon={Award} label="Certificates" value={data.summary.certificates} />
                   <Stat icon={MonitorPlay} label="SCORM" value={data.summary.scorm_sessions} />
                   <Stat icon={FileQuestion} label="Quizzes" value={data.summary.quiz_attempts} />
-                  <Stat icon={Building2} label="Orgs" value={data.summary.organizations} />
-                  <Stat icon={GraduationCap} label="Teaching" value={data.summary.courses_teaching} />
+                  <Stat
+                    icon={Languages}
+                    label="IELTS sets"
+                    value={`${data.summary.ielts_passed_sets ?? ielts?.passed_sets ?? 0}/${data.summary.ielts_total_sets ?? ielts?.total_sets ?? 0}`}
+                  />
+                  <Stat
+                    icon={GraduationCap}
+                    label="IELTS pending"
+                    value={data.summary.ielts_pending_speaking ?? ielts?.pending_speaking ?? 0}
+                  />
                 </div>
 
               <Section title="Achievements" icon={Award}>
@@ -346,10 +399,22 @@ export function UserActivitySheet({
                   </p>
                 ) : (
                   <div className="space-y-2">
+                    {ielts?.certificate ? (
+                      <div className="flex items-start justify-between gap-3 rounded-md border border-neutral-200 bg-white px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">IELTS preparation certificate</p>
+                          <p className="text-xs text-muted-foreground">
+                            {ielts.certificate.serial_number} · issued{" "}
+                            {formatWhen(ielts.certificate.issued_at)}
+                          </p>
+                        </div>
+                        <Badge className="shrink-0 bg-[#FF4B1A]">IELTS</Badge>
+                      </div>
+                    ) : null}
                     {data.certificates.map((cert) => (
                       <div
                         key={cert.id}
-                        className="flex items-start justify-between gap-3 rounded-md border border-border/60 bg-muted/10 px-3 py-2"
+                        className="flex items-start justify-between gap-3 rounded-md border border-neutral-200 bg-white px-3 py-2"
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-medium">
@@ -417,13 +482,65 @@ export function UserActivitySheet({
               </div>
 
               <Tabs defaultValue="activity" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <TabsList className="grid w-full shrink-0 grid-cols-3">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="learning">Learning</TabsTrigger>
-                  <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsList className="grid w-full shrink-0 grid-cols-3 border border-neutral-200 bg-white text-neutral-600">
+                  <TabsTrigger
+                    value="overview"
+                    className="data-[state=active]:bg-neutral-50 data-[state=active]:text-neutral-950"
+                  >
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="learning"
+                    className="data-[state=active]:bg-neutral-50 data-[state=active]:text-neutral-950"
+                  >
+                    Learning
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="activity"
+                    className="data-[state=active]:bg-neutral-50 data-[state=active]:text-neutral-950"
+                  >
+                    Activity
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto">
+                  {ielts && (hasIeltsActivity || ielts.total_sets > 0) ? (
+                    <Section title="IELTS progress" icon={Languages}>
+                      <div className="rounded-md border border-border/60 px-3 py-2 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium">
+                            {ielts.passed_sets}/{ielts.total_sets} sets · {ielts.completion_pct}%
+                          </p>
+                          {ielts.certificate ? (
+                            <Badge className="bg-[#FF4B1A]">{ielts.certificate.serial_number}</Badge>
+                          ) : ielts.pending_speaking > 0 ? (
+                            <Badge variant="secondary">
+                              {ielts.pending_speaking} speaking pending
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <Progress value={ielts.completion_pct} className="h-1.5" />
+                        <div className="flex flex-wrap gap-1.5">
+                          {ielts.skills.map((skill) => (
+                            <span
+                              key={skill.skill}
+                              className="rounded-md border border-border px-2 py-0.5 text-[11px]"
+                            >
+                              {skill.skill} {skill.passed_sets}/{skill.total_sets}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {ielts.attempts} attempts
+                          {ielts.avg_band != null ? ` · avg band ${ielts.avg_band}` : ""}
+                          {ielts.last_activity
+                            ? ` · last ${formatWhen(ielts.last_activity)}`
+                            : " · no attempts yet"}
+                        </p>
+                      </div>
+                    </Section>
+                  ) : null}
+
                   {data.organizations.length > 0 ? (
                     <Section title="Organizations" icon={Building2}>
                       {data.organizations.map((org) => (
@@ -484,16 +601,119 @@ export function UserActivitySheet({
                   data.teaching.length === 0 &&
                   data.materials_uploaded.length === 0 &&
                   data.lessons_created.length === 0 &&
-                  data.evaluations_given.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No org or teaching activity yet.</p>
+                  data.evaluations_given.length === 0 &&
+                  !hasIeltsActivity ? (
+                    <p className="text-sm text-muted-foreground">No recorded activity yet.</p>
                   ) : null}
                 </TabsContent>
 
                 <TabsContent value="learning" className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto">
-                  {data.enrollments.length === 0 ? (
+                  {ielts ? (
+                    <div className="rounded-lg border border-border p-3 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium flex items-center gap-2">
+                            <Languages className="h-4 w-4 text-[#FF4B1A]" />
+                            IELTS preparation
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {ielts.passed_sets}/{ielts.total_sets} sets passed
+                            {ielts.avg_band != null ? ` · avg band ${ielts.avg_band}` : ""}
+                            {ielts.last_activity
+                              ? ` · last ${formatWhen(ielts.last_activity)}`
+                              : ""}
+                          </p>
+                        </div>
+                        {ielts.certificate ? (
+                          <Badge className="bg-[#FF4B1A]">Certified</Badge>
+                        ) : ielts.pending_speaking > 0 ? (
+                          <Badge variant="secondary">{ielts.pending_speaking} speaking pending</Badge>
+                        ) : hasIeltsActivity ? (
+                          <Badge variant="outline">In progress</Badge>
+                        ) : (
+                          <Badge variant="outline">Not started</Badge>
+                        )}
+                      </div>
+                      <Progress value={ielts.completion_pct} className="h-1.5" />
+                      <p className="text-xs text-muted-foreground">
+                        {ielts.completion_pct}% complete · {ielts.attempts} attempts
+                      </p>
+                      {ielts.skills.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {ielts.skills.map((skill) => (
+                            <span
+                              key={skill.skill}
+                              className="rounded-md border border-border px-2 py-1 text-xs"
+                            >
+                              <span className="font-medium">{skill.skill}</span>
+                              <span className="text-muted-foreground">
+                                {" "}
+                                {skill.passed_sets}/{skill.total_sets}
+                                {skill.best_band != null ? ` · ${skill.best_band}` : ""}
+                                {skill.pending_review > 0
+                                  ? ` · ${skill.pending_review} pending`
+                                  : ""}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {ielts.tests.some((t) => t.passed || attemptedTest(ielts, t.id)) ? (
+                        <div className="space-y-1.5 border-t border-border/60 pt-2">
+                          {ielts.tests.map((test) => {
+                            const attempted = attemptedTest(ielts, test.id)
+                            return (
+                              <div
+                                key={test.id}
+                                className="flex items-center justify-between gap-2 text-sm"
+                              >
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium">{test.title}</p>
+                                  <p className="text-xs text-muted-foreground">{test.skill}</p>
+                                </div>
+                                {test.passed ? (
+                                  <Badge className="shrink-0 bg-emerald-600/90">
+                                    {test.band_score != null
+                                      ? `Band ${Number(test.band_score).toFixed(1)}`
+                                      : "Passed"}
+                                  </Badge>
+                                ) : attempted ? (
+                                  <Badge variant="secondary" className="shrink-0">
+                                    Attempted
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="shrink-0">
+                                    Not started
+                                  </Badge>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                      {ielts.recent_attempts.length > 0 ? (
+                        <Section title="Recent IELTS attempts" icon={Activity}>
+                          {ielts.recent_attempts.slice(0, 8).map((row) => (
+                            <Row
+                              key={row.id}
+                              title={row.quiz_title}
+                              meta={`${row.skill} · ${
+                                row.pending_review
+                                  ? "pending review"
+                                  : `${row.score}%${row.passed ? " passed" : ""}`
+                              }${row.band_score != null ? ` · band ${row.band_score}` : ""} · ${formatWhen(row.created_at)}`}
+                            />
+                          ))}
+                        </Section>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {data.enrollments.length === 0 && !hasIeltsActivity ? (
                     <p className="text-sm text-muted-foreground">No course enrollments.</p>
-                  ) : (
-                    data.enrollments.map((enrollment) => (
+                  ) : null}
+
+                  {data.enrollments.map((enrollment) => (
                       <div
                         key={enrollment.id}
                         className="rounded-lg border border-border p-3 space-y-2"
@@ -551,8 +771,7 @@ export function UserActivitySheet({
                           </Button>
                         </div>
                       </div>
-                    ))
-                  )}
+                    ))}
 
                   {data.scorm_records.length > 0 ? (
                     <Section title="SCORM activity" icon={Activity}>
@@ -741,6 +960,13 @@ export function UserActivitySheet({
   )
 }
 
+function attemptedTest(
+  ielts: NonNullable<UserActivityPayload["ielts"]>,
+  quizId: string,
+): boolean {
+  return ielts.recent_attempts.some((row) => row.quiz_id === quizId)
+}
+
 function Stat({
   icon: Icon,
   label,
@@ -748,10 +974,10 @@ function Stat({
 }: {
   icon: LucideIcon
   label: string
-  value: number
+  value: number | string
 }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/15 px-2 py-1.5">
+    <div className="flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2 py-1.5">
       <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       <div className="min-w-0">
         <p className="text-sm font-semibold leading-none">{value}</p>

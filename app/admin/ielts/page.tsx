@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { apiDelete, apiGet, apiPatch } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
@@ -38,6 +38,7 @@ import {
   Languages,
   BarChart3,
   FileText,
+  Users,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -90,6 +91,8 @@ type AttemptRow = {
   exam_type: string
   group_id: string | null
   group_title: string | null
+  skill?: string | null
+  pending_review?: boolean
   user_id: string | null
   user_email: string | null
   user_name: string
@@ -102,13 +105,66 @@ type AttemptSummary = {
   avg_band: string | null
 }
 
+type AttemptAnswerItem = {
+  id: string
+  number: number
+  prompt: string
+  question_type: string
+  learner_answer: string
+  correct_answer: string
+  raw_answer: string | null
+  audio_url: string | null
+  audio_seconds: number | null
+  is_correct: boolean
+}
+
+type AttemptDetail = {
+  summary: { correct: number; total: number; score: number }
+  items: AttemptAnswerItem[]
+}
+
+type LearnerSkillProgress = {
+  skill: string
+  total_sets: number
+  passed_sets: number
+  attempted_sets: number
+  best_band: number | null
+  pending_review: number
+}
+
+type LearnerProgress = {
+  user_id: string
+  user_name: string
+  user_email: string
+  attempts: number
+  passed_sets: number
+  total_sets: number
+  completion_pct: number
+  avg_band: number | null
+  last_activity: string | null
+  certificate_serial: string | null
+  certificate_issued_at: string | null
+  pending_speaking: number
+  skills: LearnerSkillProgress[]
+}
+
 const PREVIEW_PARTS = 3
 
 export default function AdminIeltsPage() {
-  const [view, setView] = useState<"skills" | "materials" | "results" | "requests">("skills")
+  const [view, setView] = useState<"skills" | "materials" | "progress" | "results" | "requests">(
+    "skills",
+  )
   const [materials, setMaterials] = useState<ReviewerMaterial[]>([])
   const [groups, setGroups] = useState<AdminGroup[]>([])
   const [attempts, setAttempts] = useState<AttemptRow[]>([])
+  const [learners, setLearners] = useState<LearnerProgress[]>([])
+  const [publishedSetCount, setPublishedSetCount] = useState(0)
+  const [ieltsUserCount, setIeltsUserCount] = useState(0)
+  const [expandedLearners, setExpandedLearners] = useState<Record<string, boolean>>({})
+  const [expandedAttempts, setExpandedAttempts] = useState<Record<string, boolean>>({})
+  const [attemptDetails, setAttemptDetails] = useState<Record<string, AttemptDetail>>({})
+  const [attemptDetailLoading, setAttemptDetailLoading] = useState<Record<string, boolean>>({})
+  const [attemptDetailError, setAttemptDetailError] = useState<Record<string, string>>({})
   const [summary, setSummary] = useState<AttemptSummary>({
     total: 0,
     passed: 0,
@@ -142,20 +198,59 @@ export default function AdminIeltsPage() {
     setAttempts(data.attempts ?? [])
   }, [])
 
+  const fetchLearners = useCallback(async () => {
+    const data = await apiGet<{
+      total_sets: number
+      total_users?: number
+      learners: LearnerProgress[]
+    }>("/reviewers/ielts/learners")
+    setPublishedSetCount(data.total_sets ?? 0)
+    setIeltsUserCount(data.total_users ?? 0)
+    setLearners(data.learners ?? [])
+  }, [])
+
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      await Promise.all([fetchMaterials(), fetchGroups(), fetchAttempts()])
+      await Promise.all([fetchMaterials(), fetchGroups(), fetchAttempts(), fetchLearners()])
     } catch (error) {
       console.error("Failed to load IELTS admin data:", error)
     } finally {
       setLoading(false)
     }
-  }, [fetchMaterials, fetchGroups, fetchAttempts])
+  }, [fetchMaterials, fetchGroups, fetchAttempts, fetchLearners])
 
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  const toggleAttemptAnswers = useCallback(
+    async (attemptId: string) => {
+      const nextOpen = !(expandedAttempts[attemptId] ?? false)
+      setExpandedAttempts((prev) => ({ ...prev, [attemptId]: nextOpen }))
+      if (!nextOpen || attemptDetails[attemptId] || attemptDetailLoading[attemptId]) return
+
+      setAttemptDetailLoading((prev) => ({ ...prev, [attemptId]: true }))
+      setAttemptDetailError((prev) => {
+        const copy = { ...prev }
+        delete copy[attemptId]
+        return copy
+      })
+      try {
+        const data = await apiGet<AttemptDetail>(`/reviewers/quizzes/attempts/${attemptId}`)
+        setAttemptDetails((prev) => ({ ...prev, [attemptId]: data }))
+      } catch (error) {
+        setAttemptDetailError((prev) => ({
+          ...prev,
+          [attemptId]:
+            error instanceof Error ? error.message : "Could not load answers for this attempt",
+        }))
+      } finally {
+        setAttemptDetailLoading((prev) => ({ ...prev, [attemptId]: false }))
+      }
+    },
+    [attemptDetailLoading, attemptDetails, expandedAttempts],
+  )
 
   const handleDownload = async (material: ReviewerMaterial) => {
     if (material.external_url && !material.file_url) {
@@ -276,29 +371,55 @@ export default function AdminIeltsPage() {
       (row) =>
         row.quiz_title.toLowerCase().includes(q) ||
         (row.group_title ?? "").toLowerCase().includes(q) ||
+        (row.skill ?? "").toLowerCase().includes(q) ||
         (row.category ?? "").toLowerCase().includes(q) ||
         row.user_name.toLowerCase().includes(q) ||
         (row.user_email ?? "").toLowerCase().includes(q),
     )
   }, [attempts, searchTerm])
 
+  const filteredLearners = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase()
+    if (!q) return learners
+    return learners.filter(
+      (row) =>
+        row.user_name.toLowerCase().includes(q) ||
+        row.user_email.toLowerCase().includes(q) ||
+        (row.certificate_serial ?? "").toLowerCase().includes(q) ||
+        row.skills.some((skill) => skill.skill.toLowerCase().includes(q)),
+    )
+  }, [learners, searchTerm])
+
+  const progressSummary = useMemo(() => {
+    const withActivity = learners.length
+    const certified = learners.filter((l) => l.certificate_serial).length
+    const pendingSpeaking = learners.reduce((sum, l) => sum + l.pending_speaking, 0)
+    const avgCompletion =
+      withActivity > 0
+        ? Math.round(learners.reduce((sum, l) => sum + l.completion_pct, 0) / withActivity)
+        : 0
+    return { withActivity, certified, pendingSpeaking, avgCompletion }
+  }, [learners])
+
   const searchPlaceholder =
     view === "skills"
       ? "Search skills or practice sets…"
       : view === "materials"
         ? "Search IELTS materials…"
-        : view === "requests"
-        ? "Access requests"
-        : "Search results by learner or set…"
+        : view === "progress"
+          ? "Search learners by name, email, or certificate…"
+          : view === "requests"
+            ? "Access requests"
+            : "Search results by learner or set…"
 
   return (
     <GrowMainLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <GrowHeader
           icon={Languages}
           title="IELTS"
           accent="skills & scores"
-          description="Manage Listening, Reading, Writing, and Speaking practice, downloadable materials, and learner results"
+          description="Manage practice skills, mock sessions, answer keys, and learner progress"
           showDate={false}
         >
           {view === "skills" ? (
@@ -320,78 +441,96 @@ export default function AdminIeltsPage() {
           ) : null}
         </GrowHeader>
 
-        <IeltsUkviRequests />
-        <IeltsMockSessionToggle />
-        <IeltsAnswerKeyToggle />
+        <div className="grow-card overflow-hidden p-0">
+          <div className="grid divide-y divide-border/70 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+            <div className="p-3.5 md:p-4">
+              <IeltsUkviRequests />
+            </div>
+            <div className="p-3.5 md:p-4">
+              <IeltsMockSessionToggle />
+            </div>
+            <div className="p-3.5 md:p-4">
+              <IeltsAnswerKeyToggle />
+            </div>
+          </div>
+        </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="grow-card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Skills</p>
-            <p className="mt-1 text-2xl font-bold">{groups.length}</p>
+        <div className="grow-toolbar !gap-2 !p-2 md:!items-center">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            {(
+              [
+                { id: "skills" as const, label: "Skills", count: groups.length, icon: Layers3 },
+                {
+                  id: "materials" as const,
+                  label: "Materials",
+                  count: materials.length,
+                  icon: FileText,
+                },
+                {
+                  id: "progress" as const,
+                  label: "Progress",
+                  count: ieltsUserCount,
+                  icon: Users,
+                },
+                {
+                  id: "results" as const,
+                  label: "Results",
+                  count: summary.total,
+                  icon: BarChart3,
+                },
+                { id: "requests" as const, label: "Access", count: null, icon: null },
+              ] as const
+            ).map((tab) => {
+              const Icon = tab.icon
+              const active = view === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setView(tab.id)}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    active
+                      ? "bg-[#1a1f2e] text-white shadow-sm dark:bg-foreground dark:text-background"
+                      : "bg-[#f3ede4] text-muted-foreground hover:text-foreground dark:bg-muted",
+                  )}
+                >
+                  {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+                  {tab.label}
+                  {tab.count != null ? (
+                    <span className={cn("tabular-nums", active ? "opacity-80" : "opacity-70")}>
+                      {tab.count}
+                    </span>
+                  ) : null}
+                </button>
+              )
+            })}
           </div>
-          <div className="grow-card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Materials</p>
-            <p className="mt-1 text-2xl font-bold">{materials.length}</p>
-          </div>
-          <div className="grow-card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Attempts · avg band
-            </p>
-            <p className="mt-1 text-2xl font-bold">
-              {summary.total}
-              <span className="ml-2 text-base font-semibold text-muted-foreground">
-                {summary.avg_band ? `band ${summary.avg_band}` : "—"}
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 md:border-t-0 md:pt-0">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+              <span className="rounded-full bg-[#f3ede4] px-2 py-1 dark:bg-muted">
+                {progressSummary.pendingSpeaking} speaking
               </span>
-            </p>
+              <span className="rounded-full bg-[#f3ede4] px-2 py-1 dark:bg-muted">
+                {summary.avg_band ? `band ${summary.avg_band}` : "no band yet"}
+              </span>
+            </div>
+            {view !== "requests" ? (
+              <div className="relative min-w-[12rem] flex-1 md:max-w-xs">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  className="grow-input h-8 pl-9 text-xs"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={view === "skills" ? "default" : "outline"}
-            className="rounded-full"
-            onClick={() => setView("skills")}
-          >
-            <Layers3 className="mr-2 h-4 w-4" />
-            Skills ({groups.length})
-          </Button>
-          <Button
-            variant={view === "materials" ? "default" : "outline"}
-            className="rounded-full"
-            onClick={() => setView("materials")}
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Materials ({materials.length})
-          </Button>
-          <Button
-            variant={view === "results" ? "default" : "outline"}
-            className="rounded-full"
-            onClick={() => setView("results")}
-          >
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Results ({summary.total})
-          </Button>
-          <Button
-            variant={view === "requests" ? "default" : "outline"}
-            className="rounded-full"
-            onClick={() => setView("requests")}
-          >
-            Access requests
-          </Button>
-        </div>
-
-        <div className="grow-toolbar">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={searchPlaceholder}
-              className="grow-input pl-11"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
+        <div key={view} className="admin-panel-in">
         {view === "requests" ? (
           <IeltsAccessRequests />
         ) : view === "skills" ? (
@@ -413,8 +552,8 @@ export default function AdminIeltsPage() {
               </Button>
             </Card>
           ) : (
-            <div className="space-y-5">
-              {filteredGroups.map((group) => {
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {filteredGroups.map((group, groupIndex) => {
                 const accent = getReviewerAccent(group.accent_color)
                 const cover = assetUrl(group.cover_url)
                 const expanded = Boolean(expandedGroups[group.id])
@@ -424,32 +563,28 @@ export default function AdminIeltsPage() {
                 const renderQuizRow = (quiz: AdminQuiz) => (
                   <div
                     key={quiz.id}
-                    className="grid grid-cols-1 gap-2 border-b px-3 py-2.5 last:border-0 sm:grid-cols-[minmax(0,1fr)_72px_88px_auto] sm:items-center sm:gap-3"
+                    className="flex items-start justify-between gap-2 border-b px-3 py-2.5 last:border-0"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{quiz.title}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {quiz.category || "—"} · Pass {quiz.passing_score}%
+                        {quiz.category || "—"} · Pass {quiz.passing_score}% · {quiz.question_count}{" "}
+                        Q
                       </p>
                     </div>
-                    <p className="text-sm text-muted-foreground sm:text-foreground">
-                      {quiz.question_count}
-                    </p>
-                    <div>
+                    <div className="flex shrink-0 items-center gap-1">
                       <Badge variant={quiz.is_published ? "default" : "secondary"}>
-                        {quiz.is_published ? "Published" : "Draft"}
+                        {quiz.is_published ? "Live" : "Draft"}
                       </Badge>
-                    </div>
-                    <div className="flex justify-start gap-1 sm:justify-end">
-                      <Button size="sm" variant="ghost" asChild>
+                      <Button size="sm" variant="ghost" className="h-8 px-2" asChild>
                         <Link href={`/admin/reviewers/quizzes/${quiz.id}`}>
-                          <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
-                          Questions
+                          <ClipboardList className="h-3.5 w-3.5" />
+                          <span className="sr-only">Questions</span>
                         </Link>
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="ghost">
+                          <Button size="sm" variant="ghost" className="h-8 px-2">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -472,10 +607,14 @@ export default function AdminIeltsPage() {
                 return (
                   <Card
                     key={group.id}
-                    className={cn("overflow-hidden border transition-shadow duration-300", accent.card)}
+                    className={cn(
+                      "admin-soft-rise flex h-full flex-col overflow-hidden border transition-shadow duration-300",
+                      accent.card,
+                    )}
+                    style={{ animationDelay: `${Math.min(groupIndex, 8) * 45}ms` }}
                   >
-                    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
-                      <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl sm:w-44">
+                    <div className="flex flex-col gap-3 p-3.5 sm:p-4">
+                      <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl">
                         {cover ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={cover} alt="" className="h-full w-full object-cover" />
@@ -483,30 +622,32 @@ export default function AdminIeltsPage() {
                           <div className={cn("h-full w-full bg-gradient-to-br", accent.header)} />
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <h2 className="text-lg font-bold">{group.title}</h2>
-                            <p className="text-sm text-muted-foreground">
+                      <div className="min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h2 className="truncate text-base font-bold sm:text-lg">{group.title}</h2>
+                            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground sm:text-sm">
                               {group.quiz_count} set{group.quiz_count === 1 ? "" : "s"}
                               {group.description ? ` · ${group.description}` : ""}
                             </p>
                           </div>
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex shrink-0 gap-0.5">
                             <Button
                               size="sm"
                               variant="outline"
+                              className="h-8 px-2"
                               onClick={() => {
                                 setQuizTargetGroup(group)
                                 setQuizModalOpen(true)
                               }}
                             >
-                              <Plus className="mr-1 h-3.5 w-3.5" />
-                              Add set
+                              <Plus className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Add</span>
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
+                              className="h-8 px-2"
                               onClick={() => {
                                 setEditingGroup(group)
                                 setGroupModalOpen(true)
@@ -517,7 +658,7 @@ export default function AdminIeltsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-destructive"
+                              className="h-8 px-2 text-destructive"
                               onClick={() => handleDeleteGroup(group)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -526,19 +667,30 @@ export default function AdminIeltsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="border-t">
+                    <div className="mt-auto border-t">
                       {previewQuizzes.map(renderQuizRow)}
                       {extraQuizzes.length > 0 ? (
                         <>
-                          {expanded ? extraQuizzes.map(renderQuizRow) : null}
+                          <div className="admin-expand" data-open={expanded ? "true" : "false"}>
+                            <div className="admin-expand-panel">
+                              <div className="admin-expand-inner">
+                                {extraQuizzes.map(renderQuizRow)}
+                              </div>
+                            </div>
+                          </div>
                           <button
                             type="button"
-                            className="flex w-full items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/40"
+                            className="flex w-full items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40"
                             onClick={() =>
                               setExpandedGroups((prev) => ({ ...prev, [group.id]: !expanded }))
                             }
                           >
-                            <ChevronDown className={cn("h-3.5 w-3.5 transition", expanded && "rotate-180")} />
+                            <ChevronDown
+                              className={cn(
+                                "h-3.5 w-3.5 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                                expanded && "rotate-180",
+                              )}
+                            />
                             {expanded ? "Show fewer" : `Show ${extraQuizzes.length} more`}
                           </button>
                         </>
@@ -660,33 +812,242 @@ export default function AdminIeltsPage() {
           </Card>
         ) : null}
 
-        {view === "results" ? (
+        {view === "progress" ? (
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="grow-card-muted p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pass rate</p>
-                <p className="mt-1 text-2xl font-bold">
-                  {summary.total
-                    ? `${Math.round((summary.passed / summary.total) * 100)}%`
-                    : "—"}
-                </p>
-              </div>
-              <div className="grow-card-muted p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avg score</p>
-                <p className="mt-1 text-2xl font-bold">
-                  {summary.avg_score ? `${summary.avg_score}%` : "—"}
-                </p>
-              </div>
-              <div className="grow-card-muted p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avg band</p>
-                <p className="mt-1 text-2xl font-bold">{summary.avg_band ?? "—"}</p>
+            <div className="grow-card overflow-hidden p-0">
+              <div className="grid divide-y divide-border/70 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
+                <div className="p-3.5 md:px-4 md:py-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    IELTS users
+                  </p>
+                  <div className="mt-2 flex items-end justify-between gap-2">
+                    <p className="text-2xl font-bold tabular-nums leading-none">{ieltsUserCount}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {progressSummary.withActivity} active
+                    </p>
+                  </div>
+                </div>
+                <div className="p-3.5 md:px-4 md:py-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Avg completion
+                  </p>
+                  <div className="mt-2 flex items-end justify-between gap-2">
+                    <p className="text-2xl font-bold tabular-nums leading-none">
+                      {progressSummary.withActivity ? `${progressSummary.avgCompletion}%` : "—"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {publishedSetCount} sets
+                    </p>
+                  </div>
+                </div>
+                <div className="p-3.5 md:px-4 md:py-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Certificates
+                  </p>
+                  <div className="mt-2 flex items-end justify-between gap-2">
+                    <p className="text-2xl font-bold tabular-nums leading-none">
+                      {progressSummary.certified}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">issued</p>
+                  </div>
+                </div>
+                <div className="p-3.5 md:px-4 md:py-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Speaking review
+                  </p>
+                  <div className="mt-2 flex items-end justify-between gap-2">
+                    <p className="text-2xl font-bold tabular-nums leading-none">
+                      {progressSummary.pendingSpeaking}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">awaiting</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <Card>
+
+            {loading ? (
+              <Card className="p-12 text-center text-muted-foreground">Loading learner progress…</Card>
+            ) : filteredLearners.length === 0 ? (
+              <Card className="p-12 text-center text-muted-foreground">
+                No IELTS learner activity yet
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {filteredLearners.map((learner, learnerIndex) => {
+                  const open = expandedLearners[learner.user_id] ?? false
+                  return (
+                    <Card
+                      key={learner.user_id}
+                      className="admin-soft-rise overflow-hidden transition-shadow duration-300 hover:shadow-md"
+                      style={{ animationDelay: `${Math.min(learnerIndex, 8) * 45}ms` }}
+                    >
+                      <button
+                        type="button"
+                        className="flex w-full items-start gap-3 p-4 text-left transition-colors duration-200 hover:bg-accent/40"
+                        aria-expanded={open}
+                        onClick={() =>
+                          setExpandedLearners((prev) => ({
+                            ...prev,
+                            [learner.user_id]: !open,
+                          }))
+                        }
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                            open && "rotate-180",
+                          )}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{learner.user_name}</p>
+                            {learner.certificate_serial ? (
+                              <Badge variant="default">{learner.certificate_serial}</Badge>
+                            ) : null}
+                            {learner.pending_speaking > 0 ? (
+                              <Badge variant="secondary">
+                                {learner.pending_speaking} speaking to review
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{learner.user_email}</p>
+                          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                            <span>
+                              <span className="font-semibold">{learner.completion_pct}%</span>
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · {learner.passed_sets}/{learner.total_sets} sets
+                              </span>
+                            </span>
+                            <span className="text-muted-foreground">
+                              {learner.attempts} attempts
+                              {learner.avg_band != null ? ` · avg band ${learner.avg_band}` : ""}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {learner.last_activity
+                                ? `Last ${new Date(learner.last_activity).toLocaleString()}`
+                                : "No activity"}
+                            </span>
+                          </div>
+                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-[#FF4B1A] transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                              style={{ width: `${Math.min(100, learner.completion_pct)}%` }}
+                            />
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {learner.skills.map((skill) => (
+                              <span
+                                key={skill.skill}
+                                className="rounded-md border border-border px-2 py-1 text-xs transition-colors duration-200 hover:bg-muted/50"
+                              >
+                                <span className="font-medium">{skill.skill}</span>
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  {skill.passed_sets}/{skill.total_sets}
+                                  {skill.best_band != null ? ` · ${skill.best_band}` : ""}
+                                  {skill.pending_review > 0
+                                    ? ` · ${skill.pending_review} pending`
+                                    : ""}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </button>
+                      <div className="admin-expand" data-open={open ? "true" : "false"}>
+                        <div className="admin-expand-panel">
+                          <div className="admin-expand-inner border-t border-border bg-muted/20 px-4 py-3">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="text-left text-muted-foreground">
+                                    <th className="pb-2 pr-3 font-medium">Skill</th>
+                                    <th className="pb-2 pr-3 font-medium">Passed</th>
+                                    <th className="pb-2 pr-3 font-medium">Attempted</th>
+                                    <th className="pb-2 pr-3 font-medium">Best band</th>
+                                    <th className="pb-2 font-medium">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {learner.skills.map((skill) => (
+                                    <tr key={skill.skill} className="border-t border-border/60">
+                                      <td className="py-2 pr-3 font-medium">{skill.skill}</td>
+                                      <td className="py-2 pr-3">
+                                        {skill.passed_sets}/{skill.total_sets}
+                                      </td>
+                                      <td className="py-2 pr-3">{skill.attempted_sets}</td>
+                                      <td className="py-2 pr-3">
+                                        {skill.best_band != null
+                                          ? skill.best_band.toFixed(1)
+                                          : "—"}
+                                      </td>
+                                      <td className="py-2">
+                                        {skill.pending_review > 0 ? (
+                                          <Badge variant="secondary">Pending trainer review</Badge>
+                                        ) : skill.passed_sets >= skill.total_sets &&
+                                          skill.total_sets > 0 ? (
+                                          <Badge variant="default">Complete</Badge>
+                                        ) : skill.attempted_sets > 0 ? (
+                                          <Badge variant="outline">In progress</Badge>
+                                        ) : (
+                                          <Badge variant="outline">Not started</Badge>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {view === "results" ? (
+          <div className="space-y-4">
+            <div className="grow-card overflow-hidden p-0">
+              <div className="grid divide-y divide-border/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                <div className="p-3.5 md:px-4 md:py-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Pass rate
+                  </p>
+                  <p className="mt-2 text-2xl font-bold tabular-nums leading-none">
+                    {summary.total
+                      ? `${Math.round((summary.passed / summary.total) * 100)}%`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="p-3.5 md:px-4 md:py-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Avg score
+                  </p>
+                  <p className="mt-2 text-2xl font-bold tabular-nums leading-none">
+                    {summary.avg_score ? `${summary.avg_score}%` : "—"}
+                  </p>
+                </div>
+                <div className="p-3.5 md:px-4 md:py-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Avg band
+                  </p>
+                  <p className="mt-2 text-2xl font-bold tabular-nums leading-none">
+                    {summary.avg_band ?? "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Card className="overflow-hidden py-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
+                      <th className="w-10 p-4" />
                       <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Learner</th>
                       <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Skill / set</th>
                       <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Score</th>
@@ -698,40 +1059,172 @@ export default function AdminIeltsPage() {
                   <tbody>
                     {filteredAttempts.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-12 text-center text-muted-foreground">
+                        <td colSpan={7} className="p-12 text-center text-muted-foreground">
                           {loading ? "Loading results…" : "No IELTS attempts yet"}
                         </td>
                       </tr>
                     ) : (
-                      filteredAttempts.map((row) => (
-                        <tr
-                          key={row.id}
-                          className="border-b border-border last:border-0 hover:bg-accent/50"
-                        >
-                          <td className="p-4">
-                            <p className="font-medium">{row.user_name}</p>
-                            <p className="text-xs text-muted-foreground">{row.user_email || "—"}</p>
-                          </td>
-                          <td className="p-4">
-                            <p className="font-medium">{row.quiz_title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {row.group_title || row.category || "—"}
-                            </p>
-                          </td>
-                          <td className="p-4 font-semibold">{row.score}%</td>
-                          <td className="p-4">
-                            {row.band_score != null ? Number(row.band_score).toFixed(1) : "—"}
-                          </td>
-                          <td className="p-4">
-                            <Badge variant={row.passed ? "default" : "secondary"}>
-                              {row.passed ? "Passed" : "Failed"}
-                            </Badge>
-                          </td>
-                          <td className="p-4 text-sm text-muted-foreground">
-                            {new Date(row.created_at).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
+                      filteredAttempts.map((row) => {
+                        const open = expandedAttempts[row.id] ?? false
+                        const detail = attemptDetails[row.id]
+                        const detailLoading = attemptDetailLoading[row.id]
+                        const detailError = attemptDetailError[row.id]
+                        return (
+                          <Fragment key={row.id}>
+                            <tr
+                              className="border-b border-border transition-colors duration-200 last:border-0 hover:bg-accent/50"
+                            >
+                              <td className="p-4">
+                                <button
+                                  type="button"
+                                  className="rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                  aria-expanded={open}
+                                  aria-label={open ? "Hide answers" : "Show answers"}
+                                  onClick={() => void toggleAttemptAnswers(row.id)}
+                                >
+                                  <ChevronDown
+                                    className={cn(
+                                      "h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                                      open && "rotate-180",
+                                    )}
+                                  />
+                                </button>
+                              </td>
+                              <td className="p-4">
+                                <button
+                                  type="button"
+                                  className="text-left"
+                                  onClick={() => void toggleAttemptAnswers(row.id)}
+                                >
+                                  <p className="font-medium">{row.user_name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {row.user_email || "—"}
+                                  </p>
+                                </button>
+                              </td>
+                              <td className="p-4">
+                                <p className="font-medium">{row.quiz_title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {row.skill || row.group_title || row.category || "—"}
+                                </p>
+                              </td>
+                              <td className="p-4 font-semibold">
+                                {row.pending_review ? "—" : `${row.score}%`}
+                              </td>
+                              <td className="p-4">
+                                {row.band_score != null ? Number(row.band_score).toFixed(1) : "—"}
+                              </td>
+                              <td className="p-4">
+                                {row.pending_review ? (
+                                  <Badge variant="secondary">Pending review</Badge>
+                                ) : (
+                                  <Badge variant={row.passed ? "default" : "secondary"}>
+                                    {row.passed ? "Passed" : "Failed"}
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="p-4 text-sm text-muted-foreground">
+                                {new Date(row.created_at).toLocaleString()}
+                              </td>
+                            </tr>
+                            <tr className="border-b border-border last:border-0">
+                              <td colSpan={7} className="p-0">
+                                <div className="admin-expand" data-open={open ? "true" : "false"}>
+                                  <div className="admin-expand-panel">
+                                    <div className="admin-expand-inner bg-muted/20 px-4 py-3">
+                                      {detailLoading ? (
+                                        <p className="text-sm text-muted-foreground">
+                                          Loading answers…
+                                        </p>
+                                      ) : detailError ? (
+                                        <p className="text-sm text-destructive">{detailError}</p>
+                                      ) : detail ? (
+                                        <div className="space-y-3">
+                                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                            <span className="font-semibold text-foreground">
+                                              {detail.summary.correct}/{detail.summary.total} correct
+                                            </span>
+                                            <span>·</span>
+                                            <span>Click a row to review each response</span>
+                                          </div>
+                                          <div className="overflow-x-auto rounded-xl border border-border/70 bg-background">
+                                            <table className="w-full text-sm">
+                                              <thead>
+                                                <tr className="border-b border-border text-left text-muted-foreground">
+                                                  <th className="px-3 py-2 font-medium">#</th>
+                                                  <th className="px-3 py-2 font-medium">Question</th>
+                                                  <th className="px-3 py-2 font-medium">Their answer</th>
+                                                  <th className="px-3 py-2 font-medium">Correct</th>
+                                                  <th className="px-3 py-2 font-medium">Mark</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {detail.items.map((item) => (
+                                                  <tr
+                                                    key={item.id}
+                                                    className="border-b border-border/60 last:border-0"
+                                                  >
+                                                    <td className="px-3 py-2 align-top tabular-nums text-muted-foreground">
+                                                      {item.number}
+                                                    </td>
+                                                    <td className="px-3 py-2 align-top">
+                                                      <p className="font-medium leading-snug">
+                                                        {item.prompt}
+                                                      </p>
+                                                      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                                                        {item.question_type.replaceAll("_", " ")}
+                                                      </p>
+                                                    </td>
+                                                    <td className="px-3 py-2 align-top">
+                                                      {item.audio_url ? (
+                                                        <div className="space-y-1.5">
+                                                          <audio
+                                                            controls
+                                                            preload="none"
+                                                            className="h-8 w-full max-w-[16rem]"
+                                                            src={assetUrl(item.audio_url)}
+                                                          />
+                                                          <p className="text-xs text-muted-foreground">
+                                                            {item.learner_answer}
+                                                          </p>
+                                                        </div>
+                                                      ) : (
+                                                        <p className="whitespace-pre-wrap break-words">
+                                                          {item.learner_answer}
+                                                        </p>
+                                                      )}
+                                                    </td>
+                                                    <td className="px-3 py-2 align-top text-muted-foreground">
+                                                      {item.correct_answer || "—"}
+                                                    </td>
+                                                    <td className="px-3 py-2 align-top">
+                                                      <Badge
+                                                        variant={
+                                                          item.is_correct ? "default" : "secondary"
+                                                        }
+                                                      >
+                                                        {item.is_correct ? "Correct" : "Wrong"}
+                                                      </Badge>
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                          Expand to load answers.
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </Fragment>
+                        )
+                      })
                     )}
                   </tbody>
                 </table>
@@ -739,6 +1232,7 @@ export default function AdminIeltsPage() {
             </Card>
           </div>
         ) : null}
+        </div>
 
         <GroupFormModal
           open={groupModalOpen}

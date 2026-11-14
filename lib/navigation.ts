@@ -13,6 +13,7 @@ import {
   CreditCard,
   BookOpenCheck,
   Languages,
+  Award,
 } from "lucide-react"
 
 export interface NavItem {
@@ -56,6 +57,7 @@ export const adminNav: NavItem[] = [
   { label: "E-Learning Materials", icon: FileText, href: "/admin/materials" },
   { label: "Reviewers", icon: BookOpenCheck, href: "/admin/reviewers" },
   { label: "IELTS", icon: Languages, href: "/admin/ielts" },
+  { label: "Certificates", icon: Award, href: "/admin/certificates" },
   { label: "Users", icon: Users, href: "/admin/users" },
   { label: "Analytics", icon: LayoutDashboard, href: "/admin/analytics" },
 ]

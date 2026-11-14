@@ -49,7 +49,7 @@ const SKILL_META: Record<string, { icon: SkillIcon; blurb: string; tint: string 
   },
   Speaking: {
     icon: HiMic,
-    blurb: "Part 1, 2, and 3 prompts. Speak your answer, then type what you said.",
+    blurb: "Record Part 1, 2, and 3 with your microphone. Length is checked; a person does not score the speech.",
     tint: "from-rose-50 to-orange-50 border-rose-200 dark:from-rose-950/40 dark:to-orange-950/30 dark:border-rose-800",
   },
 }

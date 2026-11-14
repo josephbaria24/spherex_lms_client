@@ -17,7 +17,7 @@ type ResultRow = {
 
 type Certificate = {
   valid: true
-  kind: "ielts_preparation" | "course"
+  kind: "ielts_preparation" | "course" | "legacy"
   holder_name: string
   serial_number: string
   issued_at: string

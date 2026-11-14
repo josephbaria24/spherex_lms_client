@@ -1,7 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { ChevronDown } from "lucide-react"
 import { ApiError, apiGet } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 type UkviRequest = {
   id: string
@@ -10,10 +12,11 @@ type UkviRequest = {
   created_at: string
 }
 
-export function IeltsUkviRequests() {
+export function IeltsUkviRequests({ className }: { className?: string }) {
   const [requests, setRequests] = useState<UkviRequest[]>([])
   const [count, setCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -33,29 +36,52 @@ export function IeltsUkviRequests() {
   }, [load])
 
   return (
-    <div className="grow-card p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold">UKVI requests</p>
+    <div className={cn("min-w-0", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            UKVI
+          </p>
+          <p className="mt-1 text-sm font-semibold leading-tight">Life Skills interest</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Learners who asked for IELTS for UKVI Life Skills.
+            {count === 0 ? "No requests yet" : `${count} learner${count === 1 ? "" : "s"} waiting`}
           </p>
         </div>
-        <p className="text-2xl font-bold tabular-nums">{count}</p>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xl font-bold tabular-nums leading-none">{count}</span>
+          {requests.length > 0 ? (
+            <button
+              type="button"
+              className="rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-expanded={open}
+              aria-label={open ? "Hide UKVI requests" : "Show UKVI requests"}
+              onClick={() => setOpen((value) => !value)}
+            >
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  open && "rotate-180",
+                )}
+              />
+            </button>
+          ) : null}
+        </div>
       </div>
-      {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
       {requests.length > 0 ? (
-        <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto">
-          {requests.map((request) => (
-            <li key={request.id} className="text-sm">
-              <span className="font-medium">{request.name}</span>
-              <span className="text-muted-foreground"> · {request.email}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-xs text-muted-foreground">No requests yet.</p>
-      )}
+        <div className="admin-expand" data-open={open ? "true" : "false"}>
+          <div className="admin-expand-panel">
+            <ul className="admin-expand-inner mt-3 max-h-36 space-y-1.5 overflow-y-auto border-t border-border/60 pt-2">
+              {requests.map((request) => (
+                <li key={request.id} className="truncate text-xs">
+                  <span className="font-medium text-foreground">{request.name}</span>
+                  <span className="text-muted-foreground"> · {request.email}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

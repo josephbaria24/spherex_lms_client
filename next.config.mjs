@@ -9,6 +9,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    // Allow high-resolution certificate template uploads through the LMS API proxy.
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
+
   async headers() {
     return [
       {

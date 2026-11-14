@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { apiPost } from "@/lib/api"
+import { apiPost, ApiError } from "@/lib/api"
+import { assetUrl } from "@/lib/asset-url"
 import type { PublicReviewerQuizDetail } from "@/lib/public-reviewers"
 import { MathText } from "@/components/reviewers/math-text"
 import { toast } from "sonner"
@@ -60,6 +61,328 @@ function WrittenResponse({
       />
       <p className={cn("text-xs", count >= goal ? "text-teal-700 dark:text-teal-300" : "text-slate-500")}>
         {count} / {goal} words. This checks length only. It is not an examiner score.
+      </p>
+    </div>
+  )
+}
+
+function parseAudioAnswer(value: string | undefined): { url: string; seconds: number } | null {
+  if (!value) return null
+  try {
+    const parsed = JSON.parse(value) as { url?: unknown; seconds?: unknown }
+    if (typeof parsed.url !== "string" || !parsed.url) return null
+    const seconds = Number(parsed.seconds)
+    if (!Number.isFinite(seconds)) return null
+    return { url: parsed.url, seconds }
+  } catch {
+    return null
+  }
+}
+
+function isIosDevice() {
+  const ua = navigator.userAgent
+  const iPadOs = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
+  return /iPad|iPhone|iPod/.test(ua) || iPadOs
+}
+
+function recordingMimeType() {
+  if (typeof MediaRecorder === "undefined") return ""
+  const preferred = isIosDevice()
+    ? ["audio/mp4", "audio/aac", "audio/webm"]
+    : ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/ogg", "audio/mp4"]
+  return preferred.find((type) => MediaRecorder.isTypeSupported(type)) ?? ""
+}
+
+function audioExtension(type: string) {
+  if (type.includes("mp4") || type.includes("m4a") || type.includes("aac")) return "m4a"
+  if (type.includes("ogg")) return "ogg"
+  if (type.includes("wav")) return "wav"
+  if (type.includes("mpeg") || type.includes("mp3")) return "mp3"
+  return "webm"
+}
+
+function AudioResponse({
+  minimum,
+  value,
+  onChange,
+}: {
+  minimum: number
+  value: string
+  onChange: (value: string) => void
+}) {
+  const goal = Number.isFinite(minimum) && minimum > 0 ? minimum : 1
+  const saved = parseAudioAnswer(value)
+  const [recording, setRecording] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const startedRef = useRef(0)
+  const timerRef = useRef<number | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const frameRef = useRef<number | null>(null)
+  const lastVoiceRef = useRef(0)
+  const monitorStreamRef = useRef<MediaStream | null>(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const [levels, setLevels] = useState<number[]>(() => Array.from({ length: 24 }, () => 0))
+  const [hearingVoice, setHearingVoice] = useState(false)
+  const [recorderReady, setRecorderReady] = useState(false)
+
+  useEffect(() => {
+    setRecorderReady(typeof MediaRecorder !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia))
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      stopMonitor()
+      const recorder = recorderRef.current
+      if (recorder && recorder.state !== "inactive") recorder.stop()
+      recorder?.stream.getTracks().forEach((track) => track.stop())
+    }
+  }, [])
+
+  function stopTimer() {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    timerRef.current = null
+  }
+
+  function stopMonitor() {
+    stopTimer()
+    if (frameRef.current != null) cancelAnimationFrame(frameRef.current)
+    frameRef.current = null
+    void audioContextRef.current?.close()
+    audioContextRef.current = null
+    setLevels(Array.from({ length: 24 }, () => 0))
+    setHearingVoice(false)
+  }
+
+  async function watchVoice(stream: MediaStream) {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!AudioCtx) return
+    const context = new AudioCtx()
+    audioContextRef.current = context
+    await context.resume().catch(() => undefined)
+    const source = context.createMediaStreamSource(stream)
+    const analyser = context.createAnalyser()
+    analyser.fftSize = 256
+    analyser.smoothingTimeConstant = 0.75
+    source.connect(analyser)
+    const bins = new Uint8Array(analyser.frequencyBinCount)
+    let frame = 0
+    const draw = () => {
+      analyser.getByteFrequencyData(bins)
+      const bars = 24
+      const step = Math.max(1, Math.floor(bins.length / bars))
+      const next: number[] = []
+      let total = 0
+      for (let i = 0; i < bars; i++) {
+        let sum = 0
+        for (let j = 0; j < step; j++) sum += bins[i * step + j] ?? 0
+        const level = sum / step / 255
+        next.push(level)
+        total += level
+      }
+      if (total / bars > 0.08) lastVoiceRef.current = Date.now()
+      frame += 1
+      if (frame % 2 === 0) {
+        setLevels(next)
+        setHearingVoice(Date.now() - lastVoiceRef.current < 1200)
+      }
+      frameRef.current = requestAnimationFrame(draw)
+    }
+    draw()
+  }
+
+  function releaseStreams(stream?: MediaStream) {
+    stream?.getTracks().forEach((track) => track.stop())
+    monitorStreamRef.current?.getTracks().forEach((track) => track.stop())
+    monitorStreamRef.current = null
+  }
+
+  async function start() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      fileRef.current?.click()
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          channelCount: 1,
+        },
+      })
+      const mimeType = recordingMimeType()
+      let recorder: MediaRecorder
+      try {
+        recorder = new MediaRecorder(
+          stream,
+          mimeType ? { mimeType, audioBitsPerSecond: 128000 } : undefined,
+        )
+      } catch {
+        recorder = new MediaRecorder(stream)
+      }
+      chunksRef.current = []
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
+      }
+      recorder.onstop = () => {
+        const seconds = Math.max(1, Math.round((Date.now() - startedRef.current) / 1000))
+        const type = recorder.mimeType || mimeType || (isIosDevice() ? "audio/mp4" : "audio/webm")
+        const blob = new Blob(chunksRef.current, { type })
+        releaseStreams(stream)
+        if (blob.size < 1000) {
+          toast.error("Nothing was captured. Speak closer to the microphone and record again.")
+          return
+        }
+        setPreviewUrl((current) => {
+          if (current?.startsWith("blob:")) URL.revokeObjectURL(current)
+          return URL.createObjectURL(blob)
+        })
+        void upload(blob, seconds)
+      }
+      recorderRef.current = recorder
+      startedRef.current = Date.now()
+      lastVoiceRef.current = 0
+      setElapsed(0)
+      setHearingVoice(false)
+      const monitorStream = stream.clone()
+      monitorStreamRef.current = monitorStream
+      void watchVoice(monitorStream)
+      recorder.start(250)
+      setRecording(true)
+      timerRef.current = window.setInterval(() => {
+        setElapsed(Math.round((Date.now() - startedRef.current) / 1000))
+      }, 250)
+    } catch {
+      toast.error("Allow microphone access, or upload a voice memo instead.")
+      fileRef.current?.click()
+    }
+  }
+
+  function stop() {
+    setRecording(false)
+    stopMonitor()
+    const recorder = recorderRef.current
+    if (recorder && recorder.state === "recording") {
+      try {
+        recorder.requestData()
+      } catch {
+        /* Safari may already flush on stop. */
+      }
+      recorder.stop()
+    }
+  }
+
+  function onPickedFile(file: File | undefined) {
+    if (!file) return
+    const localUrl = URL.createObjectURL(file)
+    const probe = document.createElement("audio")
+    probe.preload = "metadata"
+    probe.src = localUrl
+    const beginUpload = (seconds: number) => {
+      setPreviewUrl((current) => {
+        if (current?.startsWith("blob:")) URL.revokeObjectURL(current)
+        return localUrl
+      })
+      void upload(file, Math.max(1, seconds))
+    }
+    probe.onloadedmetadata = () => {
+      const duration = Number.isFinite(probe.duration) ? Math.round(probe.duration) : 1
+      beginUpload(duration)
+    }
+    probe.onerror = () => beginUpload(1)
+  }
+
+  async function upload(blob: Blob, seconds: number) {
+    setUploading(true)
+    onChange("")
+    try {
+      const form = new FormData()
+      const extension = audioExtension(blob.type || (isIosDevice() ? "audio/mp4" : "audio/webm"))
+      form.append("audio", blob, `speaking.${extension}`)
+      form.append("seconds", String(seconds))
+      const res = await fetch("/api/lms/reviewers/speaking-recordings", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      })
+      const data = (await res.json().catch(() => ({}))) as { url?: string; seconds?: number; error?: string }
+      if (!res.ok || !data.url) {
+        throw new ApiError(data.error ?? "Could not save the recording", res.status)
+      }
+      onChange(JSON.stringify({ url: data.url, seconds: data.seconds ?? seconds }))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the recording")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const seconds = saved?.seconds ?? (recording ? elapsed : 0)
+  const playback = previewUrl || (saved ? assetUrl(saved.url) : "")
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {recording ? (
+          <Button type="button" variant="outline" onClick={stop}>
+            Stop
+          </Button>
+        ) : (
+          <>
+            {recorderReady ? (
+              <Button type="button" className="bg-[#FF4B1A] text-white hover:bg-[#e84314]" onClick={() => void start()} disabled={uploading}>
+                {saved ? "Record again" : "Record"}
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              Upload voice memo
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.aac"
+              capture="user"
+              className="hidden"
+              onChange={(event) => {
+                onPickedFile(event.target.files?.[0])
+                event.target.value = ""
+              }}
+            />
+          </>
+        )}
+        <span className="text-sm tabular-nums text-slate-500">
+          {formatTime(seconds)}
+          <span className="text-slate-400"> · aim for {formatTime(goal)}</span>
+        </span>
+        {uploading ? <span className="text-xs text-slate-500">Saving recording…</span> : null}
+      </div>
+      {recording ? (
+        <div className="flex h-16 items-end gap-1 rounded-xl bg-slate-950 px-3 py-2" aria-hidden>
+          {levels.map((level, index) => (
+            <span
+              key={index}
+              className="flex-1 rounded-full bg-[#FF4B1A] transition-[height] duration-75"
+              style={{ height: `${Math.max(8, Math.round(level * 100))}%` }}
+            />
+          ))}
+        </div>
+      ) : null}
+      {recording && elapsed >= 2 && !hearingVoice ? (
+        <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+          Nothing is being recorded. Are you speaking? Move closer to the microphone, or check that the browser is using the right mic.
+        </p>
+      ) : null}
+      {recording && hearingVoice ? (
+        <p className="text-xs font-medium text-teal-700 dark:text-teal-300">Voice detected</p>
+      ) : null}
+      {playback ? <audio controls playsInline preload="metadata" src={playback} className="w-full" /> : null}
+      <p className="text-xs text-slate-500">
+        Record with your microphone. A trainer will assess the recording after you submit. There is no automatic score.
       </p>
     </div>
   )
@@ -151,8 +474,9 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
     quiz.time_limit_seconds ?? null,
   )
   const [result, setResult] = useState<{
-    score: number
+    score: number | null
     passed: boolean
+    pending_review?: boolean
     passing_score: number
     correct: number
     total: number
@@ -195,15 +519,17 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
     setSubmitting(true)
     try {
       const res = await apiPost<{
-        score: number
+        score: number | null
         passed: boolean
+        pending_review?: boolean
         passing_score: number
         correct: number
         total: number
         band_score: number | null
       }>(`/reviewers/public/quizzes/${quiz.id}/submit`, { answers: currentAnswers })
       setResult(res)
-      if (res.passed) toast.success("Quiz passed!")
+      if (res.pending_review) toast.success("Recording submitted for review")
+      else if (res.passed) toast.success("Quiz passed!")
       else toast.error(`Score ${res.score}% — need ${res.passing_score}% to pass`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not submit quiz")
@@ -250,45 +576,59 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
         <div
           className={cn(
             "pointer-events-none absolute inset-x-0 top-0 h-1.5",
-            result.passed ? "bg-teal-500" : "bg-rose-500",
+            result.pending_review ? "bg-[#FF4B1A]" : result.passed ? "bg-teal-500" : "bg-rose-500",
           )}
           aria-hidden
         />
         <div
           className={cn(
             "pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full blur-2xl",
-            result.passed ? "bg-teal-100 dark:bg-teal-500/20" : "bg-rose-100 dark:bg-rose-500/20",
+            result.pending_review
+              ? "bg-orange-100 dark:bg-orange-950/30"
+              : result.passed
+                ? "bg-teal-100 dark:bg-teal-500/20"
+                : "bg-rose-100 dark:bg-rose-500/20",
           )}
           aria-hidden
         />
-        {result.passed ? (
+        {result.pending_review ? (
+          <HiHeadphones className="mx-auto h-14 w-14 text-[#FF4B1A]" />
+        ) : result.passed ? (
           <HiTick className="mx-auto h-14 w-14 text-teal-600" />
         ) : (
           <HiCancel className="mx-auto h-14 w-14 text-rose-500" />
         )}
         <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-          {result.passed ? "Session passed" : "Keep practicing"}
+          {result.pending_review ? "Submitted for review" : result.passed ? "Session passed" : "Keep practicing"}
         </p>
-        <p className="mt-3 text-5xl font-semibold tracking-tight text-slate-900 dark:text-white">
-          {result.score}%
-        </p>
-        {result.band_score != null ? (
-          <p className="mt-2 inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm font-semibold text-teal-800 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-200">
-            Practice band {Number(result.band_score).toFixed(1)}
+        {result.pending_review ? (
+          <p className="mx-auto mt-4 max-w-md text-base leading-7 text-slate-700 dark:text-slate-200">
+            Your recording was received. A trainer will assess it. There is no score yet.
           </p>
-        ) : null}
-        {quiz.exam_type === "IELTS" && result.passed ? (
-          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-            Signed-in passes count toward your{" "}
-            <Link href="/ielts#certificate" className="font-semibold text-[#FF4B1A] hover:underline">
-              certificate of completion
-            </Link>
-            .
-          </p>
-        ) : null}
-        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-          {result.correct} of {result.total} correct · Pass mark {result.passing_score}%
-        </p>
+        ) : (
+          <>
+            <p className="mt-3 text-5xl font-semibold tracking-tight text-slate-900 dark:text-white">
+              {result.score}%
+            </p>
+            {result.band_score != null ? (
+              <p className="mt-2 inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm font-semibold text-teal-800 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-200">
+                Practice band {Number(result.band_score).toFixed(1)}
+              </p>
+            ) : null}
+            {quiz.exam_type === "IELTS" && result.passed ? (
+              <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                Signed-in passes count toward your{" "}
+                <Link href="/ielts#certificate" className="font-semibold text-[#FF4B1A] hover:underline">
+                  certificate of completion
+                </Link>
+                .
+              </p>
+            ) : null}
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+              {result.correct} of {result.total} correct · Pass mark {result.passing_score}%
+            </p>
+          </>
+        )}
         <Button
           className="mt-8 h-11 rounded-full bg-slate-900 px-8 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
           onClick={() => {
@@ -433,7 +773,13 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
                   />
                 </p>
 
-                {q.question_type === "written_response" ? (
+                {q.question_type === "audio_response" ? (
+                  <AudioResponse
+                    minimum={q.minimum_seconds ?? Number.parseInt(q.correct_option_id ?? "", 10)}
+                    value={q.id ? answers[q.id] ?? "" : ""}
+                    onChange={(next) => q.id && setAnswers((prev) => ({ ...prev, [q.id!]: next }))}
+                  />
+                ) : q.question_type === "written_response" ? (
                   <WrittenResponse
                     value={q.id ? answers[q.id] ?? "" : ""}
                     minimum={q.minimum_words ?? Number.parseInt(q.correct_option_id ?? "", 10)}

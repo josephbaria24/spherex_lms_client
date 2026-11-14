@@ -8,13 +8,17 @@ export type IeltsAcademicMaterial = {
   kind: IeltsMaterialKind
 }
 
-export const IELTS_ACADEMIC_MOCKS: {
+export type IeltsAcademicMock = {
+  id: string
   day: string
   title: string
   note?: string
   files: IeltsAcademicMaterial[]
-}[] = [
+}
+
+export const IELTS_ACADEMIC_MOCKS: IeltsAcademicMock[] = [
   {
+    id: "mock-1",
     day: "Day 1",
     title: "Academic mock test 1",
     note: "Question paper only. This set has no listening recording.",
@@ -29,6 +33,7 @@ export const IELTS_ACADEMIC_MOCKS: {
     ],
   },
   {
+    id: "mock-2",
     day: "Day 2",
     title: "Academic mock test 2",
     files: [
@@ -49,6 +54,7 @@ export const IELTS_ACADEMIC_MOCKS: {
     ],
   },
   {
+    id: "mock-3",
     day: "Day 3",
     title: "Academic mock test 3",
     files: [
@@ -69,6 +75,7 @@ export const IELTS_ACADEMIC_MOCKS: {
     ],
   },
   {
+    id: "mock-4",
     day: "Day 4",
     title: "Academic mock test 4",
     files: [
@@ -89,6 +96,7 @@ export const IELTS_ACADEMIC_MOCKS: {
     ],
   },
   {
+    id: "mock-5",
     day: "Day 5",
     title: "Academic mock test 5",
     files: [
@@ -133,3 +141,20 @@ export const IELTS_ACADEMIC_KEYS: IeltsAcademicMaterial[] = [
     kind: "answers",
   },
 ]
+
+/** Map static mock asset paths → mock id for session gating. */
+export const IELTS_MOCK_PATH_TO_ID: Record<string, string> = Object.fromEntries(
+  IELTS_ACADEMIC_MOCKS.flatMap((mock) => mock.files.map((file) => [file.href, mock.id])),
+)
+
+export const IELTS_MOCK_IDS = IELTS_ACADEMIC_MOCKS.map((mock) => mock.id)
+
+export function isMockOpenForSession(
+  mockId: string,
+  mockSessionOpen: boolean,
+  openMockIds: string[] | null | undefined,
+): boolean {
+  if (!mockSessionOpen) return false
+  if (!openMockIds || openMockIds.length === 0) return true
+  return openMockIds.includes(mockId)
+}

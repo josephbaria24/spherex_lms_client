@@ -60,6 +60,7 @@ export type PublicReviewerQuizDetail = {
     question_type: string
     options: { id: string; text: string }[]
     minimum_words?: number
+    minimum_seconds?: number
     correct_option_id?: string
   }[]
 }

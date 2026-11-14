@@ -51,7 +51,7 @@ export function validateQuizDraft(quiz: QuizDraft): string | null {
   for (let i = 0; i < quiz.questions.length; i++) {
     const q = quiz.questions[i]!
     if (!q.prompt.trim()) return `Question ${i + 1} needs a prompt`
-    if (q.question_type === "written_response") {
+    if (q.question_type === "written_response" || q.question_type === "audio_response") {
       const minimum = Number.parseInt(q.correct_option_id ?? "", 10)
       if (!Number.isFinite(minimum) || minimum < 1) {
         return `Question ${i + 1} needs a minimum word count`
@@ -91,7 +91,9 @@ export function quizDraftToPayload(quiz: QuizDraft) {
       prompt: q.prompt.trim(),
       question_type: q.question_type,
       options:
-        q.question_type === "fill_blank" || q.question_type === "written_response"
+        q.question_type === "fill_blank" ||
+        q.question_type === "written_response" ||
+        q.question_type === "audio_response"
           ? []
           : q.options,
       correct_option_id: q.correct_option_id!,
@@ -270,10 +272,11 @@ export function QuizEditor({
           next.options = []
           next.correct_option_id = next.correct_option_id?.trim() ? next.correct_option_id : ""
         }
-        if (patch.question_type === "written_response") {
+        if (patch.question_type === "written_response" || patch.question_type === "audio_response") {
           next.options = []
           const current = Number.parseInt(next.correct_option_id ?? "", 10)
-          next.correct_option_id = Number.isFinite(current) && current > 0 ? String(current) : "150"
+          const fallback = patch.question_type === "audio_response" ? "60" : "150"
+          next.correct_option_id = Number.isFinite(current) && current > 0 ? String(current) : fallback
         }
         if (patch.question_type === "multi_select" && q.question_type !== "multi_select") {
           if (next.options.length < 2) {
@@ -543,14 +546,15 @@ export function QuizEditor({
                   <SelectItem value="fill_blank">Fill in the blank</SelectItem>
                   <SelectItem value="multi_select">Multi-select</SelectItem>
                   <SelectItem value="written_response">Written response</SelectItem>
+                  <SelectItem value="audio_response">Audio recording</SelectItem>
                 </>
               ) : null}
             </SelectContent>
           </Select>
 
-          {q.question_type === "written_response" ? (
+          {q.question_type === "written_response" || q.question_type === "audio_response" ? (
             <div className="space-y-2">
-              <Label>Minimum words</Label>
+              <Label>{q.question_type === "audio_response" ? "Minimum seconds" : "Minimum words"}</Label>
               <Input
                 type="number"
                 min={1}
@@ -559,7 +563,9 @@ export function QuizEditor({
                 disabled={disabled}
               />
               <p className="text-xs text-muted-foreground">
-                The response counts as complete when the learner reaches this word count. It is not an examiner band.
+                {q.question_type === "audio_response"
+                  ? "The recording counts as complete when it reaches this length. It is not an examiner score."
+                  : "The response counts as complete when the learner reaches this word count. It is not an examiner band."}
               </p>
             </div>
           ) : q.question_type === "fill_blank" ? (

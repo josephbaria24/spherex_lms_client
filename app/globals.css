@@ -749,9 +749,53 @@
     animation: catalog-tab-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  .admin-panel-in {
+    animation: catalog-tab-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .admin-soft-rise {
+    animation: catalog-tab-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .admin-expand {
+    display: grid;
+    transition:
+      grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 240ms ease;
+  }
+  .admin-expand[data-open="true"] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .admin-expand[data-open="false"] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  .admin-expand > .admin-expand-panel {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .admin-expand-inner {
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
+  }
+  .admin-expand[data-open="true"] .admin-expand-inner {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .admin-expand[data-open="false"] .admin-expand-inner {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .catalog-tab-panel[data-state="active"] {
+    .catalog-tab-panel[data-state="active"],
+    .admin-panel-in,
+    .admin-soft-rise {
       animation: none;
+    }
+    .admin-expand,
+    .admin-expand-inner {
+      transition: none;
     }
   }
 

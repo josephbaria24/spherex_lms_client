@@ -3,6 +3,11 @@ import { proxyToBackend } from "@/lib/proxy-request"
 
 type Params = { params: Promise<{ path: string[] }> }
 
+export const runtime = "nodejs"
+export const maxDuration = 120
+/** Allow large certificate template uploads (high-res PNG/JPG). */
+export const dynamic = "force-dynamic"
+
 async function handler(req: NextRequest, { params }: Params) {
   const { path } = await params
   return proxyToBackend(req, `/api/${path.join("/")}`)

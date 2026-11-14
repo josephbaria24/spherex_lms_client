@@ -6,7 +6,7 @@ export type QuizQuestion = {
   id?: string
   sort_order?: number
   prompt: string
-  question_type: "multiple_choice" | "true_false" | "fill_blank" | "multi_select" | "written_response"
+  question_type: "multiple_choice" | "true_false" | "fill_blank" | "multi_select" | "written_response" | "audio_response"
   options: QuizOption[]
   correct_option_id?: string
 }
