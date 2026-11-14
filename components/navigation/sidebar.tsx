@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
@@ -62,6 +62,14 @@ const footerNavClass = (iconOnly?: boolean) =>
   )
 
 export function Sidebar() {
+  return (
+    <Suspense fallback={null}>
+      <SidebarInner />
+    </Suspense>
+  )
+}
+
+function SidebarInner() {
   const [collapsed, setCollapsed] = useState(false)
   const [showCollapsedContent, setShowCollapsedContent] = useState(false)
   const { open: mobileOpen, setOpen: setMobileOpen } = useMobileSidebar()
