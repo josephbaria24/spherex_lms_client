@@ -4,31 +4,42 @@ import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/app/provider"
-import { JoinOrganizationForm } from "@/components/org/join-organization-form"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { isAdmin } from "@/lib/roles"
+import { isAdmin, isIeltsTeacher } from "@/lib/roles"
 import { fetchTeacherWorkspaceOrgs } from "@/lib/teacher-orgs"
 import {
   TEACHER_ORG_ID_STORAGE_KEY,
   TEACHER_ORG_SLUG_STORAGE_KEY,
+  isTeacherIeltsPath,
   teacherRoute,
 } from "@/lib/teacher-routes"
-import { Building2 } from "lucide-react"
 
+/**
+ * Soft gate for org-scoped teacher routes. Never forces an org join code screen.
+ * IELTS teachers and the IELTS workspace bypass org checks entirely.
+ */
 export function TeacherOrgGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [checking, setChecking] = useState(true)
-  const [hasOrg, setHasOrg] = useState(false)
 
   const isJoinPage = pathname === "/teacher/join"
   const isTeacherRoot = pathname === "/teacher"
+  const isIeltsWorkspace = isTeacherIeltsPath(pathname ?? "")
   const isPlatformAdmin = isAdmin(user?.role)
+  const ieltsTeacher = isIeltsTeacher(user?.role, user?.teaching_field)
 
   useEffect(() => {
-    if (authLoading || isTeacherRoot) {
-      if (!authLoading && isTeacherRoot) setChecking(false)
+    if (authLoading) return
+
+    // Join page is retired — send people to the teacher home.
+    if (isJoinPage) {
+      router.replace("/teacher")
+      return
+    }
+
+    if (isTeacherRoot || isIeltsWorkspace || ieltsTeacher) {
+      setChecking(false)
       return
     }
 
@@ -37,51 +48,46 @@ export function TeacherOrgGate({ children }: { children: React.ReactNode }) {
     async function check() {
       try {
         if (isPlatformAdmin) {
-          if (!cancelled) {
-            setHasOrg(true)
-            if (isJoinPage) {
-              const orgs = await fetchTeacherWorkspaceOrgs(true)
-              const storedSlug = localStorage.getItem(TEACHER_ORG_SLUG_STORAGE_KEY)
-              const target =
-                (storedSlug && orgs.find((m) => m.organization.slug === storedSlug)) ?? orgs[0]
-              if (target) router.replace(teacherRoute(target.organization.slug))
-            }
-          }
+          if (!cancelled) setChecking(false)
           return
         }
 
         const teaching = await fetchTeacherWorkspaceOrgs(false)
-        const ok = teaching.length > 0
+        if (cancelled) return
 
-        if (!cancelled) {
-          setHasOrg(ok)
-
-          if (ok && isJoinPage) {
-            const storedSlug = localStorage.getItem(TEACHER_ORG_SLUG_STORAGE_KEY)
-            const storedId = localStorage.getItem(TEACHER_ORG_ID_STORAGE_KEY)
+        if (teaching.length > 0) {
+          const storedSlug = localStorage.getItem(TEACHER_ORG_SLUG_STORAGE_KEY)
+          const storedId = localStorage.getItem(TEACHER_ORG_ID_STORAGE_KEY)
+          const onOrgRoute = Boolean(getSlugFromPath(pathname ?? ""))
+          if (!onOrgRoute) {
             const target =
               (storedSlug && teaching.find((m) => m.organization.slug === storedSlug)) ||
               (storedId && teaching.find((m) => m.organization_id === storedId)) ||
               teaching[0]
-            router.replace(teacherRoute(target!.organization.slug))
-          } else if (!ok && !isJoinPage) {
-            router.replace("/teacher/join")
+            if (target) router.replace(teacherRoute(target.organization.slug))
           }
         }
-      } catch {
-        if (!cancelled) setHasOrg(isPlatformAdmin)
       } finally {
         if (!cancelled) setChecking(false)
       }
     }
 
-    check()
+    void check()
     return () => {
       cancelled = true
     }
-  }, [authLoading, isJoinPage, isTeacherRoot, isPlatformAdmin, router])
+  }, [
+    authLoading,
+    isJoinPage,
+    isTeacherRoot,
+    isIeltsWorkspace,
+    ieltsTeacher,
+    isPlatformAdmin,
+    pathname,
+    router,
+  ])
 
-  if (isJoinPage || isTeacherRoot) {
+  if (isJoinPage || isTeacherRoot || isIeltsWorkspace || ieltsTeacher) {
     return <>{children}</>
   }
 
@@ -93,49 +99,11 @@ export function TeacherOrgGate({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!hasOrg && !isPlatformAdmin) {
-    return null
-  }
-
   return <>{children}</>
 }
 
-export function TeacherJoinCard() {
-  const router = useRouter()
-  const { loading: authLoading, user } = useAuth()
-  const isPlatformAdmin = isAdmin(user?.role)
-
-  useEffect(() => {
-    if (authLoading || !isPlatformAdmin) return
-    fetchTeacherWorkspaceOrgs(true).then((orgs) => {
-      if (orgs[0]) router.replace(teacherRoute(orgs[0].organization.slug))
-    })
-  }, [authLoading, isPlatformAdmin, router])
-
-  if (authLoading || isPlatformAdmin) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Spinner size={36} />
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center p-4">
-      <Card className="w-full max-w-md rounded-2xl border-border/60 shadow-none">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-            <Building2 className="h-6 w-6" />
-          </div>
-          <p className="text-lg font-semibold">Join your organization</p>
-          <p className="text-sm text-muted-foreground">
-            Enter the teacher code shared by your organization admin to access the teaching workspace.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <JoinOrganizationForm redirectTo="/teacher" />
-        </CardContent>
-      </Card>
-    </div>
-  )
+function getSlugFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/teacher\/([^/]+)/)
+  if (!match?.[1] || match[1] === "join" || match[1] === "ielts") return null
+  return match[1]
 }

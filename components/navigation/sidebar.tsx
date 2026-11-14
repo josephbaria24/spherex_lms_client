@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,12 +22,14 @@ import {
   canAccessAdminPanel,
   canAccessOrgAdminPanel,
   canAccessTeacherPanel,
+  isIeltsTeacher,
   isStudent,
   roleLabel,
 } from "@/lib/roles"
 import { adminNav, studentNav } from "@/lib/navigation"
 import {
   buildTeacherNav,
+  buildIeltsTeacherNav,
   getTeacherOrgSlugFromPath,
   isTeacherNavHrefActive,
   TEACHER_ORG_SLUG_STORAGE_KEY,
@@ -73,9 +75,11 @@ export function Sidebar() {
   const [themeMounted, setThemeMounted] = useState(false)
   const { user, logout, orgAdminCount } = useAuth()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const showAdminNav = canAccessAdminPanel(user?.role)
   const showOrgAdminNav = canAccessOrgAdminPanel(user?.role, orgAdminCount)
   const showTeacherNav = canAccessTeacherPanel(user?.role) && user?.role === "teacher"
+  const ieltsTeacher = isIeltsTeacher(user?.role, user?.teaching_field)
   const showStudentNav =
     (isStudent(user?.role) || user?.role === "admin") &&
     !showOrgAdminNav &&
@@ -109,7 +113,11 @@ export function Sidebar() {
   }, [pathname])
 
   const pathOrgSlug = getOrgSlugFromPath(pathname ?? "")
-  const teacherNavItems = teacherNavSlug ? buildTeacherNav(teacherNavSlug) : null
+  const teacherNavItems = ieltsTeacher
+    ? buildIeltsTeacherNav()
+    : teacherNavSlug
+      ? buildTeacherNav(teacherNavSlug)
+      : null
   const orgNavItems = (pathOrgSlug ?? orgNavSlug)
     ? buildOrgAdminNav(pathOrgSlug ?? orgNavSlug!)
     : orgAdminNavFallback
@@ -148,8 +156,12 @@ export function Sidebar() {
   }, [pathname])
 
   const isActive = (href: string) => {
-    if (getTeacherOrgSlugFromPath(href) || href === "/teacher") {
-      return isTeacherNavHrefActive(pathname ?? "", href)
+    if (
+      href.startsWith("/teacher/ielts") ||
+      getTeacherOrgSlugFromPath(href.split("?")[0] ?? href) ||
+      href === "/teacher"
+    ) {
+      return isTeacherNavHrefActive(pathname ?? "", href, searchParams)
     }
     if (href.startsWith("/org")) {
       return isOrgNavHrefActive(pathname ?? "", href)
@@ -364,7 +376,7 @@ export function Sidebar() {
         {showOrgAdminNav && renderSection("Organization", orgNavItems as NavItem[])}
         {showTeacherNav &&
           renderSection(
-            "Teaching",
+            ieltsTeacher ? "IELTS" : "Teaching",
             (teacherNavItems ?? [
               { label: "Dashboard", icon: LayoutDashboard, href: "/teacher" },
             ]) as NavItem[],

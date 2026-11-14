@@ -189,6 +189,7 @@ export interface AuthUser {
   notify_course_updates?: boolean
   must_change_password?: boolean
   email_verified?: boolean
+  teaching_field?: "ielts" | "courses" | null
   created_at?: string
 }
 

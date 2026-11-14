@@ -3,11 +3,13 @@
 import { use } from "react"
 import Link from "next/link"
 import { Lock } from "lucide-react"
+import { useAuth } from "@/app/provider"
 import { PracticeSession } from "@/components/reviewers/practice-session"
 import { IeltsAccessDialog, useIeltsAccess } from "@/components/ielts/ielts-access-dialog"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import { isIeltsTeacher } from "@/lib/roles"
 
 export default function IeltsPracticePage({
   params,
@@ -15,7 +17,11 @@ export default function IeltsPracticePage({
   params: Promise<{ quizId: string }>
 }) {
   const { quizId } = use(params)
+  const { user } = useAuth()
   const access = useIeltsAccess()
+  const teacherPreview = isIeltsTeacher(user?.role, user?.teaching_field)
+  const backHref = teacherPreview ? "/teacher/ielts?view=materials" : "/ielts"
+  const backLabel = teacherPreview ? "Back to Materials" : "Back to IELTS"
 
   if (access.loading) {
     return (
@@ -46,8 +52,8 @@ export default function IeltsPracticePage({
           >
             Request access
           </Button>
-          <Link href="/ielts" className="mt-4 text-sm font-medium text-slate-500 hover:underline">
-            Back to IELTS
+          <Link href={backHref} className="mt-4 text-sm font-medium text-slate-500 hover:underline">
+            {backLabel}
           </Link>
         </main>
         <IeltsAccessDialog
@@ -60,7 +66,5 @@ export default function IeltsPracticePage({
     )
   }
 
-  return (
-    <PracticeSession quizId={quizId} backHref="/ielts" backLabel="Back to IELTS" />
-  )
+  return <PracticeSession quizId={quizId} backHref={backHref} backLabel={backLabel} />
 }

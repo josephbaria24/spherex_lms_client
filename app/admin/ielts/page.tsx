@@ -1,7 +1,8 @@
 "use client"
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { apiDelete, apiGet, apiPatch } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
 import { getReviewerAccent } from "@/lib/reviewer-accents"
@@ -19,14 +20,16 @@ import { Badge } from "@/components/ui/badge"
 import { GrowHeader } from "@/components/grow-shell"
 import { IeltsAccessRequests } from "@/components/admin/ielts/ielts-access-requests"
 import { IeltsAnswerKeyToggle } from "@/components/admin/ielts/ielts-answer-key-toggle"
+import { IeltsAnnouncePanel } from "@/components/admin/ielts/ielts-announce-panel"
 import { IeltsMockSessionToggle } from "@/components/admin/ielts/ielts-mock-session-toggle"
+import { IeltsStaffMaterialsCatalog } from "@/components/admin/ielts/ielts-staff-materials-catalog"
 import { IeltsUkviRequests } from "@/components/admin/ielts/ielts-ukvi-requests"
+import { IELTS_ACADEMIC_MOCKS } from "@/lib/ielts-academic-materials"
 import {
   Search,
   MoreVertical,
   Trash2,
   Download,
-  Upload,
   ExternalLink,
   Eye,
   EyeOff,
@@ -39,6 +42,9 @@ import {
   BarChart3,
   FileText,
   Users,
+  Mail,
+  ToggleLeft,
+  ShieldCheck,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -150,9 +156,56 @@ type LearnerProgress = {
 
 const PREVIEW_PARTS = 3
 
-export default function AdminIeltsPage() {
-  const [view, setView] = useState<"skills" | "materials" | "progress" | "results" | "requests">(
-    "skills",
+type IeltsView =
+  | "skills"
+  | "materials"
+  | "progress"
+  | "results"
+  | "requests"
+  | "session"
+  | "announce"
+
+const VIEW_VALUES: IeltsView[] = [
+  "skills",
+  "materials",
+  "progress",
+  "results",
+  "requests",
+  "session",
+  "announce",
+]
+
+function AdminIeltsPageInner() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const teacherMode = (pathname ?? "").startsWith("/teacher/ielts")
+  const defaultView: IeltsView = teacherMode ? "materials" : "skills"
+  const resolveView = useCallback(
+    (raw: string | null): IeltsView => {
+      if (teacherMode && (!raw || raw === "skills")) return "materials"
+      return VIEW_VALUES.includes(raw as IeltsView) ? (raw as IeltsView) : defaultView
+    },
+    [defaultView, teacherMode],
+  )
+  const initialView = resolveView(searchParams.get("view"))
+  const [view, setView] = useState<IeltsView>(initialView)
+
+  useEffect(() => {
+    setView(resolveView(searchParams.get("view")))
+  }, [resolveView, searchParams])
+
+  const selectView = useCallback(
+    (next: IeltsView) => {
+      const resolved = teacherMode && next === "skills" ? "materials" : next
+      setView(resolved)
+      const params = new URLSearchParams(searchParams.toString())
+      if (!teacherMode && resolved === "skills") params.delete("view")
+      else params.set("view", resolved)
+      const qs = params.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    },
+    [pathname, router, searchParams, teacherMode],
   )
   const [materials, setMaterials] = useState<ReviewerMaterial[]>([])
   const [groups, setGroups] = useState<AdminGroup[]>([])
@@ -405,12 +458,14 @@ export default function AdminIeltsPage() {
     view === "skills"
       ? "Search skills or practice sets…"
       : view === "materials"
-        ? "Search IELTS materials…"
+        ? "Search materials…"
         : view === "progress"
           ? "Search learners by name, email, or certificate…"
           : view === "requests"
             ? "Access requests"
-            : "Search results by learner or set…"
+            : view === "session" || view === "announce"
+              ? "Session controls"
+              : "Search results by learner or set…"
 
   return (
     <GrowMainLayout>
@@ -419,10 +474,10 @@ export default function AdminIeltsPage() {
           icon={Languages}
           title="IELTS"
           accent="skills & scores"
-          description="Manage practice skills, mock sessions, answer keys, and learner progress"
+          description={teacherMode ? "Materials, learners, and sessions" : "Skills, sessions, and progress"}
           showDate={false}
         >
-          {view === "skills" ? (
+          {!teacherMode && view === "skills" ? (
             <Button
               onClick={() => {
                 setEditingGroup(null)
@@ -441,97 +496,241 @@ export default function AdminIeltsPage() {
           ) : null}
         </GrowHeader>
 
-        <div className="grow-card overflow-hidden p-0">
-          <div className="grid divide-y divide-border/70 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
-            <div className="p-3.5 md:p-4">
-              <IeltsUkviRequests />
-            </div>
-            <div className="p-3.5 md:p-4">
-              <IeltsMockSessionToggle />
-            </div>
-            <div className="p-3.5 md:p-4">
-              <IeltsAnswerKeyToggle />
-            </div>
-          </div>
-        </div>
-
-        <div className="grow-toolbar !gap-2 !p-2 md:!items-center">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-            {(
-              [
-                { id: "skills" as const, label: "Skills", count: groups.length, icon: Layers3 },
-                {
-                  id: "materials" as const,
-                  label: "Materials",
-                  count: materials.length,
-                  icon: FileText,
-                },
-                {
-                  id: "progress" as const,
-                  label: "Progress",
-                  count: ieltsUserCount,
-                  icon: Users,
-                },
-                {
-                  id: "results" as const,
-                  label: "Results",
-                  count: summary.total,
-                  icon: BarChart3,
-                },
-                { id: "requests" as const, label: "Access", count: null, icon: null },
-              ] as const
-            ).map((tab) => {
-              const Icon = tab.icon
-              const active = view === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setView(tab.id)}
-                  className={cn(
-                    "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                    active
-                      ? "bg-[#1a1f2e] text-white shadow-sm dark:bg-foreground dark:text-background"
-                      : "bg-[#f3ede4] text-muted-foreground hover:text-foreground dark:bg-muted",
-                  )}
-                >
-                  {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
-                  {tab.label}
-                  {tab.count != null ? (
-                    <span className={cn("tabular-nums", active ? "opacity-80" : "opacity-70")}>
-                      {tab.count}
-                    </span>
-                  ) : null}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 md:border-t-0 md:pt-0">
-            <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-              <span className="rounded-full bg-[#f3ede4] px-2 py-1 dark:bg-muted">
-                {progressSummary.pendingSpeaking} speaking
-              </span>
-              <span className="rounded-full bg-[#f3ede4] px-2 py-1 dark:bg-muted">
-                {summary.avg_band ? `band ${summary.avg_band}` : "no band yet"}
-              </span>
-            </div>
-            {view !== "requests" ? (
-              <div className="relative min-w-[12rem] flex-1 md:max-w-xs">
-                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={searchPlaceholder}
-                  className="grow-input h-8 pl-9 text-xs"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+        {view === "session" || (!teacherMode && view === "skills") || view === "announce" ? (
+          <div className="grow-card overflow-hidden p-0">
+            <div className="grid divide-y divide-border/70 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+              <div className="p-3.5 md:p-4">
+                <IeltsUkviRequests />
               </div>
-            ) : null}
+              <div className="p-3.5 md:p-4">
+                <IeltsMockSessionToggle />
+              </div>
+              <div className="p-3.5 md:p-4">
+                <IeltsAnswerKeyToggle />
+              </div>
+            </div>
           </div>
+        ) : null}
+
+        <div className={teacherMode ? "min-w-0" : "grow-card overflow-hidden p-0"}>
+          {(() => {
+            const tabGroups = [
+              {
+                label: "Content",
+                tabs: [
+                  ...(!teacherMode
+                    ? [
+                        {
+                          id: "skills" as const,
+                          label: "Skills",
+                          short: "Skills",
+                          count: groups.length,
+                          icon: Layers3,
+                        },
+                      ]
+                    : []),
+                  {
+                    id: "materials" as const,
+                    label: "Materials",
+                    short: "Files",
+                    count:
+                      materials.length +
+                      IELTS_ACADEMIC_MOCKS.length +
+                      groups.reduce((sum, group) => sum + group.quiz_count, 0),
+                    icon: FileText,
+                  },
+                ],
+              },
+              {
+                label: "Learners",
+                tabs: [
+                  {
+                    id: "progress" as const,
+                    label: "Progress",
+                    short: "Progress",
+                    count: ieltsUserCount,
+                    icon: Users,
+                  },
+                  {
+                    id: "results" as const,
+                    label: "Results",
+                    short: "Results",
+                    count: summary.total,
+                    icon: BarChart3,
+                  },
+                ],
+              },
+              {
+                label: "Ops",
+                tabs: [
+                  {
+                    id: "session" as const,
+                    label: "Session",
+                    short: "Session",
+                    count: null as number | null,
+                    icon: ToggleLeft,
+                  },
+                  {
+                    id: "requests" as const,
+                    label: "Access",
+                    short: "Access",
+                    count: null as number | null,
+                    icon: ShieldCheck,
+                  },
+                  {
+                    id: "announce" as const,
+                    label: "Announce",
+                    short: "Mail",
+                    count: null as number | null,
+                    icon: Mail,
+                  },
+                ],
+              },
+            ] as const
+            const flatTabs = tabGroups.flatMap((group) => group.tabs)
+            const showSearch =
+              view !== "requests" && view !== "session" && view !== "announce"
+
+            if (teacherMode) {
+              if (!showSearch) return null
+              return (
+                <div className="relative w-full md:max-w-xs">
+                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={searchPlaceholder}
+                    className="grow-input h-8 pl-9 text-xs"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              )
+            }
+
+            return (
+              <div className="space-y-2.5 border-b border-border/60 px-3 py-2.5 sm:px-4 sm:py-3">
+                <div className="grid grid-cols-4 gap-1 md:hidden">
+                  {flatTabs.map((tab) => {
+                    const Icon = tab.icon
+                    const active = view === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => selectView(tab.id)}
+                        className={cn(
+                          "relative flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-semibold leading-tight transition-colors",
+                          active
+                            ? "bg-[#1a1f2e] text-white dark:bg-foreground dark:text-background"
+                            : "bg-[#f3ede4] text-muted-foreground dark:bg-muted",
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                        <span className="truncate max-w-full">{tab.short}</span>
+                        {tab.count != null ? (
+                          <span
+                            className={cn(
+                              "absolute right-1 top-1 min-w-[1rem] rounded-full px-1 text-[9px] tabular-nums leading-4",
+                              active
+                                ? "bg-white/20 text-white"
+                                : "bg-black/5 text-muted-foreground dark:bg-white/10",
+                            )}
+                          >
+                            {tab.count}
+                          </span>
+                        ) : null}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="hidden min-w-0 items-end justify-between gap-3 md:flex">
+                  <div className="flex min-w-0 flex-1 items-end gap-3 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {tabGroups.map((group, groupIndex) => (
+                      <div key={group.label} className="flex shrink-0 items-end gap-3">
+                        {groupIndex > 0 ? (
+                          <span aria-hidden className="mb-2 h-7 w-px bg-border/70" />
+                        ) : null}
+                        <div className="space-y-1">
+                          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                            {group.label}
+                          </p>
+                          <div className="grow-tabs-list">
+                            {group.tabs.map((tab) => {
+                              const Icon = tab.icon
+                              const active = view === tab.id
+                              return (
+                                <button
+                                  key={tab.id}
+                                  type="button"
+                                  onClick={() => selectView(tab.id)}
+                                  className="grow-tab-trigger gap-1.5"
+                                  data-state={active ? "active" : "inactive"}
+                                >
+                                  <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                                  <span>{tab.label}</span>
+                                  {tab.count != null ? (
+                                    <span
+                                      className={cn(
+                                        "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums leading-none",
+                                        active
+                                          ? "bg-white/15 text-white"
+                                          : "bg-black/5 text-muted-foreground dark:bg-white/10",
+                                      )}
+                                    >
+                                      {tab.count}
+                                    </span>
+                                  ) : null}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-full bg-[#f3ede4] px-2 py-1 text-[11px] font-medium text-muted-foreground dark:bg-muted">
+                      {progressSummary.pendingSpeaking} speaking
+                    </span>
+                    <span className="rounded-full bg-[#f3ede4] px-2 py-1 text-[11px] font-medium text-muted-foreground dark:bg-muted">
+                      {summary.avg_band ? `band ${summary.avg_band}` : "no band"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 md:hidden">
+                  <p className="truncate text-[11px] font-medium text-muted-foreground">
+                    {progressSummary.pendingSpeaking} speaking
+                    <span className="mx-1.5 text-border">·</span>
+                    {summary.avg_band ? `band ${summary.avg_band}` : "no band"}
+                  </p>
+                </div>
+
+                {showSearch ? (
+                  <div className="relative w-full md:max-w-xs md:ml-auto">
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={searchPlaceholder}
+                      className="grow-input h-8 pl-9 text-xs"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            )
+          })()}
         </div>
 
         <div key={view} className="admin-panel-in">
-        {view === "requests" ? (
+        {view === "announce" ? (
+          <IeltsAnnouncePanel />
+        ) : view === "session" ? (
+          <div className="rounded-xl border border-border/70 px-3 py-2.5 text-xs text-muted-foreground">
+            Open mocks and answer keys for learners from the controls above.
+          </div>
+        ) : view === "requests" ? (
           <IeltsAccessRequests />
         ) : view === "skills" ? (
           loading ? (
@@ -709,107 +908,127 @@ export default function AdminIeltsPage() {
         ) : null}
 
         {view === "materials" ? (
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Material</th>
-                    <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Category</th>
-                    <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Source</th>
-                    <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Status</th>
-                    <th className="p-4 text-left text-sm font-semibold text-muted-foreground">Updated</th>
-                    <th className="p-4 text-right text-sm font-semibold text-muted-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMaterials.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-12 text-center">
-                        <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                        <p className="text-muted-foreground">
-                          {loading ? "Loading…" : "No IELTS materials yet"}
-                        </p>
-                      </td>
+          <div className="space-y-6">
+            <IeltsStaffMaterialsCatalog skills={filteredGroups} />
+
+            <section className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Uploads
+              </h3>
+              <div className="overflow-hidden rounded-xl border border-border/70">
+                <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/60">
+                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">
+                        Material
+                      </th>
+                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">
+                        Category
+                      </th>
+                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">
+                        Source
+                      </th>
+                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">
+                        Updated
+                      </th>
+                      <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground">
+                        Actions
+                      </th>
                     </tr>
-                  ) : (
-                    filteredMaterials.map((material) => (
-                      <tr
-                        key={material.id}
-                        className="border-b border-border transition-colors last:border-0 hover:bg-accent/50"
-                      >
-                        <td className="p-4">
-                          <p className="font-medium text-foreground">{material.title}</p>
-                          <p className="line-clamp-1 text-sm text-muted-foreground">
-                            {material.description || "—"}
+                  </thead>
+                  <tbody>
+                    {filteredMaterials.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-10 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            {loading ? "Loading…" : "No uploads yet"}
                           </p>
                         </td>
-                        <td className="p-4 text-sm">{material.category || "—"}</td>
-                        <td className="p-4">
-                          <div className="flex flex-wrap gap-1">
-                            {material.file_url ? (
-                              <Badge variant="outline" className="text-xs">
-                                File
-                              </Badge>
-                            ) : null}
-                            {material.external_url ? (
-                              <Badge variant="outline" className="text-xs">
-                                Link
-                              </Badge>
-                            ) : null}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <Badge variant={material.is_published ? "default" : "secondary"}>
-                            {material.is_published ? "Published" : "Draft"}
-                          </Badge>
-                        </td>
-                        <td className="p-4 text-sm text-muted-foreground">
-                          {new Date(material.updated_at).toLocaleDateString()}
-                        </td>
-                        <td className="p-4">
-                          <div className="flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleDownload(material)}>
-                                  {material.external_url && !material.file_url ? (
-                                    <ExternalLink className="mr-2 h-4 w-4" />
-                                  ) : (
-                                    <Download className="mr-2 h-4 w-4" />
-                                  )}
-                                  Open
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleTogglePublish(material)}>
-                                  {material.is_published ? (
-                                    <EyeOff className="mr-2 h-4 w-4" />
-                                  ) : (
-                                    <Eye className="mr-2 h-4 w-4" />
-                                  )}
-                                  {material.is_published ? "Unpublish" : "Publish"}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleDelete(material.id)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                    ) : (
+                      filteredMaterials.map((material) => (
+                        <tr
+                          key={material.id}
+                          className="border-b border-border transition-colors last:border-0 hover:bg-accent/50"
+                        >
+                          <td className="p-4">
+                            <p className="font-medium text-foreground">{material.title}</p>
+                            <p className="line-clamp-1 text-sm text-muted-foreground">
+                              {material.description || "—"}
+                            </p>
+                          </td>
+                          <td className="p-4 text-sm">{material.category || "—"}</td>
+                          <td className="p-4">
+                            <div className="flex flex-wrap gap-1">
+                              {material.file_url ? (
+                                <Badge variant="outline" className="text-xs">
+                                  File
+                                </Badge>
+                              ) : null}
+                              {material.external_url ? (
+                                <Badge variant="outline" className="text-xs">
+                                  Link
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <Badge variant={material.is_published ? "default" : "secondary"}>
+                              {material.is_published ? "Published" : "Draft"}
+                            </Badge>
+                          </td>
+                          <td className="p-4 text-sm text-muted-foreground">
+                            {new Date(material.updated_at).toLocaleDateString()}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleDownload(material)}>
+                                    {material.external_url && !material.file_url ? (
+                                      <ExternalLink className="mr-2 h-4 w-4" />
+                                    ) : (
+                                      <Download className="mr-2 h-4 w-4" />
+                                    )}
+                                    Open
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleTogglePublish(material)}>
+                                    {material.is_published ? (
+                                      <EyeOff className="mr-2 h-4 w-4" />
+                                    ) : (
+                                      <Eye className="mr-2 h-4 w-4" />
+                                    )}
+                                    {material.is_published ? "Unpublish" : "Publish"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => handleDelete(material.id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            </section>
+          </div>
         ) : null}
 
         {view === "progress" ? (
@@ -1253,5 +1472,13 @@ export default function AdminIeltsPage() {
         />
       </div>
     </GrowMainLayout>
+  )
+}
+
+export default function AdminIeltsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading IELTS…</div>}>
+      <AdminIeltsPageInner />
+    </Suspense>
   )
 }

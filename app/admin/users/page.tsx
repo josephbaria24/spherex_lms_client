@@ -66,6 +66,7 @@ interface User {
   email: string
   role: string
   status: string
+  teaching_field?: "ielts" | "courses" | null
   enrollment_count: number
   created_at?: string
   last_login_at?: string | null
@@ -126,6 +127,7 @@ export default function AdminUsersPage() {
     full_name: "",
     role: "student",
     status: "active",
+    teaching_field: "courses" as "ielts" | "courses",
   })
   const [createForm, setCreateForm] = useState({
     email: "",
@@ -133,6 +135,7 @@ export default function AdminUsersPage() {
     password: "",
     role: "student",
     status: "active",
+    teaching_field: "courses" as "ielts" | "courses",
     must_change_password: true,
   })
   const [passwordForm, setPasswordForm] = useState({
@@ -170,6 +173,7 @@ export default function AdminUsersPage() {
         full_name: editUser.full_name ?? editUser.name ?? "",
         role: editUser.role,
         status: editUser.status,
+        teaching_field: editUser.teaching_field === "ielts" ? "ielts" : "courses",
       })
     }
   }, [editUser])
@@ -187,6 +191,7 @@ export default function AdminUsersPage() {
       password: "",
       role: "student",
       status: "active",
+      teaching_field: "courses",
       must_change_password: true,
     })
   }
@@ -205,6 +210,7 @@ export default function AdminUsersPage() {
         full_name: createForm.full_name.trim() || undefined,
         role: createForm.role,
         status: createForm.status,
+        teaching_field: createForm.role === "teacher" ? createForm.teaching_field : undefined,
         must_change_password: createForm.must_change_password,
       })
       toast.success("User created")
@@ -227,6 +233,7 @@ export default function AdminUsersPage() {
         full_name: editForm.full_name.trim() || undefined,
         role: editForm.role,
         status: editForm.status,
+        teaching_field: editForm.role === "teacher" ? editForm.teaching_field : null,
       })
       toast.success("User updated")
       setEditUser(null)
@@ -375,6 +382,9 @@ export default function AdminUsersPage() {
                         </Badge>
                         <Badge variant="outline" className="h-5 px-1.5 text-[10px] capitalize">
                           {user.role}
+                          {user.role === "teacher" && user.teaching_field
+                            ? ` · ${user.teaching_field}`
+                            : ""}
                         </Badge>
                         {user.status !== "active" ? (
                           <Badge variant="secondary" className="h-5 px-1.5 text-[10px] capitalize">
@@ -535,6 +545,32 @@ export default function AdminUsersPage() {
                 </Select>
               </div>
             </div>
+            {createForm.role === "teacher" ? (
+              <div className="space-y-2">
+                <Label>Teaching field</Label>
+                <Select
+                  value={createForm.teaching_field}
+                  onValueChange={(value) =>
+                    setCreateForm((f) => ({
+                      ...f,
+                      teaching_field: value as "ielts" | "courses",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ielts">IELTS</SelectItem>
+                    <SelectItem value="courses">Courses</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  IELTS teachers get an IELTS-only workspace. Courses teachers keep the org course
+                  tools.
+                </p>
+              </div>
+            ) : null}
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor="create-user-password">Password</Label>
@@ -615,6 +651,28 @@ export default function AdminUsersPage() {
                 </SelectContent>
               </Select>
             </div>
+            {editForm.role === "teacher" ? (
+              <div className="space-y-2">
+                <Label>Teaching field</Label>
+                <Select
+                  value={editForm.teaching_field}
+                  onValueChange={(value) =>
+                    setEditForm((f) => ({
+                      ...f,
+                      teaching_field: value as "ielts" | "courses",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ielts">IELTS</SelectItem>
+                    <SelectItem value="courses">Courses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             <div className="space-y-2">
               <Label>Status</Label>
               <Select

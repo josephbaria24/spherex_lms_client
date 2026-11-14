@@ -1,4 +1,5 @@
 export type AppRole = "admin" | "teacher" | "student" | "user"
+export type TeachingField = "ielts" | "courses"
 
 export const ROLES = {
   ADMIN: "admin",
@@ -7,12 +8,17 @@ export const ROLES = {
   USER: "user",
 } as const satisfies Record<string, AppRole>
 
+export const TEACHING_FIELDS = {
+  IELTS: "ielts",
+  COURSES: "courses",
+} as const satisfies Record<string, TeachingField>
+
 /** Full platform administration (users, course CRUD, analytics, uploads). */
-export function isAdmin(role?: string | null): role is typeof ROLES.ADMIN {
+export function isAdmin(role?: string | null): boolean {
   return role === ROLES.ADMIN
 }
 
-export function isTeacher(role?: string | null): role is typeof ROLES.TEACHER {
+export function isTeacher(role?: string | null): boolean {
   return role === ROLES.TEACHER
 }
 
@@ -36,6 +42,20 @@ export function isStudent(role?: string | null): boolean {
   return role === ROLES.STUDENT || role === ROLES.USER
 }
 
+export function isIeltsTeacher(
+  role?: string | null,
+  teachingField?: string | null,
+): boolean {
+  return isTeacher(role) && teachingField === TEACHING_FIELDS.IELTS
+}
+
+export function isCoursesTeacher(
+  role?: string | null,
+  teachingField?: string | null,
+): boolean {
+  return isTeacher(role) && teachingField !== TEACHING_FIELDS.IELTS
+}
+
 export function roleLabel(role?: string | null): string {
   switch (role) {
     case ROLES.ADMIN:
@@ -47,4 +67,10 @@ export function roleLabel(role?: string | null): string {
     default:
       return "User"
   }
+}
+
+export function teachingFieldLabel(field?: string | null): string {
+  if (field === TEACHING_FIELDS.IELTS) return "IELTS"
+  if (field === TEACHING_FIELDS.COURSES) return "Courses"
+  return "—"
 }

@@ -7,6 +7,10 @@ import {
   ClipboardCheck,
   FileText,
   CalendarDays,
+  BarChart3,
+  Mail,
+  Award,
+  ToggleLeft,
 } from "lucide-react"
 
 export const TEACHER_ORG_ID_STORAGE_KEY = "spherex:teacher-org-id"
@@ -14,8 +18,12 @@ export const TEACHER_ORG_SLUG_STORAGE_KEY = "spherex:teacher-org-slug"
 
 export function getTeacherOrgSlugFromPath(pathname: string): string | null {
   const match = pathname.match(/^\/teacher\/([^/]+)/)
-  if (!match?.[1] || match[1] === "join") return null
+  if (!match?.[1] || match[1] === "join" || match[1] === "ielts") return null
   return match[1]
+}
+
+export function isTeacherIeltsPath(pathname: string): boolean {
+  return pathname === "/teacher/ielts" || pathname.startsWith("/teacher/ielts/")
 }
 
 export function teacherRoute(orgSlug: string, subpath = ""): string {
@@ -58,13 +66,42 @@ export const teacherNavFallback: TeacherNavItem[] = [
   { label: "Sessions", icon: CalendarDays, href: "/teacher" },
 ]
 
-export function isTeacherNavHrefActive(pathname: string, href: string): boolean {
-  if (pathname === href) return true
-  const slug = getTeacherOrgSlugFromPath(href)
-  if (slug) {
-    if (href === teacherRoute(slug)) return pathname === href
-    return pathname.startsWith(`${href}/`) || pathname === href
+export function isTeacherNavHrefActive(
+  pathname: string,
+  href: string,
+  searchParams?: { get: (key: string) => string | null },
+): boolean {
+  const [hrefPath, hrefQuery = ""] = href.split("?")
+  const hrefView = new URLSearchParams(hrefQuery).get("view")
+
+  if (hrefPath === "/teacher/ielts" || hrefPath.startsWith("/teacher/ielts/")) {
+    const onIelts =
+      pathname === "/teacher/ielts" || pathname.startsWith("/teacher/ielts/")
+    if (!onIelts) return false
+    const currentView = searchParams?.get("view")
+    const effectiveView = !currentView || currentView === "skills" ? "materials" : currentView
+    if (!hrefView) return effectiveView === "materials"
+    return effectiveView === hrefView
   }
-  if (href === "/teacher") return pathname === "/teacher"
-  return pathname.startsWith(`${href}/`)
+
+  if (pathname === href || pathname === hrefPath) return true
+  const slug = getTeacherOrgSlugFromPath(hrefPath)
+  if (slug) {
+    if (hrefPath === teacherRoute(slug)) return pathname === hrefPath
+    return pathname.startsWith(`${hrefPath}/`) || pathname === hrefPath
+  }
+  if (hrefPath === "/teacher") return pathname === "/teacher"
+  return pathname.startsWith(`${hrefPath}/`)
+}
+
+export function buildIeltsTeacherNav(): TeacherNavItem[] {
+  return [
+    { label: "Materials", icon: FileText, href: "/teacher/ielts?view=materials" },
+    { label: "Learners", icon: Users, href: "/teacher/ielts?view=progress" },
+    { label: "Results", icon: BarChart3, href: "/teacher/ielts?view=results" },
+    { label: "Session", icon: ToggleLeft, href: "/teacher/ielts?view=session" },
+    { label: "Access", icon: ClipboardCheck, href: "/teacher/ielts?view=requests" },
+    { label: "Announce", icon: Mail, href: "/teacher/ielts?view=announce" },
+    { label: "Certificates", icon: Award, href: "/teacher/ielts?view=progress" },
+  ]
 }

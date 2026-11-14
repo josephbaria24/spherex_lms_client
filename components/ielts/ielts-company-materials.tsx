@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { FileText, Headphones, Lock } from "lucide-react"
-import { useAuth } from "@/app/provider"
 import { apiGet } from "@/lib/api"
-import { canAccessTeacherPanel } from "@/lib/roles"
 import {
   IELTS_ACADEMIC_KEYS,
   IELTS_ACADEMIC_MOCKS,
@@ -19,11 +17,9 @@ export function IeltsCompanyMaterials({
   unlocked: boolean
   onLocked: (title: string) => void
 }) {
-  const { user } = useAuth()
   const [showAnswerKeys, setShowAnswerKeys] = useState(false)
   const [mockSessionOpen, setMockSessionOpen] = useState(false)
   const [openMockIds, setOpenMockIds] = useState<string[]>([])
-  const staff = canAccessTeacherPanel(user?.role)
 
   useEffect(() => {
     let cancelled = false
@@ -57,11 +53,9 @@ export function IeltsCompanyMaterials({
     window.open(href, "_blank", "noopener,noreferrer")
   }
 
-  const anyMockOpen =
-    staff ||
-    IELTS_ACADEMIC_MOCKS.some((mock) =>
-      isMockOpenForSession(mock.id, mockSessionOpen, openMockIds),
-    )
+  const anyMockOpen = IELTS_ACADEMIC_MOCKS.some((mock) =>
+    isMockOpenForSession(mock.id, mockSessionOpen, openMockIds),
+  )
   const waitingForTrainer = unlocked && !anyMockOpen
 
   return (
@@ -78,8 +72,7 @@ export function IeltsCompanyMaterials({
       </div>
       <div className="grid min-w-0 grid-cols-2 gap-1.5 sm:gap-2 xl:grid-cols-3">
         {IELTS_ACADEMIC_MOCKS.map((mock) => {
-          const mockOpen =
-            staff || isMockOpenForSession(mock.id, mockSessionOpen, openMockIds)
+          const mockOpen = isMockOpenForSession(mock.id, mockSessionOpen, openMockIds)
           const locked = !unlocked || !mockOpen
           return (
             <article

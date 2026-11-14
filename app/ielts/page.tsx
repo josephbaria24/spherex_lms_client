@@ -3,6 +3,9 @@
 import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/app/provider"
+import { isIeltsTeacher } from "@/lib/roles"
 
 import {
   HiArrowRight,
@@ -60,6 +63,8 @@ function trackFromQuery(value: string | null): IeltsTrack | null {
 }
 
 export default function IeltsHubPage() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [groups, setGroups] = useState<PublicReviewerGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +72,13 @@ export default function IeltsHubPage() {
   const [ukviOpen, setUkviOpen] = useState(false)
   const pendingMocksScroll = useRef(false)
   const access = useIeltsAccess()
+
+  useEffect(() => {
+    if (authLoading) return
+    if (isIeltsTeacher(user?.role, user?.teaching_field)) {
+      router.replace("/teacher/ielts?view=materials")
+    }
+  }, [authLoading, router, user?.role, user?.teaching_field])
 
   function scrollToMocks() {
     pendingMocksScroll.current = true
@@ -124,6 +136,14 @@ export default function IeltsHubPage() {
   )
 
   const totalParts = sorted.reduce((n, g) => n + (g.quizzes?.length ?? 0), 0)
+
+  if (!authLoading && isIeltsTeacher(user?.role, user?.teaching_field)) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Spinner size={36} />
+      </div>
+    )
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f4f7f9] text-slate-800 dark:bg-background dark:text-foreground">
