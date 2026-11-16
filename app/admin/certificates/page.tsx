@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import {
   Award,
   ExternalLink,
+  Pencil,
   Search,
   Settings2,
   Upload,
@@ -68,6 +69,9 @@ export default function AdminCertificatesPage() {
   const [digits, setDigits] = useState(6)
   const [nextNumber, setNextNumber] = useState(1)
   const [savingSerial, setSavingSerial] = useState(false)
+  const [editingEntry, setEditingEntry] = useState<RegistryRow | null>(null)
+  const [entrySerial, setEntrySerial] = useState("")
+  const [savingEntrySerial, setSavingEntrySerial] = useState(false)
 
   const loadOverview = useCallback(async () => {
     const data = await apiGet<{ courses: CourseCertRow[]; totals: Totals }>(
@@ -157,6 +161,39 @@ export default function AdminCertificatesPage() {
       toast.error(err instanceof Error ? err.message : "Import failed")
     } finally {
       setImporting(false)
+    }
+  }
+
+  function openEntrySerialEditor(row: RegistryRow) {
+    if (!row.id) {
+      toast.error("This registry row cannot be edited yet")
+      return
+    }
+    setEditingEntry(row)
+    setEntrySerial(row.serial_number)
+  }
+
+  async function saveEntrySerial() {
+    if (!editingEntry?.id) return
+    const next = entrySerial.trim().toUpperCase()
+    if (next.length < 6) {
+      toast.error("Serial must be at least 6 characters")
+      return
+    }
+    setSavingEntrySerial(true)
+    try {
+      await apiPut<{ certificate: RegistryRow }>(
+        `/certificates/admin/registry/${editingEntry.id}/serial`,
+        { serial_number: next },
+      )
+      toast.success(`Serial updated to ${next}`)
+      setEditingEntry(null)
+      await loadRegistry(search)
+      await loadOverview()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update serial")
+    } finally {
+      setSavingEntrySerial(false)
     }
   }
 
@@ -355,19 +392,22 @@ export default function AdminCertificatesPage() {
                     <th className="p-4 text-left text-sm font-semibold text-muted-foreground">
                       Issued
                     </th>
+                    <th className="p-4 text-right text-sm font-semibold text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {registry.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="p-12 text-center text-muted-foreground">
                         {loading ? "Loading…" : "No certificates in the registry yet"}
                       </td>
                     </tr>
                   ) : (
                     registry.map((row) => (
                       <tr
-                        key={`${row.serial_number}-${row.issued_at}`}
+                        key={row.id ?? `${row.serial_number}-${row.issued_at}`}
                         className="border-b border-border last:border-0 hover:bg-accent/40"
                       >
                         <td className="p-4">
@@ -385,18 +425,11 @@ export default function AdminCertificatesPage() {
                             >
                               {row.serial_number}
                             </button>
-                          ) : row.source === "ielts" ? (
-                            <Link
-                              href={`/verify/${encodeURIComponent(row.serial_number)}`}
-                              className="font-mono text-sm font-semibold text-[#FF4B1A] hover:underline"
-                              title="Open verification / certificate details"
-                            >
-                              {row.serial_number}
-                            </Link>
                           ) : (
                             <Link
                               href={`/verify/${encodeURIComponent(row.serial_number)}`}
                               className="font-mono text-sm font-semibold text-[#FF4B1A] hover:underline"
+                              title="Open verification / certificate details"
                             >
                               {row.serial_number}
                             </Link>
@@ -414,6 +447,19 @@ export default function AdminCertificatesPage() {
                         </td>
                         <td className="p-4 text-sm text-muted-foreground">
                           {new Date(row.issued_at).toLocaleString()}
+                        </td>
+                        <td className="p-4 text-right">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => openEntrySerialEditor(row)}
+                            disabled={!row.id}
+                          >
+                            <Pencil className="size-3.5" />
+                            Edit serial
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -473,6 +519,48 @@ export default function AdminCertificatesPage() {
                 </Button>
                 <Button onClick={() => void saveSerial()} disabled={savingSerial || !prefix.trim()}>
                   {savingSerial ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : null}
+
+        {editingEntry ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <Card className="w-full max-w-md space-y-4 p-5">
+              <div>
+                <h2 className="text-lg font-semibold">Edit certificate serial</h2>
+                <p className="text-sm text-muted-foreground">
+                  {editingEntry.learner_name} · {editingEntry.course_title}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="entry-serial">Serial number</Label>
+                <Input
+                  id="entry-serial"
+                  value={entrySerial}
+                  onChange={(e) => setEntrySerial(e.target.value.toUpperCase())}
+                  placeholder="PSI-ELA-MEHSAHT-000001"
+                  className="font-mono"
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Updates the registry and the live certificate PDF for this learner.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingEntry(null)}
+                  disabled={savingEntrySerial}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => void saveEntrySerial()}
+                  disabled={savingEntrySerial || entrySerial.trim().length < 6}
+                >
+                  {savingEntrySerial ? "Saving…" : "Save serial"}
                 </Button>
               </div>
             </Card>
