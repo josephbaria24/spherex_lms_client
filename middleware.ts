@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { SESSION_COOKIE } from "@/lib/api-config"
+import { API_URL, SESSION_COOKIE } from "@/lib/api-config"
 import { canAccessAdminPanel, canAccessTeacherPanel, isStudent } from "@/lib/roles"
 import { getSessionClaims } from "@/lib/session-token"
 
@@ -43,26 +43,43 @@ const IELTS_MOCK_PATH_TO_ID: Record<string, string> = {
   "/ielts-academic/academic-mock-5-listening.mp3": "mock-5",
 }
 
-async function ieltsCatalogFlags(req: NextRequest) {
-  try {
-    const flagUrl = new URL("/api/lms/reviewers/ielts/answer-keys", req.nextUrl.origin)
-    const res = await fetch(flagUrl, { cache: "no-store" })
-    if (!res.ok) {
-      return { show_answer_keys: false, mock_session_open: false, open_mock_ids: [] as string[] }
-    }
-    const data = (await res.json()) as {
-      show_answer_keys?: boolean
-      mock_session_open?: boolean
-      open_mock_ids?: string[]
-    }
-    return {
-      show_answer_keys: data.show_answer_keys === true,
-      mock_session_open: data.mock_session_open === true,
-      open_mock_ids: Array.isArray(data.open_mock_ids) ? data.open_mock_ids : [],
-    }
-  } catch {
-    return { show_answer_keys: false, mock_session_open: false, open_mock_ids: [] as string[] }
+async function fetchIeltsCatalogFlags(url: string) {
+  const res = await fetch(url, { cache: "no-store" })
+  if (!res.ok) return null
+  const data = (await res.json()) as {
+    show_answer_keys?: boolean
+    mock_session_open?: boolean
+    open_mock_ids?: string[]
   }
+  return {
+    show_answer_keys: data.show_answer_keys === true,
+    mock_session_open: data.mock_session_open === true,
+    open_mock_ids: Array.isArray(data.open_mock_ids) ? data.open_mock_ids : [],
+  }
+}
+
+async function ieltsCatalogFlags(req: NextRequest) {
+  const closed = {
+    show_answer_keys: false,
+    mock_session_open: false,
+    open_mock_ids: [] as string[],
+  }
+  // Prefer the internal API. Fetching the public HTTPS origin from middleware often
+  // fails in production (proxy/TLS loop), which incorrectly locked open mocks.
+  const candidates = [
+    `${API_URL.replace(/\/$/, "")}/api/reviewers/ielts/answer-keys`,
+    "http://127.0.0.1:4000/api/reviewers/ielts/answer-keys",
+    new URL("/api/lms/reviewers/ielts/answer-keys", req.nextUrl.origin).toString(),
+  ]
+  for (const url of candidates) {
+    try {
+      const flags = await fetchIeltsCatalogFlags(url)
+      if (flags) return flags
+    } catch {
+      // try next candidate
+    }
+  }
+  return closed
 }
 
 export async function middleware(req: NextRequest) {
