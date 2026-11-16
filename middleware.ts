@@ -11,6 +11,7 @@ const IELTS_ANSWER_KEY_PATHS = new Set([
 
 const IELTS_MOCK_PATHS = new Set([
   "/ielts-academic/academic-mock-1-questions.pdf",
+  "/ielts-academic/academic-mock-1-listening.mp3",
   "/ielts-academic/academic-mock-2-questions.pdf",
   "/ielts-academic/academic-mock-2-listening.mp3",
   "/ielts-academic/academic-mock-3-questions.pdf",
@@ -33,6 +34,7 @@ function isPublicCatalogPath(pathname: string) {
 
 const IELTS_MOCK_PATH_TO_ID: Record<string, string> = {
   "/ielts-academic/academic-mock-1-questions.pdf": "mock-1",
+  "/ielts-academic/academic-mock-1-listening.mp3": "mock-1",
   "/ielts-academic/academic-mock-2-questions.pdf": "mock-2",
   "/ielts-academic/academic-mock-2-listening.mp3": "mock-2",
   "/ielts-academic/academic-mock-3-questions.pdf": "mock-3",
@@ -186,6 +188,7 @@ export const config = {
     "/ielts-academic/academic-reading-answers.pdf",
     "/ielts-academic/academic-writing-examples.pdf",
     "/ielts-academic/academic-mock-1-questions.pdf",
+    "/ielts-academic/academic-mock-1-listening.mp3",
     "/ielts-academic/academic-mock-2-questions.pdf",
     "/ielts-academic/academic-mock-2-listening.mp3",
     "/ielts-academic/academic-mock-3-questions.pdf",

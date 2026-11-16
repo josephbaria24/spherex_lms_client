@@ -21,7 +21,6 @@ export const IELTS_ACADEMIC_MOCKS: IeltsAcademicMock[] = [
     id: "mock-1",
     day: "Day 1",
     title: "Academic mock test 1",
-    note: "Question paper only. This set has no listening recording.",
     files: [
       {
         id: "mock-1-paper",
@@ -29,6 +28,13 @@ export const IELTS_ACADEMIC_MOCKS: IeltsAcademicMock[] = [
         detail: "PDF",
         href: "/ielts-academic/academic-mock-1-questions.pdf",
         kind: "paper",
+      },
+      {
+        id: "mock-1-audio",
+        title: "Listening",
+        detail: "Audio",
+        href: "/ielts-academic/academic-mock-1-listening.mp3",
+        kind: "audio",
       },
     ],
   },
