@@ -31,6 +31,7 @@ type CourseCertRow = {
   serial_digits: number | null
   serial_next: number | null
   sample_serial: string | null
+  default_serial_prefix?: string
 }
 
 type Totals = {
@@ -50,6 +51,8 @@ type RegistryRow = {
   learner_email?: string | null
   issued_at: string
   source: "lms" | "legacy" | "ielts"
+  lms_certificate_id?: string | null
+  user_id?: string | null
 }
 
 export default function AdminCertificatesPage() {
@@ -293,7 +296,9 @@ export default function AdminCertificatesPage() {
                         <td className="p-4 font-semibold">{row.issued_count}</td>
                         <td className="p-4 font-mono text-sm">
                           {row.serial_prefix ?? (
-                            <span className="text-muted-foreground">Default SPX-CERT</span>
+                            <span className="text-muted-foreground">
+                              Default {row.default_serial_prefix ?? suggestPrefix(row.course_title)}
+                            </span>
                           )}
                         </td>
                         <td className="p-4 font-mono text-sm">
@@ -366,12 +371,36 @@ export default function AdminCertificatesPage() {
                         className="border-b border-border last:border-0 hover:bg-accent/40"
                       >
                         <td className="p-4">
-                          <Link
-                            href={`/verify/${encodeURIComponent(row.serial_number)}`}
-                            className="font-mono text-sm font-semibold text-[#FF4B1A] hover:underline"
-                          >
-                            {row.serial_number}
-                          </Link>
+                          {row.source === "lms" && row.lms_certificate_id ? (
+                            <button
+                              type="button"
+                              className="font-mono text-sm font-semibold text-[#FF4B1A] hover:underline"
+                              onClick={() =>
+                                window.open(
+                                  `/api/lms/certificates/${row.lms_certificate_id}/pdf?view=1`,
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                )
+                              }
+                            >
+                              {row.serial_number}
+                            </button>
+                          ) : row.source === "ielts" ? (
+                            <Link
+                              href={`/verify/${encodeURIComponent(row.serial_number)}`}
+                              className="font-mono text-sm font-semibold text-[#FF4B1A] hover:underline"
+                              title="Open verification / certificate details"
+                            >
+                              {row.serial_number}
+                            </Link>
+                          ) : (
+                            <Link
+                              href={`/verify/${encodeURIComponent(row.serial_number)}`}
+                              className="font-mono text-sm font-semibold text-[#FF4B1A] hover:underline"
+                            >
+                              {row.serial_number}
+                            </Link>
+                          )}
                         </td>
                         <td className="p-4">
                           <p className="font-medium">{row.learner_name}</p>
@@ -473,11 +502,28 @@ function Stat({
 }
 
 function suggestPrefix(title: string): string {
-  const cleaned = title
+  if (/mandatory\s+eight[-\s]?hour\s+safety(\s+and\s+health)?(\s+training)?/i.test(title) || /\bmesh\b/i.test(title)) {
+    return "PSI-ELA-MEHSAHT"
+  }
+  if (/lock\s*-?\s*out\s*tag\s*-?\s*out|\bloto\b/i.test(title)) {
+    return "PSI-ELA-LOTO"
+  }
+  const tokens = title
     .toUpperCase()
-    .replace(/[^A-Z0-9\s]/g, " ")
+    .replace(/[^A-Z0-9\s-]/g, " ")
     .split(/\s+/)
     .filter(Boolean)
-  const initials = cleaned.map((w) => w[0]).join("").slice(0, 8)
-  return `PSI-ELA-${initials || "COURSE"}`
+  let acronym = ""
+  for (const token of tokens) {
+    if (token.includes("-")) {
+      acronym += token
+        .split("-")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join("")
+    } else {
+      acronym += token[0]
+    }
+  }
+  return `PSI-ELA-${acronym.slice(0, 16) || "COURSE"}`
 }

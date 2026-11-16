@@ -121,7 +121,7 @@ function previewText(value: string, courseTitle: string): string {
     .replaceAll("{{course_title}}", courseTitle || "Course title")
     .replaceAll("{{course_name}}", courseTitle || "Course title")
     .replaceAll("{{completion_date}}", "October 8, 2026")
-    .replaceAll("{{certificate_number}}", "SPX-CERT-2026-00001")
+    .replaceAll("{{certificate_number}}", "PSI-ELA-MEHSAHT-000001")
 }
 
 function loadImageSize(src: string): Promise<{ width: number; height: number }> {
