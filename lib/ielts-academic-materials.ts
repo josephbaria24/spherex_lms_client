@@ -13,6 +13,8 @@ export type IeltsAcademicMock = {
   day: string
   title: string
   note?: string
+  /** Opens interactive practice (Listening/Reading mock taker) instead of a static file. */
+  practiceTitle?: string
   files: IeltsAcademicMaterial[]
 }
 
@@ -21,6 +23,8 @@ export const IELTS_ACADEMIC_MOCKS: IeltsAcademicMock[] = [
     id: "mock-1",
     day: "Day 1",
     title: "Academic mock test 1",
+    note: "Interactive Listening mock available — audio at the top, type answers on the page.",
+    practiceTitle: "IELTS Listening — Mock Test 1",
     files: [
       {
         id: "mock-1-paper",
@@ -31,8 +35,8 @@ export const IELTS_ACADEMIC_MOCKS: IeltsAcademicMock[] = [
       },
       {
         id: "mock-1-audio",
-        title: "Listening",
-        detail: "Audio",
+        title: "Listening audio only",
+        detail: "MP3",
         href: "/ielts-academic/academic-mock-1-listening.mp3",
         kind: "audio",
       },

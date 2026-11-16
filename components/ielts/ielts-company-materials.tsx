@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { FileText, Headphones, Lock } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { FileText, Headphones, Lock, PlayCircle } from "lucide-react"
+import { toast } from "sonner"
 import { apiGet } from "@/lib/api"
 import {
   IELTS_ACADEMIC_KEYS,
@@ -9,6 +11,7 @@ import {
   isMockOpenForSession,
   type IeltsAcademicMaterial,
 } from "@/lib/ielts-academic-materials"
+import { fetchPublicReviewerGroups } from "@/lib/public-reviewers"
 
 export function IeltsCompanyMaterials({
   unlocked,
@@ -17,9 +20,11 @@ export function IeltsCompanyMaterials({
   unlocked: boolean
   onLocked: (title: string) => void
 }) {
+  const router = useRouter()
   const [showAnswerKeys, setShowAnswerKeys] = useState(false)
   const [mockSessionOpen, setMockSessionOpen] = useState(false)
   const [openMockIds, setOpenMockIds] = useState<string[]>([])
+  const [openingPractice, setOpeningPractice] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -51,6 +56,29 @@ export function IeltsCompanyMaterials({
       return
     }
     window.open(href, "_blank", "noopener,noreferrer")
+  }
+
+  async function openInteractivePractice(mockTitle: string, practiceTitle: string) {
+    if (!unlocked) {
+      onLocked(mockTitle)
+      return
+    }
+    setOpeningPractice(practiceTitle)
+    try {
+      const data = await fetchPublicReviewerGroups({ exam_type: "IELTS" })
+      const quiz = data.groups
+        .flatMap((group) => group.quizzes)
+        .find((item) => item.title === practiceTitle)
+      if (!quiz) {
+        toast.error("Interactive mock is not available yet")
+        return
+      }
+      router.push(`/ielts/practice/${quiz.id}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not open interactive mock")
+    } finally {
+      setOpeningPractice(null)
+    }
   }
 
   const anyMockOpen = IELTS_ACADEMIC_MOCKS.some((mock) =>
@@ -96,6 +124,28 @@ export function IeltsCompanyMaterials({
                 </p>
               ) : null}
               <div className="mt-1.5 flex flex-col gap-1">
+                {mock.practiceTitle ? (
+                  <button
+                    type="button"
+                    disabled={locked || openingPractice === mock.practiceTitle}
+                    onClick={() => {
+                      if (!unlocked) {
+                        onLocked(mock.title)
+                        return
+                      }
+                      if (!mockOpen || !mock.practiceTitle) return
+                      void openInteractivePractice(mock.title, mock.practiceTitle)
+                    }}
+                    className={
+                      locked
+                        ? "inline-flex h-6 cursor-not-allowed items-center justify-center gap-1 rounded-full bg-neutral-200 px-2 text-[10px] font-semibold text-neutral-500 sm:h-7 sm:text-[11px] dark:bg-muted dark:text-muted-foreground"
+                        : "inline-flex h-6 items-center justify-center gap-1 rounded-full bg-slate-900 px-2 text-[10px] font-semibold text-white hover:bg-slate-800 sm:h-7 sm:text-[11px] dark:bg-white dark:text-slate-900"
+                    }
+                  >
+                    {locked ? <Lock className="h-3.5 w-3.5" /> : <PlayCircle className="h-3.5 w-3.5" />}
+                    {openingPractice === mock.practiceTitle ? "Opening…" : "Take Listening mock"}
+                  </button>
+                ) : null}
                 {mock.files.map((file) => (
                   <FileButton
                     key={file.id}

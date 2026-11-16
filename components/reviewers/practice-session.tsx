@@ -100,6 +100,8 @@ export function PracticeSession({ quizId, backHref, backLabel }: PracticeSession
   const SkillIcon = skill?.Icon ?? HiNote
   const tone = toneStyles[skill?.tone ?? "teal"]
   const hasPassage = Boolean(quiz?.passage_html?.trim())
+  const hasAudio = Boolean(quiz?.audio_url?.trim())
+  const isMockExam = /mock test/i.test(`${quiz?.title ?? ""} ${quiz?.category ?? ""}`)
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f4f7f9] text-slate-800 dark:bg-background dark:text-foreground">
@@ -123,7 +125,7 @@ export function PracticeSession({ quizId, backHref, backLabel }: PracticeSession
       <main
         className={cn(
           "relative mx-auto px-4 pb-20 pt-28 sm:px-6",
-          hasPassage ? "max-w-6xl" : "max-w-3xl",
+          hasPassage || (hasAudio && isMockExam) ? "max-w-6xl" : hasAudio ? "max-w-4xl" : "max-w-3xl",
         )}
       >
         <Link

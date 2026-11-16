@@ -469,6 +469,8 @@ const optionRow =
 export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerProps) {
   const a = accents[accent]
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [reviewMarked, setReviewMarked] = useState<Record<string, boolean>>({})
+  const [activeQuestion, setActiveQuestion] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(
     quiz.time_limit_seconds ?? null,
@@ -482,6 +484,8 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
     total: number
     band_score: number | null
   } | null>(null)
+  const isMockExam = /mock test/i.test(`${quiz.title} ${quiz.category ?? ""}`)
+  const questionRefs = useRef<Array<HTMLDivElement | null>>([])
 
   const answersRef = useRef(answers)
   const submittingRef = useRef(submitting)
@@ -634,6 +638,8 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
           onClick={() => {
             setResult(null)
             setAnswers({})
+            setReviewMarked({})
+            setActiveQuestion(0)
             setSecondsLeft(quiz.time_limit_seconds ?? null)
           }}
         >
@@ -647,6 +653,20 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
   const hasPassage = Boolean(quiz.passage_html?.trim())
   const hasAudio = Boolean(quiz.audio_url?.trim())
   const urgent = secondsLeft != null && secondsLeft <= 60
+  const audioSrc = quiz.audio_url ? assetUrl(quiz.audio_url) : ""
+
+  function isAnswered(questionId: string | undefined, type: string) {
+    if (!questionId) return false
+    const ans = answers[questionId]
+    if (!ans?.trim()) return false
+    if (type === "multi_select" && parseMulti(ans).length === 0) return false
+    return true
+  }
+
+  function scrollToQuestion(idx: number) {
+    setActiveQuestion(idx)
+    questionRefs.current[idx]?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   return (
     <div className="space-y-5">
@@ -670,51 +690,72 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-md dark:border-border dark:bg-card/90">
-          <div className="mb-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>
-              Progress · {answeredCount}/{quiz.questions.length}
-            </span>
-            <span className="font-medium text-slate-700 dark:text-slate-200">{progress}%</span>
+        {hasAudio ? (
+          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-lg dark:border-slate-700">
+            <div className="flex items-center gap-2 border-b border-slate-700/80 px-4 py-2.5">
+              <HiHeadphones className="h-4 w-4 text-sky-300" />
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-200">
+                Listening audio
+              </p>
+              <HiVolumeHigh className="ml-auto h-3.5 w-3.5 text-slate-400" />
+            </div>
+            <div className="px-3 py-3 sm:px-4">
+              <audio controls className="w-full" src={audioSrc} preload="metadata">
+                Your browser does not support audio.
+              </audio>
+            </div>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-muted">
+        ) : null}
+
+        <div className="rounded-2xl border border-slate-200/90 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md dark:border-border dark:bg-card/95">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                Review
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full border-2 border-teal-500" />
+                Answered
+              </span>
+            </div>
+            <span className="font-medium text-slate-700 dark:text-slate-200">
+              {answeredCount}/{quiz.questions.length} · {progress}%
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {quiz.questions.map((q, idx) => {
+              const answered = isAnswered(q.id, q.question_type)
+              const flagged = Boolean(q.id && reviewMarked[q.id])
+              return (
+                <button
+                  key={q.id ?? idx}
+                  type="button"
+                  onClick={() => scrollToQuestion(idx)}
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
+                    activeQuestion === idx && "ring-2 ring-slate-400 ring-offset-1 dark:ring-offset-background",
+                    flagged
+                      ? "border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+                      : answered
+                        ? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-200"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 dark:border-border dark:bg-card dark:text-slate-300",
+                  )}
+                  aria-label={`Question ${idx + 1}`}
+                >
+                  {idx + 1}
+                </button>
+              )
+            })}
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-muted">
             <div
-              className={cn(
-                "h-full rounded-full bg-gradient-to-r transition-all duration-300",
-                a.progress,
-              )}
+              className={cn("h-full rounded-full bg-gradient-to-r transition-all duration-300", a.progress)}
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
       </div>
-
-      {hasAudio ? (
-        <div className={cn(card, "overflow-hidden")}>
-          <div className="flex items-center gap-3 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-teal-50 px-5 py-3 dark:border-sky-900/50 dark:from-sky-950/40 dark:via-card dark:to-teal-950/30">
-            <span
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full",
-                a.audioIcon,
-              )}
-            >
-              <HiHeadphones className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Listening audio</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Play once if you can — just like the real test
-              </p>
-            </div>
-            <HiVolumeHigh className="ml-auto h-4 w-4 text-slate-400" />
-          </div>
-          <div className="px-5 py-4">
-            <audio controls className="w-full" src={quiz.audio_url!} preload="metadata">
-              Your browser does not support audio.
-            </audio>
-          </div>
-        </div>
-      ) : null}
 
       <div className={hasPassage ? "grid gap-5 lg:grid-cols-2 lg:items-start" : undefined}>
         {hasPassage ? (
@@ -738,18 +779,20 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
             const optionLooksMath = q.options.every((o) =>
               /[/\\^()]|^\d|MATH|dfrac|frac/.test(o.text),
             )
-            const answered = Boolean(
-              answers[q.id]?.trim() &&
-                (q.question_type !== "multi_select" ||
-                  parseMulti(answers[q.id]).length > 0),
-            )
+            const answered = isAnswered(q.id, q.question_type)
+            const flagged = Boolean(q.id && reviewMarked[q.id])
             return (
               <div
                 key={q.id ?? idx}
+                ref={(el) => {
+                  questionRefs.current[idx] = el
+                }}
                 className={cn(
                   card,
-                  "relative p-5 transition-shadow",
+                  "relative scroll-mt-56 p-5 transition-shadow",
+                  isMockExam && q.question_type === "fill_blank" && "border-slate-300",
                   answered && cn("ring-2", a.ring),
+                  flagged && "ring-2 ring-amber-400/80",
                 )}
               >
                 <div className="mb-3 flex items-start justify-between gap-3">
@@ -761,12 +804,32 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
                   >
                     {idx + 1}
                   </span>
-                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-muted dark:text-slate-400">
-                    {q.question_type.replace("_", " ")}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        q.id &&
+                        setReviewMarked((prev) => ({
+                          ...prev,
+                          [q.id!]: !prev[q.id!],
+                        }))
+                      }
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors",
+                        flagged
+                          ? "border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+                          : "border-slate-200 text-slate-500 hover:border-amber-400 hover:text-amber-700 dark:border-border",
+                      )}
+                    >
+                      {flagged ? "Reviewing" : "Mark review"}
+                    </button>
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-muted dark:text-slate-400">
+                      {q.question_type.replace("_", " ")}
+                    </span>
+                  </div>
                 </div>
 
-                <p className="text-[15px] leading-relaxed text-slate-800 dark:text-slate-100">
+                <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-800 dark:text-slate-100">
                   <MathText
                     text={q.prompt}
                     asMathBlock={/\[\[MATH\]\]|\\dfrac|\\left/.test(q.prompt)}
@@ -788,18 +851,28 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
                     }
                   />
                 ) : q.question_type === "fill_blank" ? (
-                  <div className="mt-4">
-                    <Input
-                      value={q.id ? answers[q.id] ?? "" : ""}
-                      onChange={(e) =>
-                        q.id && setAnswers((prev) => ({ ...prev, [q.id!]: e.target.value }))
-                      }
-                      placeholder="Type your answer"
-                      className={cn(
-                        "max-w-md border-slate-200 bg-slate-50/80 placeholder:text-slate-400 dark:border-border dark:bg-muted/50",
-                        a.focus,
-                      )}
-                    />
+                  <div
+                    className={cn(
+                      "mt-4",
+                      isMockExam &&
+                        "rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-border dark:bg-muted/30",
+                    )}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-500">({idx + 1})</span>
+                      <Input
+                        value={q.id ? answers[q.id] ?? "" : ""}
+                        onChange={(e) =>
+                          q.id && setAnswers((prev) => ({ ...prev, [q.id!]: e.target.value }))
+                        }
+                        onFocus={() => setActiveQuestion(idx)}
+                        placeholder="Type your answer"
+                        className={cn(
+                          "max-w-md border-slate-300 bg-white placeholder:text-slate-400 dark:border-border dark:bg-background",
+                          a.focus,
+                        )}
+                      />
+                    </div>
                   </div>
                 ) : q.question_type === "multi_select" ? (
                   <div className="mt-4 space-y-2">
@@ -873,6 +946,12 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
             {submitting ? "Submitting…" : "Submit answers"}
           </Button>
         </form>
+      </div>
+
+      <div className="pointer-events-none fixed bottom-6 right-6 z-30">
+        <div className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white shadow-xl dark:bg-white dark:text-slate-900">
+          {progress}%
+        </div>
       </div>
     </div>
   )
