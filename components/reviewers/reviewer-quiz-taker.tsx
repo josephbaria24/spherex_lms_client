@@ -466,6 +466,50 @@ const card =
 const optionRow =
   "flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 transition-colors hover:border-teal-300 hover:bg-teal-50/50 dark:border-border dark:bg-muted/40 dark:hover:border-teal-800 dark:hover:bg-teal-950/30"
 
+/** Split mock prompts that use [[blank]] for inline answer fields. */
+function splitMockBlank(prompt: string) {
+  const marker = "[[blank]]"
+  const idx = prompt.indexOf(marker)
+  if (idx < 0) {
+    return { preamble: prompt.trim(), suffix: "" }
+  }
+  return {
+    preamble: prompt.slice(0, idx).trim(),
+    suffix: prompt.slice(idx + marker.length).replace(/^\s+/, ""),
+  }
+}
+
+/** Render mock exam copy with **bold** markers and clean spacing. */
+function MockRichText({ text, className }: { text: string; className?: string }) {
+  if (!text) return null
+  const lines = text.split("\n")
+  return (
+    <div className={cn("space-y-3 text-[15px] leading-7 text-slate-800 dark:text-slate-100", className)}>
+      {lines.map((line, lineIdx) => {
+        const trimmed = line.trimEnd()
+        if (!trimmed.trim()) {
+          return <div key={`sp-${lineIdx}`} className="h-2" aria-hidden />
+        }
+        const parts = trimmed.split(/(\*\*[^*]+\*\*)/g).filter(Boolean)
+        return (
+          <p key={`ln-${lineIdx}`} className="m-0">
+            {parts.map((part, partIdx) => {
+              if (part.startsWith("**") && part.endsWith("**")) {
+                return (
+                  <strong key={partIdx} className="font-bold text-slate-900 dark:text-white">
+                    {part.slice(2, -2)}
+                  </strong>
+                )
+              }
+              return <span key={partIdx}>{part}</span>
+            })}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
+
 export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerProps) {
   const a = accents[accent]
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -781,6 +825,8 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
             )
             const answered = isAnswered(q.id, q.question_type)
             const flagged = Boolean(q.id && reviewMarked[q.id])
+            const mockBlank =
+              isMockExam && q.question_type === "fill_blank" ? splitMockBlank(q.prompt) : null
             return (
               <div
                 key={q.id ?? idx}
@@ -788,23 +834,50 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
                   questionRefs.current[idx] = el
                 }}
                 className={cn(
-                  card,
-                  "relative scroll-mt-56 p-5 transition-shadow",
-                  isMockExam && q.question_type === "fill_blank" && "border-slate-300",
-                  answered && cn("ring-2", a.ring),
-                  flagged && "ring-2 ring-amber-400/80",
+                  "relative scroll-mt-56 transition-shadow",
+                  mockBlank
+                    ? "space-y-5 bg-transparent p-0 shadow-none"
+                    : cn(card, "p-5"),
+                  !mockBlank && answered && cn("ring-2", a.ring),
+                  !mockBlank && flagged && "ring-2 ring-amber-400/80",
                 )}
               >
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <span
-                    className={cn(
-                      "inline-flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-xs font-bold",
-                      a.number,
-                    )}
-                  >
-                    {idx + 1}
-                  </span>
-                  <div className="flex items-center gap-2">
+                {!mockBlank ? (
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <span
+                      className={cn(
+                        "inline-flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-xs font-bold",
+                        a.number,
+                      )}
+                    >
+                      {idx + 1}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          q.id &&
+                          setReviewMarked((prev) => ({
+                            ...prev,
+                            [q.id!]: !prev[q.id!],
+                          }))
+                        }
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors",
+                          flagged
+                            ? "border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+                            : "border-slate-200 text-slate-500 hover:border-amber-400 hover:text-amber-700 dark:border-border",
+                        )}
+                      >
+                        {flagged ? "Reviewing" : "Mark review"}
+                      </button>
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-muted dark:text-slate-400">
+                        {q.question_type.replace("_", " ")}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={() =>
@@ -818,23 +891,56 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
                         "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors",
                         flagged
                           ? "border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
-                          : "border-slate-200 text-slate-500 hover:border-amber-400 hover:text-amber-700 dark:border-border",
+                          : "border-transparent text-slate-400 hover:border-amber-400 hover:text-amber-700",
                       )}
                     >
                       {flagged ? "Reviewing" : "Mark review"}
                     </button>
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-muted dark:text-slate-400">
-                      {q.question_type.replace("_", " ")}
-                    </span>
                   </div>
-                </div>
+                )}
 
-                <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-800 dark:text-slate-100">
-                  <MathText
-                    text={q.prompt}
-                    asMathBlock={/\[\[MATH\]\]|\\dfrac|\\left/.test(q.prompt)}
-                  />
-                </p>
+                {mockBlank ? (
+                  <>
+                    {mockBlank.preamble ? <MockRichText text={mockBlank.preamble} /> : null}
+                    <div
+                      className={cn(
+                        "rounded-xl border border-slate-200 bg-white px-4 py-4 dark:border-border dark:bg-card",
+                        answered && "border-teal-400",
+                        flagged && "border-amber-400",
+                      )}
+                    >
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[15px] leading-7 text-slate-800 dark:text-slate-100">
+                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                          ({idx + 1})
+                        </span>
+                        <Input
+                          value={q.id ? answers[q.id] ?? "" : ""}
+                          onChange={(e) =>
+                            q.id && setAnswers((prev) => ({ ...prev, [q.id!]: e.target.value }))
+                          }
+                          onFocus={() => setActiveQuestion(idx)}
+                          className={cn(
+                            "h-9 w-[11rem] border-slate-300 bg-white px-2.5 text-[15px] shadow-none dark:border-border dark:bg-background sm:w-[14rem]",
+                            a.focus,
+                          )}
+                          aria-label={`Answer ${idx + 1}`}
+                        />
+                        {mockBlank.suffix ? (
+                          <span className="text-[15px] text-slate-800 dark:text-slate-100">
+                            {mockBlank.suffix}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-800 dark:text-slate-100">
+                    <MathText
+                      text={q.prompt}
+                      asMathBlock={/\[\[MATH\]\]|\\dfrac|\\left/.test(q.prompt)}
+                    />
+                  </p>
+                )}
 
                 {q.question_type === "audio_response" ? (
                   <AudioResponse
@@ -851,29 +957,25 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
                     }
                   />
                 ) : q.question_type === "fill_blank" ? (
-                  <div
-                    className={cn(
-                      "mt-4",
-                      isMockExam &&
-                        "rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-border dark:bg-muted/30",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-500">({idx + 1})</span>
-                      <Input
-                        value={q.id ? answers[q.id] ?? "" : ""}
-                        onChange={(e) =>
-                          q.id && setAnswers((prev) => ({ ...prev, [q.id!]: e.target.value }))
-                        }
-                        onFocus={() => setActiveQuestion(idx)}
-                        placeholder="Type your answer"
-                        className={cn(
-                          "max-w-md border-slate-300 bg-white placeholder:text-slate-400 dark:border-border dark:bg-background",
-                          a.focus,
-                        )}
-                      />
+                  mockBlank ? null : (
+                    <div className="mt-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-500">({idx + 1})</span>
+                        <Input
+                          value={q.id ? answers[q.id] ?? "" : ""}
+                          onChange={(e) =>
+                            q.id && setAnswers((prev) => ({ ...prev, [q.id!]: e.target.value }))
+                          }
+                          onFocus={() => setActiveQuestion(idx)}
+                          placeholder="Type your answer"
+                          className={cn(
+                            "max-w-md border-slate-300 bg-white placeholder:text-slate-400 dark:border-border dark:bg-background",
+                            a.focus,
+                          )}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )
                 ) : q.question_type === "multi_select" ? (
                   <div className="mt-4 space-y-2">
                     <p className="text-xs text-slate-500 dark:text-slate-400">Select all that apply</p>
