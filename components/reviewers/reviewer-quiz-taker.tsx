@@ -12,6 +12,7 @@ import { apiPost, ApiError } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
 import type { PublicReviewerQuizDetail } from "@/lib/public-reviewers"
 import { MathText } from "@/components/reviewers/math-text"
+import { ListeningLostPropertyForm } from "@/components/ielts/listening-lost-property-form"
 import { toast } from "sonner"
 import {
   HiCancel,
@@ -529,6 +530,11 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
     band_score: number | null
   } | null>(null)
   const isMockExam = /mock test/i.test(`${quiz.title} ${quiz.category ?? ""}`)
+  const isListeningMock1 = /listening\s*[—-]\s*mock test 1/i.test(quiz.title)
+  const formQuestionIds = isListeningMock1
+    ? quiz.questions.slice(0, 5).map((q) => q.id).filter(Boolean) as string[]
+    : []
+  const formQuestionIdSet = new Set(formQuestionIds)
   const questionRefs = useRef<Array<HTMLDivElement | null>>([])
 
   const answersRef = useRef(answers)
@@ -832,7 +838,37 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
         ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isListeningMock1 && formQuestionIds.length === 5 ? (
+            <div
+              ref={(el) => {
+                questionRefs.current[0] = el
+                questionRefs.current[1] = el
+                questionRefs.current[2] = el
+                questionRefs.current[3] = el
+                questionRefs.current[4] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningLostPropertyForm
+                values={[
+                  answers[formQuestionIds[0]!] ?? "",
+                  answers[formQuestionIds[1]!] ?? "",
+                  answers[formQuestionIds[2]!] ?? "",
+                  answers[formQuestionIds[3]!] ?? "",
+                  answers[formQuestionIds[4]!] ?? "",
+                ]}
+                onChange={(blankIdx, value) => {
+                  const id = formQuestionIds[blankIdx]
+                  if (!id) return
+                  setAnswers((prev) => ({ ...prev, [id]: value }))
+                }}
+                onFocusBlank={(blankIdx) => setActiveQuestion(blankIdx)}
+              />
+            </div>
+          ) : null}
+
           {quiz.questions.map((q, idx) => {
+            if (q.id && formQuestionIdSet.has(q.id)) return null
             const optionLooksMath = q.options.every((o) =>
               /[/\\^()]|^\d|MATH|dfrac|frac/.test(o.text),
             )
