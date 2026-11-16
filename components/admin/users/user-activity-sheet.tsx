@@ -24,9 +24,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { apiDelete, apiGet } from "@/lib/api"
+import { AdjustCourseProgressDialog } from "@/components/admin/users/adjust-course-progress-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Activity, Award, BookOpen, Building2, CheckCircle2, CircleCheck, ExternalLink, FileQuestion, GraduationCap, Languages, MonitorPlay, RotateCcw, Trash2, UserMinus, Users, ChevronDown, type LucideIcon } from "lucide-react"
+import { Activity, Award, BookOpen, Building2, CheckCircle2, CircleCheck, ExternalLink, FileQuestion, GraduationCap, Languages, ListChecks, MonitorPlay, RotateCcw, Trash2, UserMinus, Users, ChevronDown, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 type UserSummary = {
@@ -258,6 +259,7 @@ export function UserActivitySheet({
   const [loading, setLoading] = useState(false)
   const [resetAllOpen, setResetAllOpen] = useState(false)
   const [resetCourse, setResetCourse] = useState<{ id: string; title: string } | null>(null)
+  const [adjustCourse, setAdjustCourse] = useState<{ id: string; title: string } | null>(null)
   const [unenrollCourse, setUnenrollCourse] = useState<{
     id: string
     courseId: string
@@ -741,6 +743,21 @@ export function UserActivitySheet({
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="h-8 gap-1.5 px-2"
+                            onClick={() =>
+                              setAdjustCourse({
+                                id: enrollment.course_id,
+                                title: enrollment.course_title,
+                              })
+                            }
+                          >
+                            <ListChecks className="h-3.5 w-3.5" />
+                            Adjust modules
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
                             className="h-8 gap-1.5 px-2 text-destructive hover:text-destructive"
                             onClick={() =>
                               setResetCourse({
@@ -851,6 +868,19 @@ export function UserActivitySheet({
           )}
         </SheetContent>
       </Sheet>
+
+      {adjustCourse && userId ? (
+        <AdjustCourseProgressDialog
+          open={!!adjustCourse}
+          onOpenChange={(next) => {
+            if (!next) setAdjustCourse(null)
+          }}
+          userId={userId}
+          courseId={adjustCourse.id}
+          courseTitle={adjustCourse.title}
+          onDone={load}
+        />
+      ) : null}
 
       <AlertDialog open={resetAllOpen} onOpenChange={setResetAllOpen}>
         <AlertDialogContent>
