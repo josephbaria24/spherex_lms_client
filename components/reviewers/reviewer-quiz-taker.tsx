@@ -697,7 +697,20 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
   const hasPassage = Boolean(quiz.passage_html?.trim())
   const hasAudio = Boolean(quiz.audio_url?.trim())
   const urgent = secondsLeft != null && secondsLeft <= 60
-  const audioSrc = quiz.audio_url ? assetUrl(quiz.audio_url) : ""
+  // Public practice assets live under /media and /ielts-academic — do not proxy via /api/lms.
+  const audioSrc = (() => {
+    const raw = quiz.audio_url?.trim() ?? ""
+    if (!raw) return ""
+    if (
+      raw.startsWith("http://") ||
+      raw.startsWith("https://") ||
+      raw.startsWith("/media/") ||
+      raw.startsWith("/ielts-academic/")
+    ) {
+      return raw
+    }
+    return assetUrl(raw)
+  })()
 
   function isAnswered(questionId: string | undefined, type: string) {
     if (!questionId) return false

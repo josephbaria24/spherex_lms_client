@@ -91,6 +91,11 @@ export async function middleware(req: NextRequest) {
   if (IELTS_ANSWER_KEY_PATHS.has(pathname) || IELTS_MOCK_PATHS.has(pathname)) {
     const role = token ? getSessionClaims(token).role : null
     if (canAccessTeacherPanel(role)) return NextResponse.next()
+    // Signed-in learners may play mock listening audio during interactive practice
+    // even when the trainer has not opened the PDF session yet.
+    if (token && pathname.endsWith("-listening.mp3")) {
+      return NextResponse.next()
+    }
     const flags = await ieltsCatalogFlags(req)
     if (IELTS_ANSWER_KEY_PATHS.has(pathname)) {
       if (flags.show_answer_keys) return NextResponse.next()
