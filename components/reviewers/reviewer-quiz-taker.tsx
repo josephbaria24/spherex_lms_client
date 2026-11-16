@@ -13,6 +13,15 @@ import { assetUrl } from "@/lib/asset-url"
 import type { PublicReviewerQuizDetail } from "@/lib/public-reviewers"
 import { MathText } from "@/components/reviewers/math-text"
 import { ListeningLostPropertyForm } from "@/components/ielts/listening-lost-property-form"
+import {
+  ListeningCampusMap,
+  ListeningJohnJaneTable,
+  ListeningMcSection3134,
+  ListeningOilTechniquesTable,
+  ListeningQuestion40,
+  ListeningShortAnswers2629,
+  ListeningStudentFacilitiesNotes,
+} from "@/components/ielts/listening-mock-sections"
 import { toast } from "sonner"
 import {
   HiCancel,
@@ -530,11 +539,34 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
     band_score: number | null
   } | null>(null)
   const isMockExam = /mock test/i.test(`${quiz.title} ${quiz.category ?? ""}`)
-  const isListeningMock1 = /listening\s*[—-]\s*mock test 1/i.test(quiz.title)
-  const formQuestionIds = isListeningMock1
-    ? quiz.questions.slice(0, 5).map((q) => q.id).filter(Boolean) as string[]
-    : []
-  const formQuestionIdSet = new Set(formQuestionIds)
+  const isListeningMock1 =
+    /listening\s*[—-]\s*mock test 1/i.test(quiz.title) && quiz.questions.length >= 38
+  const idsAt = (start: number, count: number) =>
+    isListeningMock1
+      ? (quiz.questions.slice(start, start + count).map((item) => item.id).filter(Boolean) as string[])
+      : []
+  const formIds = idsAt(0, 5)
+  const mapIds = idsAt(8, 4)
+  const facilitiesIds = idsAt(12, 6)
+  const tableIds = idsAt(18, 5)
+  const shortIds = idsAt(23, 4)
+  const mc30Id = idsAt(27, 1)[0]
+  const mc3134Ids = idsAt(28, 4)
+  const oilIds = idsAt(32, 5)
+  const q40Id = idsAt(37, 1)[0]
+  const paperQuestionIdSet = new Set(
+    [
+      ...formIds,
+      ...mapIds,
+      ...facilitiesIds,
+      ...tableIds,
+      ...shortIds,
+      ...(mc30Id ? [mc30Id] : []),
+      ...mc3134Ids,
+      ...oilIds,
+      ...(q40Id ? [q40Id] : []),
+    ].filter(Boolean),
+  )
   const questionRefs = useRef<Array<HTMLDivElement | null>>([])
 
   const answersRef = useRef(answers)
@@ -838,27 +870,23 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
         ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {isListeningMock1 && formQuestionIds.length === 5 ? (
+          {isListeningMock1 && formIds.length === 5 ? (
             <div
               ref={(el) => {
-                questionRefs.current[0] = el
-                questionRefs.current[1] = el
-                questionRefs.current[2] = el
-                questionRefs.current[3] = el
-                questionRefs.current[4] = el
+                for (let i = 0; i < 5; i++) questionRefs.current[i] = el
               }}
               className="scroll-mt-56"
             >
               <ListeningLostPropertyForm
                 values={[
-                  answers[formQuestionIds[0]!] ?? "",
-                  answers[formQuestionIds[1]!] ?? "",
-                  answers[formQuestionIds[2]!] ?? "",
-                  answers[formQuestionIds[3]!] ?? "",
-                  answers[formQuestionIds[4]!] ?? "",
+                  answers[formIds[0]!] ?? "",
+                  answers[formIds[1]!] ?? "",
+                  answers[formIds[2]!] ?? "",
+                  answers[formIds[3]!] ?? "",
+                  answers[formIds[4]!] ?? "",
                 ]}
                 onChange={(blankIdx, value) => {
-                  const id = formQuestionIds[blankIdx]
+                  const id = formIds[blankIdx]
                   if (!id) return
                   setAnswers((prev) => ({ ...prev, [id]: value }))
                 }}
@@ -867,8 +895,213 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
             </div>
           ) : null}
 
+          {isListeningMock1 && mapIds.length === 4 ? (
+            <div
+              ref={(el) => {
+                for (let i = 8; i < 12; i++) questionRefs.current[i] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningCampusMap
+                values={[
+                  answers[mapIds[0]!] ?? "",
+                  answers[mapIds[1]!] ?? "",
+                  answers[mapIds[2]!] ?? "",
+                  answers[mapIds[3]!] ?? "",
+                ]}
+                onChange={(blankIdx, value) => {
+                  const id = mapIds[blankIdx]
+                  if (!id) return
+                  setAnswers((prev) => ({ ...prev, [id]: value }))
+                }}
+                onFocusBlank={(blankIdx) => setActiveQuestion(8 + blankIdx)}
+              />
+            </div>
+          ) : null}
+
+          {isListeningMock1 && facilitiesIds.length === 6 ? (
+            <div
+              ref={(el) => {
+                for (let i = 12; i < 18; i++) questionRefs.current[i] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningStudentFacilitiesNotes
+                values={[
+                  answers[facilitiesIds[0]!] ?? "",
+                  answers[facilitiesIds[1]!] ?? "",
+                  answers[facilitiesIds[2]!] ?? "",
+                  answers[facilitiesIds[3]!] ?? "",
+                  answers[facilitiesIds[4]!] ?? "",
+                  answers[facilitiesIds[5]!] ?? "",
+                ]}
+                onChange={(blankIdx, value) => {
+                  const id = facilitiesIds[blankIdx]
+                  if (!id) return
+                  setAnswers((prev) => ({ ...prev, [id]: value }))
+                }}
+                onFocusBlank={(blankIdx) => setActiveQuestion(12 + blankIdx)}
+              />
+            </div>
+          ) : null}
+
+          {isListeningMock1 && tableIds.length === 5 ? (
+            <div
+              ref={(el) => {
+                for (let i = 18; i < 23; i++) questionRefs.current[i] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningJohnJaneTable
+                values={[
+                  answers[tableIds[0]!] ?? "",
+                  answers[tableIds[1]!] ?? "",
+                  answers[tableIds[2]!] ?? "",
+                  answers[tableIds[3]!] ?? "",
+                  answers[tableIds[4]!] ?? "",
+                ]}
+                onChange={(blankIdx, value) => {
+                  const id = tableIds[blankIdx]
+                  if (!id) return
+                  setAnswers((prev) => ({ ...prev, [id]: value }))
+                }}
+                onFocusBlank={(blankIdx) => setActiveQuestion(18 + blankIdx)}
+              />
+            </div>
+          ) : null}
+
+          {isListeningMock1 && shortIds.length === 4 ? (
+            <div
+              ref={(el) => {
+                for (let i = 23; i < 27; i++) questionRefs.current[i] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningShortAnswers2629
+                values={[
+                  answers[shortIds[0]!] ?? "",
+                  answers[shortIds[1]!] ?? "",
+                  answers[shortIds[2]!] ?? "",
+                  answers[shortIds[3]!] ?? "",
+                ]}
+                onChange={(blankIdx, value) => {
+                  const id = shortIds[blankIdx]
+                  if (!id) return
+                  setAnswers((prev) => ({ ...prev, [id]: value }))
+                }}
+                onFocusBlank={(blankIdx) => setActiveQuestion(23 + blankIdx)}
+              />
+            </div>
+          ) : null}
+
+          {isListeningMock1 && mc30Id ? (
+            <div
+              ref={(el) => {
+                questionRefs.current[27] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningMcSection3134
+                subtitle="Question 30"
+                instruction="Choose the correct letter A – C."
+                questions={[
+                  {
+                    id: mc30Id,
+                    number: 30,
+                    prompt:
+                      quiz.questions[27]?.prompt.replace(/^Question 30\s*/i, "").trim() ||
+                      "Where will John and Jane meet up later that day?",
+                    options: quiz.questions[27]?.options ?? [],
+                    value: answers[mc30Id] ?? "",
+                  },
+                ]}
+                onChange={(questionId, value) =>
+                  setAnswers((prev) => ({ ...prev, [questionId]: value }))
+                }
+                onFocus={() => setActiveQuestion(27)}
+              />
+            </div>
+          ) : null}
+
+          {isListeningMock1 && mc3134Ids.length === 4 ? (
+            <div
+              ref={(el) => {
+                for (let i = 28; i < 32; i++) questionRefs.current[i] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningMcSection3134
+                title="SECTION 4 Questions 31 – 40"
+                subtitle="Questions 31 – 34"
+                instruction="Choose the correct letters A – C."
+                questions={mc3134Ids.map((id, i) => {
+                  const raw = quiz.questions[28 + i]
+                  const prompt =
+                    raw?.prompt
+                      .replace(/^SECTION 4[^\n]*\n?/i, "")
+                      .replace(/^\d+\.\s*/, "")
+                      .trim() || `Question ${31 + i}`
+                  return {
+                    id,
+                    number: 31 + i,
+                    prompt,
+                    options: raw?.options ?? [],
+                    value: answers[id] ?? "",
+                  }
+                })}
+                onChange={(questionId, value) =>
+                  setAnswers((prev) => ({ ...prev, [questionId]: value }))
+                }
+                onFocus={(questionId) => {
+                  const idx = mc3134Ids.indexOf(questionId)
+                  if (idx >= 0) setActiveQuestion(28 + idx)
+                }}
+              />
+            </div>
+          ) : null}
+
+          {isListeningMock1 && oilIds.length === 5 ? (
+            <div
+              ref={(el) => {
+                for (let i = 32; i < 37; i++) questionRefs.current[i] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningOilTechniquesTable
+                values={[
+                  answers[oilIds[0]!] ?? "",
+                  answers[oilIds[1]!] ?? "",
+                  answers[oilIds[2]!] ?? "",
+                  answers[oilIds[3]!] ?? "",
+                  answers[oilIds[4]!] ?? "",
+                ]}
+                onChange={(blankIdx, value) => {
+                  const id = oilIds[blankIdx]
+                  if (!id) return
+                  setAnswers((prev) => ({ ...prev, [id]: value }))
+                }}
+                onFocusBlank={(blankIdx) => setActiveQuestion(32 + blankIdx)}
+              />
+            </div>
+          ) : null}
+
+          {isListeningMock1 && q40Id ? (
+            <div
+              ref={(el) => {
+                questionRefs.current[37] = el
+              }}
+              className="scroll-mt-56"
+            >
+              <ListeningQuestion40
+                value={answers[q40Id] ?? ""}
+                onChange={(value) => setAnswers((prev) => ({ ...prev, [q40Id]: value }))}
+                onFocus={() => setActiveQuestion(37)}
+              />
+            </div>
+          ) : null}
+
           {quiz.questions.map((q, idx) => {
-            if (q.id && formQuestionIdSet.has(q.id)) return null
+            if (q.id && paperQuestionIdSet.has(q.id)) return null
             const optionLooksMath = q.options.every((o) =>
               /[/\\^()]|^\d|MATH|dfrac|frac/.test(o.text),
             )
