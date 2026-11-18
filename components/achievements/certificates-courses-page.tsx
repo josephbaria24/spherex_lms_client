@@ -7,6 +7,7 @@ import { ArrowLeft, Download, ImageIcon, Maximize2, X } from "lucide-react"
 import { toast } from "sonner"
 import { GrowHeader } from "@/components/grow-shell"
 import { Button } from "@/components/ui/button"
+import { apiDownload } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
 import type { LearnAchievementsPayload } from "@/lib/learn-achievements-types"
 import {
@@ -24,26 +25,7 @@ function formatIssued(iso: string) {
 }
 
 async function downloadPdf(certId: string, serial: string | null) {
-  const res = await fetch(`/api/lms/certificates/${certId}/pdf`, { credentials: "include" })
-  if (!res.ok) {
-    const text = await res.text()
-    let message = "Download failed"
-    try {
-      message = (JSON.parse(text) as { error?: string }).error ?? message
-    } catch {
-      // ignore
-    }
-    throw new Error(message)
-  }
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = `${serial ?? certId}.pdf`
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
+  await apiDownload(`/certificates/${certId}/pdf`, `${serial ?? certId}.pdf`)
 }
 
 export function CertificatesCoursesPage({

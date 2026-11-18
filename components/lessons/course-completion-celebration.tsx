@@ -11,7 +11,7 @@ import {
   RefreshCcw,
   Sparkles,
 } from "lucide-react"
-import { apiGet } from "@/lib/api"
+import { apiDownload, apiGet } from "@/lib/api"
 import type { CourseCompletionSummary } from "@/lib/course-completion-types"
 import { ConfettiBurst } from "@/components/lessons/confetti-burst"
 import { Button } from "@/components/ui/button"
@@ -65,17 +65,10 @@ export function CourseCompletionCelebration({
     if (!summary?.certificate) return
     setDownloading(true)
     try {
-      const res = await fetch(summary.certificate.pdf_url, { credentials: "include" })
-      if (!res.ok) throw new Error("Could not download certificate")
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `${summary.course.title.replace(/[^\w.-]+/g, "_")}-certificate.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      URL.revokeObjectURL(url)
+      const filename = `${summary.course.title.replace(/[^\w.-]+/g, "_")}-certificate.pdf`
+      // pdf_url is already `/api/lms/...`; apiDownload prefixes `/api/lms`, so strip it.
+      const path = summary.certificate.pdf_url.replace(/^\/api\/lms/, "")
+      await apiDownload(path, filename)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not download certificate")
     } finally {

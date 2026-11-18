@@ -55,7 +55,17 @@ export async function proxyToBackend(req: NextRequest, backendPath: string) {
   }
 
   const disposition = upstream.headers.get("content-disposition")
-  if (disposition?.includes("attachment") && upstream.ok) {
+  // Only rewrite ZIP package downloads to a public /downloads URL.
+  // Certificate PDFs (and other non-zip attachments) must stream through as binary —
+  // treating them as zip returned JSON that clients saved as a broken .pdf.
+  const isZipAttachment =
+    Boolean(disposition?.includes("attachment")) &&
+    upstream.ok &&
+    (upstreamType.includes("application/zip") ||
+      upstreamType.includes("application/x-zip-compressed") ||
+      /\.zip"/i.test(disposition ?? ""))
+
+  if (isZipAttachment) {
     const bytes = Buffer.from(await upstream.arrayBuffer())
     const id = randomUUID()
     const dir = path.join(process.cwd(), "public", "downloads")
@@ -65,7 +75,7 @@ export async function proxyToBackend(req: NextRequest, backendPath: string) {
     setTimeout(() => {
       void unlink(path.join(dir, storedName)).catch(() => {})
     }, 10 * 60 * 1000)
-    const match = /filename="([^"]+)"/.exec(disposition)
+    const match = /filename="([^"]+)"/.exec(disposition ?? "")
     return NextResponse.json({
       url: `/downloads/${storedName}`,
       filename: match?.[1] ?? "download.zip",
@@ -74,9 +84,10 @@ export async function proxyToBackend(req: NextRequest, backendPath: string) {
 
   const buffer = await upstream.arrayBuffer()
   const responseHeaders = new Headers()
-  responseHeaders.set("Content-Type", upstreamType)
+  responseHeaders.set("Content-Type", upstreamType || "application/octet-stream")
   const cacheControl = upstream.headers.get("cache-control")
   if (cacheControl) responseHeaders.set("Cache-Control", cacheControl)
+  if (disposition) responseHeaders.set("Content-Disposition", disposition)
 
   return new NextResponse(buffer, {
     status: upstream.status,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { Award, Download, Info } from "lucide-react"
 import { useAuth } from "@/app/provider"
-import { apiGet, apiPost } from "@/lib/api"
+import { apiDownload, apiGet, apiPost } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
@@ -81,18 +81,11 @@ export function IeltsCertificatePanel() {
 
   async function download() {
     const serial = status?.certificate?.serial_number ?? "ielts-certificate"
-    const res = await fetch("/api/lms/reviewers/ielts/certificate/pdf", { credentials: "include" })
-    if (!res.ok) {
+    try {
+      await apiDownload("/reviewers/ielts/certificate/pdf", `${serial}.pdf`)
+    } catch {
       toast.error("Could not download the certificate")
-      return
     }
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${serial}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   const pct =

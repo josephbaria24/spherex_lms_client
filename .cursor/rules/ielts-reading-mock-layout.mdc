@@ -1,0 +1,41 @@
+---
+description: Clean document layout for IELTS Academic Reading mock exams
+globs: components/ielts/reading-mock-document.tsx,components/reviewers/practice-session.tsx,components/reviewers/reviewer-quiz-taker.tsx,lib/ielts-academic-materials.ts,scripts/convert-reading-mock*.mjs,src/db/seed-ielts-reading-mock*.ts,src/db/ielts-reading-mock*-seed.json
+alwaysApply: false
+---
+
+# IELTS Reading Mock Document Layout
+
+Use this for **every** IELTS Academic Reading mock (Mock Test 1, 2, 3, …), not only Day 1.
+
+## Shell (`PracticeSession`)
+
+When `isReadingMock` (title/category contains Reading + Mock Test + has `passage_html`):
+
+- Canvas: `#f7f8fa`, no colorful glow blobs
+- Width: `max-w-4xl`
+- Header: uppercase navy title (`READING MOCK TEST N`), Petrosphere • date, light breadcrumb bar
+- Do **not** use the frosted skill card / meta chips header
+
+## Paper body (`ReviewerQuizTaker` + `reading-mock-document`)
+
+- Single-column document (never side-by-side passage sticky pane)
+- Sticky question number strip: plain text numbers, Review (amber) / Answered (sky) legend
+- Interleave **Passage 1 → Qs → Passage 2 → Qs → Passage 3 → Qs**
+- Navy headings (`#1e1b4b`), slate body, generous spacing
+- Instructions: bold ranges/keywords (`YES`/`NO`/`NOT GIVEN`/`TRUE`/`FALSE`, `A–G`, `14–19`); option lists in bordered boxes
+- Each item: statement + `Answer:` small input (paper style)
+- Floating progress FAB: portal to `document.body`, `fixed bottom-6 right-6`, yellow ring + %
+
+## Content import
+
+- Source: LearnDash `.wpq` exports
+- Convert with `scripts/convert-reading-mock-N.mjs` → `src/db/ielts-reading-mock-N-seed.json`
+- Seed with `npm run db:seed:ielts-reading-mock-N`
+- Prefer `fill_blank` answers matching the paper (letters/words/Y-N-NG/T-F-NG)
+- Wire hub CTA via `practiceTitle: "IELTS Reading — Mock Test N"` in `ielts-academic-materials.ts`
+
+## Do not
+
+- Reintroduce the two-column reading sidebar for academic mocks
+- Trap the progress FAB inside `animate-in` / transformed parents without a portal

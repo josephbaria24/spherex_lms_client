@@ -22,6 +22,15 @@ import {
   ListeningShortAnswers2629,
   ListeningStudentFacilitiesNotes,
 } from "@/components/ielts/listening-mock-sections"
+import {
+  groupReadingQuestions,
+  parseReadingDocument,
+  passageRangeForGroup,
+  ReadingExamTitle,
+  ReadingPassageView,
+  ReadingProgressFab,
+  ReadingQuestionGroupView,
+} from "@/components/ielts/reading-mock-document"
 import { toast } from "sonner"
 import {
   HiCancel,
@@ -539,6 +548,10 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
     band_score: number | null
   } | null>(null)
   const isMockExam = /mock test/i.test(`${quiz.title} ${quiz.category ?? ""}`)
+  const isReadingMock =
+    /reading/i.test(`${quiz.title} ${quiz.category ?? ""}`) &&
+    isMockExam &&
+    Boolean(quiz.passage_html?.trim())
   const isListeningMock1 =
     /listening\s*[—-]\s*mock test 1/i.test(quiz.title) && quiz.questions.length >= 38
   const idsAt = (start: number, count: number) =>
@@ -761,6 +774,147 @@ export function ReviewerQuizTaker({ quiz, accent = "teal" }: ReviewerQuizTakerPr
   function scrollToQuestion(idx: number) {
     setActiveQuestion(idx)
     questionRefs.current[idx]?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  if (isReadingMock) {
+    const { examTitle, passages } = parseReadingDocument(quiz.passage_html ?? "")
+    const groups = groupReadingQuestions(quiz.questions)
+    const byPassage: Record<1 | 2 | 3, typeof groups> = { 1: [], 2: [], 3: [] }
+    const unassigned: typeof groups = []
+    for (const group of groups) {
+      const range = passageRangeForGroup(group.title, group.questions[0]?.number)
+      if (range) byPassage[range].push(group)
+      else unassigned.push(group)
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="sticky top-[4.5rem] z-20 space-y-2 bg-[#f7f8fa]/95 pb-2 backdrop-blur-sm">
+          {secondsLeft != null ? (
+            <div
+              className={cn(
+                "flex items-center justify-between border px-4 py-2.5 text-sm",
+                urgent
+                  ? "border-rose-300 bg-rose-50 text-rose-800"
+                  : "border-slate-200 bg-white text-slate-700",
+              )}
+            >
+              <span className="inline-flex items-center gap-2 font-medium">
+                <HiClock className={cn("h-4 w-4", urgent && "animate-pulse")} />
+                Time remaining
+              </span>
+              <span className="font-mono text-base font-semibold tracking-wider">
+                {formatTime(secondsLeft)}
+              </span>
+            </div>
+          ) : null}
+
+          <div className="border border-slate-200 bg-white px-3 py-3 sm:px-4">
+            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5 sm:gap-x-4">
+              {quiz.questions.map((q, idx) => {
+                const answered = isAnswered(q.id, q.question_type)
+                const flagged = Boolean(q.id && reviewMarked[q.id])
+                return (
+                  <button
+                    key={q.id ?? idx}
+                    type="button"
+                    onClick={() => scrollToQuestion(idx)}
+                    className={cn(
+                      "min-w-[1.1rem] text-sm font-medium tabular-nums transition-colors",
+                      activeQuestion === idx && "underline decoration-2 underline-offset-4",
+                      flagged
+                        ? "text-amber-600"
+                        : answered
+                          ? "text-sky-600"
+                          : "text-slate-500 hover:text-[#1e1b4b]",
+                    )}
+                    aria-label={`Question ${idx + 1}`}
+                  >
+                    {idx + 1}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                Review
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-sky-500 text-[8px] text-sky-600">
+                  ↻
+                </span>
+                Answered
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-14 pb-8">
+          {examTitle ? <ReadingExamTitle title={examTitle} /> : null}
+          {([1, 2, 3] as const).map((n) => {
+            const block = passages.find((p) => p.number === n)
+            const sectionGroups = byPassage[n]
+            if (!block && sectionGroups.length === 0) return null
+            return (
+              <div key={n} className="space-y-10">
+                {block ? <ReadingPassageView block={block} /> : null}
+                {sectionGroups.map((group) => (
+                  <ReadingQuestionGroupView
+                    key={group.key}
+                    group={group}
+                    answers={answers}
+                    flagged={reviewMarked}
+                    activeIndex={activeQuestion}
+                    onAnswer={(id, value) =>
+                      setAnswers((prev) => ({ ...prev, [id]: value }))
+                    }
+                    onFocus={setActiveQuestion}
+                    onToggleReview={(id) =>
+                      setReviewMarked((prev) => ({ ...prev, [id]: !prev[id] }))
+                    }
+                    inputRef={(index, el) => {
+                      questionRefs.current[index] = el
+                    }}
+                  />
+                ))}
+              </div>
+            )
+          })}
+
+          {unassigned.map((group) => (
+            <ReadingQuestionGroupView
+              key={group.key}
+              group={group}
+              answers={answers}
+              flagged={reviewMarked}
+              activeIndex={activeQuestion}
+              onAnswer={(id, value) => setAnswers((prev) => ({ ...prev, [id]: value }))}
+              onFocus={setActiveQuestion}
+              onToggleReview={(id) =>
+                setReviewMarked((prev) => ({ ...prev, [id]: !prev[id] }))
+              }
+              inputRef={(index, el) => {
+                questionRefs.current[index] = el
+              }}
+            />
+          ))}
+
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="h-12 w-full rounded-full bg-[#1e1b4b] text-base font-semibold text-white hover:bg-[#16143d]"
+          >
+            {submitting ? "Submitting…" : "Submit answers"}
+          </Button>
+        </form>
+
+        <ReadingProgressFab
+          progress={progress}
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        />
+      </div>
+    )
   }
 
   return (

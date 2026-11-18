@@ -102,30 +102,56 @@ export function PracticeSession({ quizId, backHref, backLabel }: PracticeSession
   const hasPassage = Boolean(quiz?.passage_html?.trim())
   const hasAudio = Boolean(quiz?.audio_url?.trim())
   const isMockExam = /mock test/i.test(`${quiz?.title ?? ""} ${quiz?.category ?? ""}`)
+  const isReadingMock =
+    Boolean(quiz) &&
+    /reading/i.test(`${quiz?.title ?? ""} ${quiz?.category ?? ""}`) &&
+    isMockExam &&
+    hasPassage
+  const readingTitle = quiz?.title
+    ? quiz.title.replace(/^IELTS\s+/i, "").replace(/\s*[—-]\s*/g, " ").toUpperCase()
+    : "READING MOCK TEST"
+  const readingDate = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f4f7f9] text-slate-800 dark:bg-background dark:text-foreground">
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className={cn("absolute inset-0 bg-gradient-to-br", tone.glow)} />
-        <div className="absolute -left-20 top-24 h-72 w-72 rounded-full bg-teal-200/40 blur-3xl dark:bg-teal-500/10" />
-        <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-sky-200/35 blur-3xl dark:bg-sky-500/10" />
-        <div className="absolute bottom-20 left-1/3 h-64 w-64 rounded-full bg-amber-100/40 blur-3xl dark:bg-amber-500/10" />
-        <div
-          className="absolute inset-0 opacity-[0.4]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(15, 55, 70, 0.06) 1px, transparent 0)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-      </div>
+    <div
+      className={cn(
+        "relative min-h-screen overflow-hidden text-slate-800 dark:bg-background dark:text-foreground",
+        isReadingMock ? "bg-[#f7f8fa]" : "bg-[#f4f7f9]",
+      )}
+    >
+      {!isReadingMock ? (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          <div className={cn("absolute inset-0 bg-gradient-to-br", tone.glow)} />
+          <div className="absolute -left-20 top-24 h-72 w-72 rounded-full bg-teal-200/40 blur-3xl dark:bg-teal-500/10" />
+          <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-sky-200/35 blur-3xl dark:bg-sky-500/10" />
+          <div className="absolute bottom-20 left-1/3 h-64 w-64 rounded-full bg-amber-100/40 blur-3xl dark:bg-amber-500/10" />
+          <div
+            className="absolute inset-0 opacity-[0.4]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(15, 55, 70, 0.06) 1px, transparent 0)",
+              backgroundSize: "24px 24px",
+            }}
+          />
+        </div>
+      ) : null}
 
       <LandingHeader />
 
       <main
         className={cn(
           "relative mx-auto px-4 pb-20 pt-28 sm:px-6",
-          hasPassage || (hasAudio && isMockExam) ? "max-w-6xl" : hasAudio ? "max-w-4xl" : "max-w-3xl",
+          isReadingMock
+            ? "max-w-4xl"
+            : hasPassage || (hasAudio && isMockExam)
+              ? "max-w-6xl"
+              : hasAudio
+                ? "max-w-4xl"
+                : "max-w-3xl",
         )}
       >
         <Link
@@ -146,6 +172,26 @@ export function PracticeSession({ quizId, backHref, backLabel }: PracticeSession
         ) : error || !quiz ? (
           <div className="mt-12 rounded-2xl border border-red-200 bg-red-50 px-6 py-10 text-center text-red-700 shadow-sm dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
             {error ?? "Quiz not found"}
+          </div>
+        ) : isReadingMock ? (
+          <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <header className="space-y-3">
+              <div>
+                <h1 className="text-2xl font-bold uppercase tracking-tight text-[#1e1b4b] sm:text-3xl">
+                  {readingTitle}
+                </h1>
+                <p className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#FF4B1A]" aria-hidden />
+                  Petrosphere • {readingDate}
+                </p>
+              </div>
+              <div className="bg-slate-200/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 sm:text-xs">
+                IELTS Academic Mock Exam 1 &gt; {readingTitle}
+              </div>
+            </header>
+            <div className="mt-6">
+              <ReviewerQuizTaker quiz={quiz} accent="indigo" />
+            </div>
           </div>
         ) : (
           <div className="mt-8 animate-in fade-in slide-in-from-bottom-2 duration-500">

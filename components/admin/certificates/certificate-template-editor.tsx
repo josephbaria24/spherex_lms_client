@@ -301,7 +301,7 @@ export function CertificateTemplateEditor({
           <input
             ref={fileRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/png,image/jpeg"
             className="hidden"
             onChange={(event) => {
               const file = event.target.files?.[0]
@@ -335,8 +335,9 @@ export function CertificateTemplateEditor({
         </div>
         <p className="text-xs text-muted-foreground">
           Drag a field to place it. Placeholders fill in with the learner, course, date, and serial
-          number when the PDF is issued. Upload a high-resolution PNG or JPG (print/300 DPI
-          recommended, up to 50 MB) — the file is stored as-is with no compression or resize.
+          number when the PDF is issued. Upload a high-resolution PNG or JPG at print size
+          (300 DPI recommended, e.g. ~3508×2480 for A4 landscape, up to 50 MB). The file is
+          stored and embedded in the PDF as-is — no resize or re-compression — so printouts stay sharp.
         </p>
         <div ref={stageRef} className="overflow-hidden rounded-xl border bg-[#f4f1ec] p-3 dark:bg-muted/30">
           <div

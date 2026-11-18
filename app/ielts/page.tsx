@@ -37,22 +37,22 @@ type SkillIcon = (props: { className?: string }) => React.ReactElement
 const SKILL_META: Record<string, { icon: SkillIcon; blurb: string; tint: string }> = {
   Listening: {
     icon: HiHeadphones,
-    blurb: "Form completion, conversations, monologues, and ads with practice audio.",
+    blurb: "Optional drills — form completion, conversations, and ads. Not a recorded mock.",
     tint: "from-sky-50 to-cyan-50 border-sky-200 dark:from-sky-950/40 dark:to-cyan-950/30 dark:border-sky-800",
   },
   Reading: {
     icon: HiBookOpen,
-    blurb: "Academic passages with a shared reading panel, MCQ, multi-select, and fill-blank.",
+    blurb: "Optional passage drills — MCQ, multi-select, and fill-blank. Not a recorded mock.",
     tint: "from-indigo-50 to-sky-50 border-indigo-200 dark:from-indigo-950/40 dark:to-sky-950/30 dark:border-indigo-800",
   },
   Writing: {
     icon: HiPen,
-    blurb: "Task 1 chart description and Task 2 essay. Length is checked; a person does not mark the writing.",
+    blurb: "Optional Task 1 / Task 2 practice. Length is checked; not a recorded live mock.",
     tint: "from-amber-50 to-orange-50 border-amber-200 dark:from-amber-950/40 dark:to-orange-950/30 dark:border-amber-800",
   },
   Speaking: {
     icon: HiMic,
-    blurb: "Record Part 1, 2, and 3 with your microphone. Length is checked; a person does not score the speech.",
+    blurb: "Optional Part 1–3 mic practice. Length is checked; not a recorded live mock.",
     tint: "from-rose-50 to-orange-50 border-rose-200 dark:from-rose-950/40 dark:to-orange-950/30 dark:border-rose-800",
   },
 }
@@ -68,7 +68,7 @@ export default function IeltsHubPage() {
   const [groups, setGroups] = useState<PublicReviewerGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [track, setTrack] = useState<IeltsTrack | null>(null)
+  const [track, setTrack] = useState<IeltsTrack | null>("academic")
   const [ukviOpen, setUkviOpen] = useState(false)
   const pendingMocksScroll = useRef(false)
   const access = useIeltsAccess()
@@ -310,48 +310,62 @@ export default function IeltsHubPage() {
                   onLocked={(title) => access.ask(title)}
                 />
               </div>
-              <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {sorted.map((group) => {
-                  const meta = SKILL_META[group.subject] ?? SKILL_META[group.title]
-                  const Icon = meta?.icon ?? HiBookOpen
-                  return (
-                    <Link
-                      key={group.id}
-                      href={`/ielts/${group.id}`}
-                      className={cn(
-                        "group rounded-2xl border bg-gradient-to-br p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
-                        meta?.tint ?? "from-slate-50 to-white border-slate-200 dark:from-muted/40 dark:to-card dark:border-border",
-                      )}
-                    >
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-background">
-                        <Icon className="h-5 w-5 text-slate-700 dark:text-slate-200" />
-                      </span>
-                      <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">{group.title}</h2>
-                      <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
-                        {meta?.blurb ?? group.description}
-                      </p>
-                      <p className="mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-                        {group.quiz_count} {group.quiz_count === 1 ? "set" : "sets"}
-                        {group.question_count
-                          ? ` · ${group.question_count} questions`
-                          : ""}
-                      </p>
-                      <span className="mt-4 inline-flex items-center text-sm font-semibold text-teal-700 dark:text-teal-400">
-                        Open
-                        <HiArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                      </span>
-                    </Link>
-                  )
-                })}
-              </div>
+              <section id="ielts-practice-tests" className="mt-10 scroll-mt-24 sm:mt-12">
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-foreground">Practice tests</h3>
+                  <p className="mt-0.5 max-w-2xl text-xs leading-5 text-muted-foreground">
+                    Optional — not recorded. Extra skill drills if you want them.
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {sorted.map((group) => {
+                    const meta = SKILL_META[group.subject] ?? SKILL_META[group.title]
+                    const Icon = meta?.icon ?? HiBookOpen
+                    const practiceCount = (group.quizzes ?? []).filter((quiz) => {
+                      const hay = `${quiz.title} ${quiz.category ?? ""}`.toLowerCase()
+                      return !hay.includes("mock test")
+                    }).length
+                    return (
+                      <Link
+                        key={group.id}
+                        href={`/ielts/${group.id}`}
+                        className="group flex items-start gap-3 rounded-xl border border-border/60 bg-white/70 px-3 py-3 transition-colors hover:border-border hover:bg-white dark:bg-card/40 dark:hover:bg-card/70"
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-muted dark:text-muted-foreground">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-slate-800 dark:text-foreground">
+                              {group.title}
+                            </span>
+                            <HiArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-600 dark:text-muted-foreground" />
+                          </span>
+                          <span className="mt-0.5 block text-[11px] leading-4 text-muted-foreground">
+                            {practiceCount} {practiceCount === 1 ? "set" : "sets"} · optional
+                          </span>
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </section>
 
               <div className="mt-14">
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">All practice sets</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Jump into a skill card below</p>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                      All practice sets
+                    </h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Optional drills — not recorded live mocks
+                    </p>
                   </div>
-                  <Button asChild variant="outline" className="rounded-full dark:border-border dark:bg-transparent dark:hover:bg-muted">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full dark:border-border dark:bg-transparent dark:hover:bg-muted"
+                  >
                     <Link href="/reviewers">Exam reviewers (CSE, NLE, LET)</Link>
                   </Button>
                 </div>

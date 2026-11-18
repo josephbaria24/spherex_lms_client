@@ -8,7 +8,7 @@ import { GrowHeader } from "@/components/grow-shell"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { apiGet, apiUploadFile, ApiError } from "@/lib/api"
+import { apiDownload, apiGet, apiUploadFile, ApiError } from "@/lib/api"
 import { assetUrl } from "@/lib/asset-url"
 import { cn } from "@/lib/utils"
 import type { LearnAchievementsPayload } from "@/lib/learn-achievements-types"
@@ -145,28 +145,7 @@ export function StudentAchievementsPage({ data }: StudentAchievementsPageProps) 
   async function downloadPdf(certId: string, serial: string | null) {
     setDownloadingId(certId)
     try {
-      const res = await fetch(`/api/lms/certificates/${certId}/pdf`, {
-        credentials: "include",
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        let message = "Download failed"
-        try {
-          message = (JSON.parse(text) as { error?: string }).error ?? message
-        } catch {
-          // ignore
-        }
-        throw new Error(message)
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${serial ?? certId}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      await apiDownload(`/certificates/${certId}/pdf`, `${serial ?? certId}.pdf`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Download failed")
     } finally {
